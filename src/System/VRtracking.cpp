@@ -14,6 +14,7 @@ extern "C" {
 
 
 extern vr::IVRSystem *gIVRSystem;
+extern float gIpdScale;
 
 vr::TrackedDevicePose_t trackedDevicePoseHMD;
 vr::TrackedDevicePose_t trackedDevicePoseLeftHand;
@@ -234,7 +235,7 @@ OGLMatrix4x4 hmdMatrix3x4_to_OGLMatrix4x4(vr::HmdMatrix34_t *vrMat) {
 	printf("%f   ", tempMat.value[M32]);
 	printf("%f   \n\n\n\n\n\n\n\n\n", tempMat.value[M33]);
 
-	return tempMat;
+	return oglMat;
 }
 
 OGLMatrix4x4 hmdMatrix4x4_to_OGLMatrix4x4(vr::HmdMatrix44_t *vrMat) {
@@ -349,8 +350,31 @@ extern "C" void vrcpp_updateTrackedDevices(void)
 
 	vr::HmdMatrix34_t vrEyeToHeadLeft = gIVRSystem->GetEyeToHeadTransform(vr::Eye_Left);
 	vr::HmdMatrix34_t vrEyeToHeadRight = gIVRSystem->GetEyeToHeadTransform(vr::Eye_Right);
-	vrInfoHMD.HMDeyeToHeadLeft = hmdMatrix3x4_to_OGLMatrix4x4(&vrEyeToHeadLeft);
-	vrInfoHMD.HMDeyeToHeadRight = hmdMatrix3x4_to_OGLMatrix4x4(&vrEyeToHeadRight);
+
+	// Combine HMD tracking info with eye-to-head transforms
+	vr::HmdMatrix34_t hmdTrackingMatrix = trackedDevices[vrInfoHMD.deviceID].mDeviceToAbsoluteTracking;
+
+	OGLMatrix4x4 hmdTrackingOGLMatrix = hmdMatrix3x4_to_OGLMatrix4x4(&hmdTrackingMatrix);
+	OGLMatrix4x4 eyeToHeadLeftOGLMatrix = hmdMatrix3x4_to_OGLMatrix4x4(&vrEyeToHeadLeft);
+	OGLMatrix4x4 eyeToHeadRightOGLMatrix = hmdMatrix3x4_to_OGLMatrix4x4(&vrEyeToHeadRight);
+
+	OGLMatrix4x4 hmdTrackingInverse;
+	OGLMatrix4x4_Invert(&hmdTrackingOGLMatrix, &hmdTrackingInverse);
+
+	// Scale the eye-to-head matrices (just the translation part)
+	OGLMatrix4x4 scaledEyeToHeadLeft = eyeToHeadLeftOGLMatrix;
+	scaledEyeToHeadLeft.value[M03] *= -gIpdScale;  // Scale X translation
+	scaledEyeToHeadLeft.value[M13] *= -gIpdScale;  // Scale Y translation
+	scaledEyeToHeadLeft.value[M23] *= -gIpdScale;  // Scale Z translation
+
+	OGLMatrix4x4 scaledEyeToHeadRight = eyeToHeadRightOGLMatrix;
+	scaledEyeToHeadRight.value[M03] *= -gIpdScale;  // Scale X translation
+	scaledEyeToHeadRight.value[M13] *= -gIpdScale;  // Scale Y translation
+	scaledEyeToHeadRight.value[M23] *= -gIpdScale;  // Scale Z translation
+
+	// Now multiply with the scaled versions
+	OGLMatrix4x4_Multiply(&hmdTrackingInverse, &scaledEyeToHeadLeft, &vrInfoHMD.HMDeyeToHeadLeft);
+	OGLMatrix4x4_Multiply(&hmdTrackingInverse, &scaledEyeToHeadRight, &vrInfoHMD.HMDeyeToHeadRight);
 
 
 	// FOR TESTING ONLY, DISABLE WHEN USING REAL CONTROLLERS!!!!!!!!!!!!!!!!!!!!!

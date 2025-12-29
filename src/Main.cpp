@@ -13,8 +13,10 @@
 
 #include <iostream>
 #include <cstring>
+#include <windows.h>
 
 vr::IVRSystem *gIVRSystem;
+float gIpdScale = 100.0f; // A larger number makes the world appear smaller
 
 #if __APPLE__
 #include "killmacmouseacceleration.h"
@@ -247,6 +249,7 @@ void GetIVRErrorString(char errorString[255], vr::HmdError peError)
 
 int Boot(int argc, const char** argv)
 {
+	SetProcessDPIAware();
 	ParseCommandLine(argc, argv);
 
 	// Start our "machine"
@@ -300,6 +303,7 @@ retry:
 		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1 << gGamePrefs.antialiasingLevel);
 	}
 
+	
 	gSDLWindow = SDL_CreateWindow(
 			GetWindowTitle(),
 			SDL_WINDOWPOS_CENTERED_DISPLAY(gGamePrefs.preferredDisplay),
