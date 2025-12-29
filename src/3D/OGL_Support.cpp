@@ -20,6 +20,8 @@
 #include "vr_support.h"
 extern vr::IVRSystem *gIVRSystem;
 
+#include <fstream>
+
 /****************************/
 /*    PROTOTYPES            */
 /****************************/
@@ -90,6 +92,8 @@ Boolean		gMyState_Lighting;
 
 static ObjNode* gDebugText;
 
+// Tmp log file
+std::ofstream gOGLLogFile;
 
 /******************** OGL BOOT *****************/
 //
@@ -281,6 +285,8 @@ static char			*s;
 			// The NTSC luminance standard where grayscale = .299r + .587g + .114b
 			//
 
+	// Create log file (temp)
+	gOGLLogFile = std::ofstream ("OGL_CreateDrawContext_log.txt", std::ios::out | std::ios::app);
 	if (gGamePrefs.anaglyph)
 	{
 		if (gGamePrefs.anaglyphColor)
@@ -327,9 +333,9 @@ static char			*s;
 		glGenTextures(1, &gRightEyeTexture);
 
 		glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, gEyeTextureSize, gEyeTextureSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 		glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, gEyeTextureSize, gEyeTextureSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	}
 
 
@@ -520,53 +526,52 @@ void OGL_DrawScene(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOu
 	vrcpp_updateTrackedDevices();
 
 
-	// Render VR first
-
 	// LEFT EYE
-	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
 	glLoadMatrixf(&vrInfoHMD.HMDleftProj.value[M00]);
-	glMultMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
-	
-	glMultMatrixf(&vrInfoHMD.transformationMatrixInverted.value[M00]);
-	// Unsure where exactly to insert the HMD transformation matrix
-	
-	OGL_SetGluLookAtMatrix(
-		&gWorldToViewMatrix,
-		&setupInfo->cameraPlacement.cameraLocation,
-		&setupInfo->cameraPlacement.pointOfInterest,
-		&setupInfo->cameraPlacement.upVector);
-	glMultMatrixf((const GLfloat *)&gWorldToViewMatrix.value[0]);
-	//glScalef(1.25f, 1.25f, 1.25f);
 
 	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
+
+	// Add camera position translation
+	glTranslatef(
+		-setupInfo->cameraPlacement.cameraLocation.x,
+		-setupInfo->cameraPlacement.cameraLocation.y,
+		-setupInfo->cameraPlacement.cameraLocation.z
+	);
+
 	setupInfo->renderLeftEye = true;
 	OGL_DrawEye(setupInfo, drawRoutine);
+	glPopMatrix();
 
 	glFinish();
 
-
 	// RIGHT EYE
-	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
 	glLoadMatrixf(&vrInfoHMD.HMDrightProj.value[M00]);
-	glMultMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
-
-	glMultMatrixf(&vrInfoHMD.transformationMatrixInverted.value[M00]);
-	// Unsure where exactly to insert the HMD transformation matrix
-
-	OGL_SetGluLookAtMatrix(
-		&gWorldToViewMatrix,
-		&setupInfo->cameraPlacement.cameraLocation,
-		&setupInfo->cameraPlacement.pointOfInterest,
-		&setupInfo->cameraPlacement.upVector);
-	glMultMatrixf((const GLfloat *)&gWorldToViewMatrix.value[0]);
-	//glScalef(1.25f, 1.25f, 1.25f);
+	
 
 	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
+
+	// Add camera position translation
+	glTranslatef(
+		-setupInfo->cameraPlacement.cameraLocation.x,
+		-setupInfo->cameraPlacement.cameraLocation.y,
+		-setupInfo->cameraPlacement.cameraLocation.z
+	);
+
 	setupInfo->renderLeftEye = false;
 	OGL_DrawEye(setupInfo, drawRoutine);
+	glPopMatrix();
 
-
-
+	glFinish();
 
 	// lights and listenerLocation, cleanup and put elsewhere?:
 	OGL_Camera_SetPlacementAndUpdateMatrices(setupInfo);
@@ -580,14 +585,15 @@ void OGL_DrawScene(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOu
 	{
 		vr::VRTextureBounds_t bounds = { 
 			0.0f, // left
-			0.92f - static_cast<float>(vrInfoHMD.gEyeTargetHeight) / gEyeTextureSize, // top
-			static_cast<float>(vrInfoHMD.gEyeTargetWidth) / gEyeTextureSize+0.5f, // right
-			1.0f // bottom
-		}; 
+			0.0f, // top
+			static_cast<float>(vrInfoHMD.gEyeTargetWidth) / gEyeTextureSize, // right
+			static_cast<float>(vrInfoHMD.gEyeTargetHeight) / gEyeTextureSize, // bottom
+		};
+
 		vr::Texture_t leftEyeTexture = { (void *)(uintptr_t)gLeftEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
 		vr::Texture_t rightEyeTexture = { (void *)(uintptr_t)gRightEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-		vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, &bounds);
-		vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, &bounds);
+		vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
+		vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
 	}
 
 	glFlush();
@@ -897,8 +903,9 @@ void OGL_DrawEye(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOutp
 
 	{
 		int x, y, w, h;
-		// OGL_GetCurrentViewport(setupInfo, &x, &y, &w, &h);
-		// glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
+		int windowWidth, windowHeight;
+		SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
+		glViewport(0, 0, windowWidth, windowHeight);
 		gCurrentAspectRatio = (float)vrInfoHMD.gEyeTargetWidth / (float) (vrInfoHMD.gEyeTargetHeight == 0? 1: vrInfoHMD.gEyeTargetHeight);
 
 		// Compute logical width & height for 2D elements
@@ -944,7 +951,9 @@ void OGL_DrawEye(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOutp
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0);
+	int windowWidth, windowHeight;
+	SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, windowWidth, windowHeight, 0);
 	glBindTexture(GL_TEXTURE_2D, oldTexture);
 
 

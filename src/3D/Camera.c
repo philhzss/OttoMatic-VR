@@ -413,7 +413,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	else {
 		// VR HMD Controlled view
 		// Set FPS height to VR height
-		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 150; // seems to give reasonable height 
+		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 300; // seems to give reasonable height 
 													   // SLIGHTLY too low when standing? but too high when touching floor. To adjust
 		// firstPersonHeight to be tested / not sure where to apply this now
 		// Set initial to.xyz pos, x & y should be 0, and z -1 * "rotation resolution"

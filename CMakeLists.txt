@@ -40,7 +40,7 @@ set(POMME_NO_QD3D true)
 # DEPENDENCIES
 #------------------------------------------------------------------------------
 
-set(OPENVR_DIRECTORY ${CMAKE_SOURCE_DIR}/extern/openvr-1.16.8)
+set(OPENVR_DIRECTORY ${CMAKE_SOURCE_DIR}/extern/openvr-2.12.14)
 add_subdirectory(extern/Pomme)
 
 find_package(SDL2 REQUIRED COMPONENTS main)

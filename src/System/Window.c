@@ -307,6 +307,11 @@ void Exit2D(void)
 
 void SetFullscreenModeFromPrefs(void)
 {
+	// Never fullscreen for VR
+	SDL_SetWindowFullscreen(gSDLWindow, 0);
+
+	return;
+
 	if (!gGamePrefs.fullscreen)
 	{
 		SDL_SetWindowFullscreen(gSDLWindow, 0);
