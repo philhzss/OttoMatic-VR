@@ -60,7 +60,7 @@ SDL_GLContext	gAGLContext = nil;
 GLuint gLeftEyeTexture = 0;
 GLuint gRightEyeTexture = 0;
 GLuint gEyeTextureSize = 0;
-vr::TrackedDevicePose_t gTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+extern vr::TrackedDevicePose_t trackedDevices[vr::k_unMaxTrackedDeviceCount];
 
 
 OGLMatrix4x4	gViewToFrustumMatrix,gWorldToViewMatrix,gWorldToFrustumMatrix;
@@ -521,11 +521,20 @@ void vr_DoEyeProjection(OGLSetupOutputType *setupInfo) {
 
 void OGL_DrawScene(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOutputType *))
 {
-	vr::VRCompositor()->WaitGetPoses(gTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+	vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 
 	vrcpp_updateTrackedDevices();
 
-
+    printf("Camera pos: %.2f, %.2f, %.2f\n",
+        setupInfo->cameraPlacement.cameraLocation.x,
+        setupInfo->cameraPlacement.cameraLocation.y,
+        setupInfo->cameraPlacement.cameraLocation.z);
+    
+    printf("Camera looking at: %.2f, %.2f, %.2f\n",
+        setupInfo->cameraPlacement.pointOfInterest.x,
+        setupInfo->cameraPlacement.pointOfInterest.y,
+        setupInfo->cameraPlacement.pointOfInterest.z);
+		
 	// LEFT EYE
 	glPushMatrix();
 	glMatrixMode(GL_PROJECTION);
@@ -599,247 +608,6 @@ void OGL_DrawScene(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOu
 	glFlush();
 	glFinish();
 	SDL_GL_SwapWindow(gSDLWindow);
-
-//
-//	if (setupInfo == nil)										// make sure it's legit
-//		DoFatalAlert("OGL_DrawScene setupInfo == nil");
-//	if (!setupInfo->isActive)
-//		DoFatalAlert("OGL_DrawScene isActive == false");
-//
-//	int makeCurrentRC = SDL_GL_MakeCurrent(gSDLWindow, setupInfo->drawContext);		// make context active
-//	GAME_ASSERT_MESSAGE(makeCurrentRC == 0, SDL_GetError());
-//
-//
-//	if (gGammaFadePercent <= 0)							// if we just finished fading out and haven't started fading in yet, just show black
-//	{
-//		glClearColor(0, 0, 0, 1);
-//		glClear(GL_COLOR_BUFFER_BIT);
-//		SDL_GL_SwapWindow(gSDLWindow);					// end render loop
-//		return;
-//	}
-//
-//
-//			/* INIT SOME STUFF */
-//
-//	if (gGamePrefs.anaglyph)
-//	{
-//		gAnaglyphPass = 0;
-//		PrepAnaglyphCameras();
-//	}
-//
-//
-//	if (gDebugMode)
-//	{
-//		int depth = 32;
-//		gVRAMUsedThisFrame = gGameWindowWidth * gGameWindowHeight * (depth / 8);	// backbuffer size
-//		gVRAMUsedThisFrame += gGameWindowWidth * gGameWindowHeight * 2;				// z-buffer size
-//		gVRAMUsedThisFrame += gGameWindowWidth * gGameWindowHeight * (depth / 8);	// display size
-//	}
-//
-//
-//	gPolysThisFrame 	= 0;										// init poly counter
-//	gMostRecentMaterial = nil;
-//	gGlobalMaterialFlags = 0;
-//	SetColor4f(1,1,1,1);
-//
-//				/*****************/
-//				/* CLEAR BUFFERS */
-//				/*****************/
-//
-//				/* MAKE SURE GREEN CHANNEL IS CLEAR */
-//				//
-//				// Bringing up dialogs can write into green channel, so always be sure it's clear
-//				//
-//
-//	if (setupInfo->clearBackBuffer || (gDebugMode == 3))
-//	{
-//		if (gGamePrefs.anaglyph)
-//		{
-//			if (gGamePrefs.anaglyphColor)
-//				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Green/Blue channels
-//			else
-//				glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Blue channels
-//		}
-//		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-//	}
-//	else
-//		glClear(GL_DEPTH_BUFFER_BIT);
-//
-//
-//			/*************************/
-//			/* SEE IF DOING ANAGLYPH */
-//			/*************************/
-//
-//do_anaglyph:
-//
-//	if (gGamePrefs.anaglyph)
-//	{
-//				/* SET COLOR MASK */
-//
-//		if (gAnaglyphPass == 0)
-//		{
-//			glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_TRUE);
-//		}
-//		else
-//		{
-//			if (gGamePrefs.anaglyphColor)
-//				glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_TRUE);
-//			else
-//				glColorMask(GL_FALSE, GL_FALSE, GL_TRUE, GL_TRUE);
-//			glClear(GL_DEPTH_BUFFER_BIT);
-//		}
-//
-//		CalcAnaglyphCameraOffset(gAnaglyphPass);
-//	}
-//	else
-//	{
-//		gAnaglyphPass = 0;
-//		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// this lets us hot-switch between anaglyph and non-anaglyph in the settings
-//	}
-//
-//
-//				/* SET VIEWPORT */
-//
-//	{
-//		int x, y, w, h;
-//		OGL_GetCurrentViewport(setupInfo, &x, &y, &w, &h);
-//		glViewport(x, y, w, h);
-//		gCurrentAspectRatio = (float) w / (float) (h == 0? 1: h);
-//
-//		// Compute logical width & height for 2D elements
-//		g2DLogicalHeight = 480.0f;
-//		if (gCurrentAspectRatio < 4.0f/3.0f)
-//			g2DLogicalWidth = 640.0f;
-//		else
-//			g2DLogicalWidth = 480.0f * gCurrentAspectRatio;
-//	}
-//
-//
-//			/* GET UPDATED GLOBAL COPIES OF THE VARIOUS MATRICES */
-//
-//	OGL_Camera_SetPlacementAndUpdateMatrices(setupInfo);
-//
-//
-//			/* CALL INPUT DRAW FUNCTION */
-//
-//	if (drawRoutine != nil)
-//		drawRoutine(setupInfo);
-//
-//
-//			/***********************************/
-//			/* SEE IF DO ANOTHER ANAGLYPH PASS */
-//			/***********************************/
-//
-//	if (gGamePrefs.anaglyph)
-//	{
-//		gAnaglyphPass++;
-//		if (gAnaglyphPass == 1)
-//			goto do_anaglyph;
-//	}
-//
-//
-//		/**************************/
-//		/* SEE IF SHOW DEBUG INFO */
-//		/**************************/
-//
-//	if (GetNewKeyState(SDL_SCANCODE_F8))
-//	{
-//		if (++gDebugMode > 3)
-//			gDebugMode = 0;
-//
-//		if (gDebugMode == 3)								// see if show wireframe
-//			glPolygonMode(GL_FRONT_AND_BACK ,GL_LINE);
-//		else
-//			glPolygonMode(GL_FRONT_AND_BACK ,GL_FILL);
-//	}
-//
-//				/* SHOW BASIC DEBUG INFO */
-//
-//	if (!gDebugText)
-//	{
-//		// no-op
-//	}
-//	else if (gDebugMode > 0)
-//	{
-//		char debugString[1024];
-//		snprintf(
-//			debugString,
-//			sizeof(debugString),
-//			"fps:\t\t%d\n"
-//			"tris:\t\t%d\n"
-//			"\n"
-//			"input x:\t%.3f\n"
-//			"input y:\t%.3f\n"
-//			"input a:\t%.0f\u00b0\n"
-//			"\n"
-//			"player x:\t%.0f\n"
-//			"player z:\t%.0f\n"
-//			"\n"
-//			"enemies:\t%d\n"
-//			"t-defs:\t%d\n"
-//			"sparkles:\t%d\n"
-//			"h2o:\t\t%d\n"
-//			"ground?\t%c\n"
-//			"\n"
-//			"vram:\t\t%dK\n"
-//#if 0
-//			"ptrs:\t\t%d\n"
-//			"ptr mem:\t%ldK\n"
-//#endif
-//			"nodes:\t%d\n"
-//			"\n"
-//			"time since last thrust:\t%.3f\n"
-//			"force cam align?\t\t%c\n"
-//			"auto rotate cam?\t\t%c\n"
-//			"cam user rot:\t\t%.3f\n"
-//			"cam ctrl dX:\t\t%.3f\n"
-//			,
-//			(int)(gFramesPerSecond+.5f),
-//			gPolysThisFrame,
-//			gPlayerInfo.analogControlX,
-//			gPlayerInfo.analogControlZ,
-//			(180/PI) * ( atan2f(gPlayerInfo.analogControlZ,gPlayerInfo.analogControlX) ),
-//			gPlayerInfo.coord.x,
-//			gPlayerInfo.coord.z,
-//			gNumEnemies,
-//			gNumTerrainDeformations,
-//			gNumSparkles,
-//			gNumWaterDrawn,
-//			gPlayerInfo.objNode && (gPlayerInfo.objNode->StatusBits & STATUS_BIT_ONGROUND)? 'Y': 'N',
-//			gVRAMUsedThisFrame/1024,
-//#if 0
-//			gNumPointers,
-//			gMemAllocatedInPtrs/1024,
-//#endif
-//			gNumObjectNodes,
-//			gTimeSinceLastThrust,
-//			gForceCameraAlignment? 'Y': 'N',
-//			gAutoRotateCamera? 'Y': 'N',
-//			gCameraUserRotY,
-//			gCameraControlDelta.x
-//		);
-//		TextMesh_Update(debugString, 0, gDebugText);
-//		gDebugText->StatusBits &= ~STATUS_BIT_HIDDEN;
-//	}
-//	else
-//	{
-//		gDebugText->StatusBits |= STATUS_BIT_HIDDEN;
-//	}
-//
-//
-//
-//            /**************/
-//			/* END RENDER */
-//			/**************/
-//
-//           /* SWAP THE BUFFS */
-//
-//	SDL_GL_SwapWindow(gSDLWindow);					// end render loop
-//
-//
-//	if (gGamePrefs.anaglyph)
-//		RestoreCamerasFromAnaglyph();
-
 }
 
 /******************* OGL DRAW EYE *********************/

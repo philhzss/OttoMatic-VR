@@ -18,6 +18,22 @@
 vr::IVRSystem *gIVRSystem;
 float gIpdScale = 100.0f; // A larger number makes the world appear smaller
 
+#define ENABLE_CONSOLE 1
+
+#if ENABLE_CONSOLE
+#include <windows.h>
+#include <stdio.h>
+
+static void EnableConsole(void)
+{
+    AllocConsole();
+    FILE* f;
+    freopen_s(&f, "CONOUT$", "w", stdout);
+    freopen_s(&f, "CONOUT$", "w", stderr);
+}
+#endif
+
+
 #if __APPLE__
 #include "killmacmouseacceleration.h"
 #include <libproc.h>
@@ -364,6 +380,11 @@ int main(int argc, char** argv)
 	int				returnCode				= 0;
 	std::string		finalErrorMessage		= "";
 	bool			showFinalErrorMessage	= false;
+
+	#if ENABLE_CONSOLE
+	EnableConsole();
+	printf("Console enabled\n");
+	#endif
 
 #if _DEBUG
 	// In debug builds, if CommonMain throws, don't catch.

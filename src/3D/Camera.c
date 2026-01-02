@@ -292,14 +292,14 @@ static void ResetCameraSettings(void)
 	gCameraUserRotY = 0;
 	mouseCameraAngleY = 0;
 
-	gCameraFromAccel 	= 4.5;
-	gCameraFromAccelY	= 1.5;
+	gCameraFromAccel 	= 1; // Always 1 for VR
+	gCameraFromAccelY	= 1; // Always 1 for VR
 
 
 			/* SPECIAL SETTINGS FOR SAUCER LEVEL */
 	if (gLevelNum == LEVEL_NUM_SAUCER)
 	{
-		gCameraLookAtAccel 	= 10;
+		gCameraLookAtAccel 	= 1; // Always 1 for VR
 		gCameraHeightFactor = 0.6;
 		gCameraLookAtYOff 	= -200;
 		gCameraDistFromMe 	= 800.0f;
@@ -307,7 +307,7 @@ static void ResetCameraSettings(void)
 	}
 	else
 	{
-		gCameraLookAtAccel 	= 15;
+		gCameraLookAtAccel 	= 1; // Always 1 for VR
 
 		gCameraHeightFactor = 0.2; // ??
 		gCameraLookAtYOff 	= DEFAULT_CAMERA_YOFF; // to be increased to "head height"
@@ -451,60 +451,13 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	from.z = playerObj->Coord.z;	
 	from.y = playerObj->Coord.y + firstPersonHeight;
 
-	// OGLPoint3D_Transform(&from, &transOnly, &from); // To test but can probably delete this line, handled from player_robot.c
-
-
-
-	// printf("playerObj->Coord.y: %f, Player height: %i\n", playerObj->Coord.y,firstPersonHeight);
-
 
 	// Calculate up vector
-	if (!vrHMDcontrol) {
-		calculatedUpVector = globalUp;
-	}
-	else {
-		calculatedUpVector = globalUp;
-
-		/* DISABLING THIS - USING HMD POSE in OGL_Support.cpp */
-		//calculatedUpVector.x = vrInfoHMD.transformationMatrixCorrected.value[M01];
-		//calculatedUpVector.y = vrInfoHMD.transformationMatrixCorrected.value[M11];
-		//calculatedUpVector.z = vrInfoHMD.transformationMatrixCorrected.value[M21];
-
-		//printf("calculatedUpVector.x: %f\n", calculatedUpVector.x);
-		//printf("calculatedUpVector.y: %f\n", calculatedUpVector.y);
-		//printf("calculatedUpVector.z: %f\n\n", calculatedUpVector.z);
-		//printf("NcalculatedUpVector.x: %f\n", calculatedUpVector.x);
-		//printf("NcalculatedUpVector.y: %f\n", calculatedUpVector.y);
-		//printf("NcalculatedUpVector.z: %f\n\n\n", calculatedUpVector.z);
-	}
+	calculatedUpVector = globalUp;
 
 	OGL_UpdateCameraFromToUp(gGameViewInfoPtr, &from, &to, &calculatedUpVector);
 
-
-	//printf("rotOnly X-X (M00): %f\n", rotOnly.value[M00]);
-	//printf("rotOnly X-Y (M10): %f\n", rotOnly.value[M10]);
-	//printf("rotOnly X-Z (M20): %f\n", rotOnly.value[M20]);
-	//printf("rotOnly Y-X (M01): %f\n", rotOnly.value[M01]);
-	//printf("rotOnly Y-Y (M11): %f\n", rotOnly.value[M11]);
-	//printf("rotOnly Y-Z (M21): %f\n", rotOnly.value[M21]);
-	//printf("rotOnly Z-X (M02): %f\n", rotOnly.value[M02]);
-	//printf("rotOnly Z-Y (M12): %f\n", rotOnly.value[M12]);
-	//printf("rotOnly Z-Z (M22): %f\n\n", rotOnly.value[M22]);
-
-	//printf("playerObj->Rot.x: %f\n", playerObj->Rot.x);
-	//printf("playerObj->Rot.y: %f\n", playerObj->Rot.y);
-	//printf("playerObj->Rot.z: %f\n\n", playerObj->Rot.z);
-
-	//printf("FROM cameraLocation.x: %f\n", from.x);
-	//printf("FROM cameraLocation.y: %f\n", from.y);
-	//printf("FROM cameraLocation.z: %f\n\n", from.z);
-
-	//printf("TO cameraLocation.x: %f\n", to.x);
-	//printf("TO cameraLocation.y: %f\n", to.y);
-	//printf("TO cameraLocation.z: %f\n\n\n", to.z);
-
-				/* UPDATE PLAYER'S CAMERA INFO */
-
+	/* UPDATE PLAYER'S CAMERA INFO */
 	gPlayerInfo.camera.cameraLocation = from;
 	gPlayerInfo.camera.pointOfInterest = to;
 }
@@ -698,7 +651,7 @@ float			oldCamX,oldCamZ,oldCamY,oldPointOfInterestX,oldPointOfInterestZ,oldPoint
 
 
 	to.x = oldPointOfInterestX + (distX * (fps * gCameraLookAtAccel));
-	to.y = oldPointOfInterestY + (distY * ((fps * gCameraLookAtAccel) * .7f));
+	to.y = oldPointOfInterestY + (distY * (fps * gCameraLookAtAccel));
 	to.z = oldPointOfInterestZ + (distZ * (fps * gCameraLookAtAccel));
 
 
