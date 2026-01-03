@@ -20,10 +20,10 @@ void DoPaused(void)
 {
 	int pick = 0;
 
-	GammaOn();
+	gGammaFadeFrac = 1;//GammaOn();
 
 	gGamePaused = true;
-	Pomme_PauseAllChannels(true);
+	PauseAllChannels(true);
 
 	static const MenuItem pauseMenu[] =
 	{
@@ -49,13 +49,13 @@ void DoPaused(void)
 	menuStyle.startButtonExits = true;
 
 again:
-	pick = StartMenu(pauseMenu, &menuStyle, PausedUpdateCallback, DrawArea);
+	pick = StartMenu(pauseMenu, &menuStyle, PausedUpdateCallback, DrawObjects);
 
 
 	switch (pick)
 	{
 		case 1:
-			DoSettingsOverlay(PausedUpdateCallback, DrawArea);
+			DoSettingsOverlay(PausedUpdateCallback, DrawObjects);
 			goto again;
 			break;
 
@@ -73,6 +73,6 @@ again:
 
 	gGamePaused = false;
 
-	Pomme_PauseAllChannels(false);
+	PauseAllChannels(false);
 	EnforceMusicPausePref();
 }

@@ -14,10 +14,10 @@
 /*    PROTOTYPES            */
 /****************************/
 
-static void DrawFences(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
-static void SubmitFence(int f, const OGLSetupOutputType *setupInfo, float camX, float camZ);
+static void DrawFences(ObjNode *theNode);
+static void SubmitFence(int f, float camX, float camZ);
 static void MakeFenceGeometry(void);
-static void DrawFenceNormals(short f, const OGLSetupOutputType *setupInfo);
+static void DrawFenceNormals(short f);
 
 
 /****************************/
@@ -30,45 +30,13 @@ static void DrawFenceNormals(short f, const OGLSetupOutputType *setupInfo);
 
 #define	FENCE_SINK_FACTOR	70.0f
 
-enum
-{
-	FENCE_TYPE_FARMWOOD,
-	FENCE_TYPE_CORNSTALK,
-	FENCE_TYPE_CHICKENWIRE,
-	FENCE_TYPE_METALFARM,
-
-	FENCE_TYPE_PINKCRYSTAL,
-	FENCE_TYPE_MECH,
-	FENCE_TYPE_SLIMETREE,
-	FENCE_TYPE_BLUECRYSTAL,
-	FENCE_TYPE_MECH2,
-	FENCE_TYPE_JUNGLEWOOD,
-	FENCE_TYPE_JUNGLEFERN,
-
-	FENCE_TYPE_LAMP,
-	FENCE_TYPE_RUBBLE,
-	FENCE_TYPE_CRUNCH,
-
-	FENCE_TYPE_FUN,
-	FENCE_TYPE_HEDGE,
-	FENCE_TYPE_LINE,
-	FENCE_TYPE_TENT,
-
-	FENCE_TYPE_LAVAFENCE,
-	FENCE_TYPE_ROCKFENCE,
-
-	FENCE_TYPE_NEURONFENCE,
-
-	FENCE_TYPE_SAUCER
-};
-
 
 /**********************/
 /*     VARIABLES      */
 /**********************/
 
-long			gNumFences = 0;
-short			gNumFencesDrawn;
+int				gNumFences = 0;
+int				gNumFencesDrawn;
 FenceDefType	*gFenceList = nil;
 
 
@@ -259,15 +227,14 @@ ObjNode					*obj;
 
 static void MakeFenceGeometry(void)
 {
-int						f;
-u_short					type;
+uint16_t				type;
 float					u,height,aspectRatio,textureUOff;
-long					i,numNubs,j;
+int						numNubs;
 FenceDefType			*fence;
 OGLPoint3D				*nubs;
 float					minX,minY,minZ,maxX,maxY,maxZ;
 
-	for (f = 0; f < gNumFences; f++)
+	for (int f = 0; f < gNumFences; f++)
 	{
 				/******************/
 				/* GET FENCE INFO */
@@ -298,13 +265,13 @@ float					minX,minY,minZ,maxX,maxY,maxZ;
 		gFenceTriMeshData[f].normals					= nil;
 		gFenceTriMeshData[f].colorsByte					= &gFenceColors[f][0];
 		gFenceTriMeshData[f].colorsFloat				= nil;
-		gFenceTriMeshData[f].numPoints = numNubs * 2;					// 2 vertices per nub
-		gFenceTriMeshData[f].numTriangles = (numNubs-1) * 2;			// 2 faces per nub (minus 1st)
+		gFenceTriMeshData[f].numPoints					= numNubs * 2;					// 2 vertices per nub
+		gFenceTriMeshData[f].numTriangles				= (numNubs-1) * 2;			// 2 faces per nub (minus 1st)
 
 
 				/* BUILD TRIANGLE INFO */
 
-		for (i = j = 0; i < MAX_NUBS_IN_FENCE; i++, j+=2)
+		for (int i = 0, j = 0; i < MAX_NUBS_IN_FENCE; i++, j+=2)
 		{
 			gFenceTriangles[f][j].vertexIndices[0] = 1 + j;
 			gFenceTriangles[f][j].vertexIndices[1] = 0 + j;
@@ -313,12 +280,11 @@ float					minX,minY,minZ,maxX,maxY,maxZ;
 			gFenceTriangles[f][j+1].vertexIndices[0] = 3 + j;
 			gFenceTriangles[f][j+1].vertexIndices[1] = 0 + j;
 			gFenceTriangles[f][j+1].vertexIndices[2] = 2 + j;
-
 		}
 
 				/* INIT VERTEX COLORS */
 
-		for (i = 0; i < (MAX_NUBS_IN_FENCE*2); i++)
+		for (int i = 0; i < (MAX_NUBS_IN_FENCE*2); i++)
 			gFenceColors[f][i].r = gFenceColors[f][i].g = gFenceColors[f][i].b = 0xff;
 
 
@@ -335,7 +301,7 @@ float					minX,minY,minZ,maxX,maxY,maxZ;
 		minX = minY = minZ = -maxX;
 
 		u = 0;
-		for (i = j = 0; i < numNubs; i++, j+=2)
+		for (int i = 0, j = 0; i < numNubs; i++, j+=2)
 		{
 			float		x,y,z,y2;
 
@@ -378,8 +344,8 @@ float					minX,minY,minZ,maxX,maxY,maxZ;
 									gFencePoints[f][j-2].x, gFencePoints[f][j-2].y, gFencePoints[f][j-2].z) * textureUOff;
 			}
 
-			gFenceUVs[f][j].v 		= 0;									// bottom
-			gFenceUVs[f][j+1].v 	= 1.0;									// top
+			gFenceUVs[f][j].v 		= 1;									// bottom
+			gFenceUVs[f][j+1].v 	= 0;									// top
 			gFenceUVs[f][j].u 		= gFenceUVs[f][j+1].u = u;
 		}
 
@@ -400,9 +366,8 @@ float					minX,minY,minZ,maxX,maxY,maxZ;
 
 /********************* DRAW FENCES ***********************/
 
-static void DrawFences(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawFences(ObjNode *theNode)
 {
-long			f,type;
 float			cameraX, cameraZ;
 
 #pragma unused (theNode)
@@ -421,8 +386,8 @@ float			cameraX, cameraZ;
 
 			/* GET CAMERA COORDS */
 
-	cameraX = setupInfo->cameraPlacement.cameraLocation.x;
-	cameraZ = setupInfo->cameraPlacement.cameraLocation.z;
+	cameraX = gGameViewInfoPtr->cameraPlacement.cameraLocation.x;
+	cameraZ = gGameViewInfoPtr->cameraPlacement.cameraLocation.z;
 
 
 			/* SET GLOBAL MATERIAL FLAGS */
@@ -436,22 +401,20 @@ float			cameraX, cameraZ;
 
 	gNumFencesDrawn = 0;
 
-	for (f = 0; f < gNumFences; f++)
+	for (int f = 0; f < gNumFences; f++)
 	{
-		type = gFenceList[f].type;							// get type
-
 					/* DO BBOX CULLING */
 
 		if (OGL_IsBBoxVisible(&gFenceList[f].bBox, nil))
 		{
 				/* SUBMIT GEOMETRY */
 
-			SubmitFence(f, setupInfo, cameraX, cameraZ);
+			SubmitFence(f, cameraX, cameraZ);
 			gNumFencesDrawn++;
 
 //			if (gDebugMode == 2)
 //			{
-//				DrawFenceNormals(f, setupInfo);
+//				DrawFenceNormals(f);
 //			}
 		}
 	}
@@ -462,7 +425,7 @@ float			cameraX, cameraZ;
 
 /****************** DRAW FENCE NORMALS ***************************/
 
-static void DrawFenceNormals(short f, const OGLSetupOutputType *setupInfo)
+static void DrawFenceNormals(short f)
 {
 int				i,numNubs;
 OGLPoint3D		*nubs;
@@ -505,7 +468,7 @@ float			x,y,z,nx,nz;
 // Visibility checks have already been done, so there's a good chance the fence is visible
 //
 
-static void SubmitFence(int f, const OGLSetupOutputType *setupInfo, float camX, float camZ)
+static void SubmitFence(int f, float camX, float camZ)
 {
 float					dist,alpha;
 long					i,numNubs,j;
@@ -561,7 +524,7 @@ OGLPoint3D				*nubs;
 		/* SUBMIT GEOMETRY */
 		/*******************/
 
-	MO_DrawGeometry_VertexArray(&gFenceTriMeshData[f], setupInfo);
+	MO_DrawGeometry_VertexArray(&gFenceTriMeshData[f]);
 }
 
 
@@ -680,8 +643,8 @@ Boolean			hit = false;
 
 					/* CALC FROM-TO POINTS OF MOTION */
 
-			fromX = oldX - (lineNormal.x * radius);
-			fromZ = oldZ - (lineNormal.y * radius);
+			fromX = oldX; // - (lineNormal.x * radius);
+			fromZ = oldZ; // - (lineNormal.y * radius);
 			toX = newX - (lineNormal.x * radius);
 			toZ = newZ - (lineNormal.y * radius);
 

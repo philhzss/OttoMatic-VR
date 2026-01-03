@@ -46,7 +46,9 @@ static void GiantLizardHitByJumpJet(ObjNode *enemy);
 /*    CONSTANTS             */
 /****************************/
 
+#if !VIP_ENEMIES
 #define	MAX_GIANTLIZARDS					8
+#endif
 
 #define	GIANTLIZARD_SCALE					2.5f
 
@@ -111,6 +113,7 @@ Boolean AddEnemy_GiantLizard(TerrainItemEntryType *itemPtr, long x, long z)
 ObjNode	*newObj;
 int		i;
 
+#if !VIP_ENEMIES
 	if (gNumEnemies >= gMaxEnemies)								// keep from getting absurd
 		return(false);
 
@@ -119,6 +122,7 @@ int		i;
 		if (gNumEnemyOfKind[ENEMY_KIND_GIANTLIZARD] >= MAX_GIANTLIZARDS)
 			return(false);
 	}
+#endif
 
 
 
@@ -164,7 +168,9 @@ int		i;
 	AttachShadowToObject(newObj, SHADOW_TYPE_CIRCULAR, 20, 35,false);
 
 
+#if !VIP_ENEMIES	// these are important enemies, so they don't count towards the total enemy count
 	gNumEnemies++;
+#endif
 	gNumEnemyOfKind[ENEMY_KIND_GIANTLIZARD]++;
 	return(true);
 }
@@ -212,7 +218,8 @@ float	dist;
 				/* SEE IF CHASE */
 
 	dist = CalcQuickDistance(gPlayerInfo.coord.x, gPlayerInfo.coord.z, gCoord.x, gCoord.z);
-	if (dist < GIANTLIZARD_CHASE_DIST_MAX)
+	if (dist < GIANTLIZARD_CHASE_DIST_MAX
+		&& !SeeIfLineSegmentHitsAnything(&gCoord, &gPlayerInfo.coord, nil, CTYPE_FENCE | CTYPE_BLOCKRAYS))		// don't start chasing thru walls (spawn at item #202 to test)
 	{
 		MorphToSkeletonAnim(theNode->Skeleton, GIANTLIZARD_ANIM_WALK, 2);
 	}
@@ -613,9 +620,8 @@ float	fps = gFramesPerSecondFrac;
 
 Boolean PrimeEnemy_GiantLizard(long splineNum, SplineItemType *itemPtr)
 {
-ObjNode			*newObj,*shadowObj;
+ObjNode			*newObj;
 float			x,z,placement;
-int				i;
 
 			/* GET SPLINE INFO */
 
@@ -656,7 +662,7 @@ int				i;
 
 				/* SET WEAPON HANDLERS */
 
-	for (i = 0; i < NUM_WEAPON_TYPES; i++)
+	for (int i = 0; i < NUM_WEAPON_TYPES; i++)
 		newObj->HitByWeaponHandler[i] = GiantLizardHitByWeapon;
 	newObj->HitByJumpJetHandler = GiantLizardHitByJumpJet;
 
@@ -666,7 +672,7 @@ int				i;
 
 				/* MAKE SHADOW & GLOW */
 
-	shadowObj = AttachShadowToObject(newObj, SHADOW_TYPE_CIRCULAR, 20, 35, false);
+	AttachShadowToObject(newObj, SHADOW_TYPE_CIRCULAR, 20, 35, false);
 
 
 
@@ -887,6 +893,16 @@ static Boolean HurtGiantLizard(ObjNode *enemy, float damage)
 static void KillGiantLizard(ObjNode *enemy)
 {
 int	i;
+
+
+			/* LET GO OF PLAYER IN GRASP (GITHUB ISSUE #34) */
+
+	if (enemy->GrippingPlayer)
+	{
+		MorphToSkeletonAnim(gPlayerInfo.objNode->Skeleton, PLAYER_ANIM_GOTHIT, 7.0);
+		enemy->GrippingPlayer = false;
+	}
+
 
 	enemy->CType = CTYPE_MISC;
 

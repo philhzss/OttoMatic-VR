@@ -5,13 +5,11 @@
 #pragma once
 
 #define	MAX_FILL_LIGHTS		4
-#define	MAX_TEXTURES		300
-
 
 #define	USE_GL_COLOR_MATERIAL	1
 
 #if USE_GL_COLOR_MATERIAL
-	#define SetColor4fv(colorVV)		glColor4fv((GLfloat *)colorVV)		// set current diffuse color
+	#define SetColor4fv(colorVV)		glColor4fv((colorVV))		// set current diffuse color
 	#define SetColor4f(r, g, b, a)		\
 	do {																		\
 		glColor4f(r, g, b, a);													\
@@ -200,7 +198,7 @@ typedef struct
 typedef	struct
 {
 	OGLColorRGBA		ambientColor;
-	long				numFillLights;
+	int					numFillLights;
 	OGLVector3D			fillDirection[MAX_FILL_LIGHTS];
 	OGLColorRGBA		fillColor[MAX_FILL_LIGHTS];
 }OGLLightDefType;
@@ -222,7 +220,6 @@ typedef struct
 typedef struct
 {
 	Boolean					isActive;
-	SDL_GLContext			drawContext;
 	Rect					clip;				// not pane size, but clip:  left = amount to clip off left
 	OGLLightDefType			lightList;
 	OGLCameraPlacement		cameraPlacement;	
@@ -248,15 +245,16 @@ extern	Byte					gAnaglyphPass;
 //=====================================================================
 
 void OGL_Boot(void);
+void OGL_Shutdown(void);
 void OGL_NewViewDef(OGLSetupInputType *viewDef);
-void OGL_SetupWindow(OGLSetupInputType *setupDefPtr, OGLSetupOutputType **outputHandle);
-void OGL_DisposeWindowSetup(OGLSetupOutputType **dataHandle);
-void OGL_DrawScene(OGLSetupOutputType *setupInfo, void (*drawRoutine)(OGLSetupOutputType *));
-void OGL_Camera_SetPlacementAndUpdateMatrices(OGLSetupOutputType *setupInfo);
-void OGL_MoveCameraFromTo(OGLSetupOutputType *setupInfo, float fromDX, float fromDY, float fromDZ, float toDX, float toDY, float toDZ);
-void OGL_MoveCameraFrom(OGLSetupOutputType *setupInfo, float fromDX, float fromDY, float fromDZ);
-void OGL_UpdateCameraFromToUp(OGLSetupOutputType *setupInfo, OGLPoint3D *from, OGLPoint3D *to, OGLVector3D *up);
-void OGL_UpdateCameraFromTo(OGLSetupOutputType *setupInfo, const OGLPoint3D *from, const OGLPoint3D *to);
+void OGL_SetupWindow(OGLSetupInputType *viewDef);
+void OGL_DisposeWindowSetup(void);
+void OGL_DrawScene(void (*drawRoutine)(void));
+void OGL_Camera_SetPlacementAndUpdateMatrices(void);
+void OGL_MoveCameraFromTo(float fromDX, float fromDY, float fromDZ, float toDX, float toDY, float toDZ);
+void OGL_MoveCameraFrom(float fromDX, float fromDY, float fromDZ);
+void OGL_UpdateCameraFromToUp(OGLPoint3D *from, OGLPoint3D *to, OGLVector3D *up);
+void OGL_UpdateCameraFromTo(const OGLPoint3D *from, const OGLPoint3D *to);
 void OGL_Texture_SetOpenGLTexture(GLuint textureName);
 GLuint OGL_TextureMap_Load(void *imageMemory, int width, int height,
 							GLint srcFormat,  GLint destFormat, GLint dataType);
@@ -264,7 +262,7 @@ GLuint OGL_TextureMap_LoadTGA(const char* path, int flags, int* width, int* heig
 GLenum _OGL_CheckError(const char* file, int line);
 #define OGL_CheckError() _OGL_CheckError(__FILE__, __LINE__)
 
-void OGL_GetCurrentViewport(const OGLSetupOutputType *setupInfo, int *x, int *y, int *w, int *h);
+void OGL_GetCurrentViewport(int *x, int *y, int *w, int *h);
 
 void OGL_PushState(void);
 void OGL_PopState(void);

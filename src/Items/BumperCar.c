@@ -19,7 +19,7 @@ static void MoveEnemyBumperCar(ObjNode *theNode);
 static void PlayerMoveBumperCar(ObjNode *player);
 static void DoBumperCarCollision(ObjNode *theNode);
 static void UpdateBumperCar(ObjNode *theNode);
-static void DrawGeneratorBeams(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawGeneratorBeams(ObjNode *theNode);
 static void MoveBumperCarPowerPost(ObjNode *theNode);
 static void MoveBumperCarGate(ObjNode *posts);
 
@@ -166,7 +166,9 @@ int		playerCar = itemPtr->parm[3] & 1;
 
 	id = itemPtr->parm[0];											// get car ID #
 
+#if 0	// source port: always do fewer cars
 	if (!gG4)														// on slow machines, add fewer cars
+#endif
 	{
 		if (id > 3)
 			return(true);
@@ -628,12 +630,7 @@ static void UpdateBumperCar(ObjNode *theNode)
 
 static void DoBumperCarCollision(ObjNode *theNode)
 {
-int		i,hitCount = 0;
-ObjNode	*otherCar;
-float	dist,speed;
-OGLVector2D	vec2to1,move1,move2,bounce,bounce2;
-float	otherX,otherZ;
-u_long	ctype;
+int		hitCount = 0;
 short	area = theNode->AreaNum;
 
 			/************************/
@@ -641,17 +638,17 @@ short	area = theNode->AreaNum;
 			/************************/
 
 
-	for (i = 0; i < MAX_CARS; i++)
+	for (int i = 0; i < MAX_CARS; i++)
 	{
-		otherCar = gCarList[area][i];
+		ObjNode* otherCar = gCarList[area][i];
 
 		if ((otherCar == theNode) || (otherCar == nil))							// don't check against self or if blank
 			continue;
 
-		otherX = otherCar->Coord.x;
-		otherZ = otherCar->Coord.z;
+		float otherX = otherCar->Coord.x;
+		float otherZ = otherCar->Coord.z;
 
-		dist = CalcDistance(gCoord.x, gCoord.z, otherX, otherZ);				// calc dist to the car
+		float dist = CalcDistance(gCoord.x, gCoord.z, otherX, otherZ);			// calc dist to the car
 
 					/*****************************/
 					/* SEE IF THEY HAVE COLLIDED */
@@ -659,6 +656,8 @@ short	area = theNode->AreaNum;
 
 		if (dist < BUMPER_CAR_RADIUSX2)
 		{
+			OGLVector2D	vec2to1, move1, move2, bounce, bounce2;
+
 						/* CALC OUR VECTORS */
 
 			vec2to1.x = gCoord.x - otherX;										// calc vector from other to us
@@ -682,7 +681,7 @@ short	area = theNode->AreaNum;
 			vec2to1.y = -vec2to1.y;
 			ReflectVector2D(&move2, &vec2to1, &bounce2);						// reflect the motion vector of #2
 
-			speed = (theNode->Speed2D * .5f) + (otherCar->Speed2D * .5f);			// swap some energy
+			float speed = (theNode->Speed2D * .5f) + (otherCar->Speed2D * .5f);	// swap some energy
 
 
 					/* BOUNCE 1ST OBJECT (OUR CAR) */
@@ -735,6 +734,7 @@ short	area = theNode->AreaNum;
 
 			/* HANDLE GENERAL COLLISION */
 
+	uint32_t ctype;
 	if (theNode == gPlayerCar)
 		ctype = CTYPE_FENCE|CTYPE_MISC|CTYPE_TRIGGER2;
 	else
@@ -1136,7 +1136,7 @@ short	area = theNode->AreaNum;
 
 /******************** DRAW GENERATOR BEAMS *************************/
 
-static void DrawGeneratorBeams(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawGeneratorBeams(ObjNode *theNode)
 {
 short	i,i2;
 float	x,y,z,x2,y2,z2,u,u2,yo;
@@ -1176,7 +1176,7 @@ short	a;
 				u = RandomFloat() * 5.0f;
 				u2 = u + 5.0f;
 
-				MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][CLOUD_SObjType_BlueBeam].materialObject, setupInfo);
+				MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][CLOUD_SObjType_BlueBeam].materialObject);
 
 				glBegin(GL_QUADS);
 				glTexCoord2f(u,0);			glVertex3f(x,y+yo,z);
@@ -1246,7 +1246,7 @@ static const OGLPoint3D	sparkles[10] =
 
 			/* SET COLLISION STUFF */
 
-	post->CType 		= CTYPE_MISC|CTYPE_IMPENETRABLE|CTYPE_BLOCKCAMERA;			// note: don't set to trigger quite yet (do that after lower bumper is blown off)
+	post->CType 		= CTYPE_MISC|CTYPE_IMPENETRABLE|CTYPE_BLOCKCAMERA|CTYPE_BLOCKRAYS;			// note: don't set to trigger quite yet (do that after lower bumper is blown off)
 	post->CBits			= CBITS_ALLSOLID;
 	CreateCollisionBoxFromBoundingBox_Rotated(post, 1.2, 1);
 

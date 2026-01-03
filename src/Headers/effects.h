@@ -3,11 +3,10 @@
 //
 
 
-#ifndef EFFECTS_H
-#define EFFECTS_H
+#pragma once
 
 
-#define	MAX_PARTICLE_GROUPS		70
+#define	MAX_PARTICLE_GROUPS		120
 #define	MAX_PARTICLES			250		// (note change Byte below if > 255)
 
 
@@ -22,10 +21,10 @@
 
 typedef struct
 {
-	u_long			magicNum;
-	Byte			isUsed[MAX_PARTICLES];
+	uint32_t		magicNum;
+	Pool			*pool;
 	Byte			type;
-	u_long			flags;
+	uint32_t		flags;
 	Byte			particleTextureNum;
 	float			gravity;
 	float			magnetism;
@@ -73,9 +72,9 @@ enum
 
 typedef struct
 {
-	u_long 	magicNum;
+	uint32_t magicNum;
 	Byte 	type;
-	u_long  flags;
+	uint32_t flags;
 	float 	gravity;
 	float 	magnetism;
 	float 	baseScale;
@@ -102,15 +101,16 @@ typedef struct
 #define	FULL_ALPHA	1.0f
 
 
-void InitEffects(OGLSetupOutputType *setupInfo);
-void InitParticleSystem(OGLSetupOutputType *setupInfo);
+void InitEffects(void);
+void DisposeEffects(void);
 
+void InitParticleSystem(void);		// Use InitEffects in user code
+void DeleteAllParticleGroups(void);	// Use DisposeEffects in user code
 
-void DeleteAllParticleGroups(void);
-short NewParticleGroup(NewParticleGroupDefType *def);
-Boolean AddParticleToGroup(NewParticleDefType *def);
-Boolean VerifyParticleGroupMagicNum(short group, u_long magicNum);
-Boolean ParticleHitObject(ObjNode *theNode, u_short inFlags);
+int NewParticleGroup(const NewParticleGroupDefType* def);
+Boolean AddParticleToGroup(const NewParticleDefType* def);
+Boolean VerifyParticleGroupMagicNum(int group, uint32_t magicNum);
+Boolean ParticleHitObject(ObjNode *theNode, uint16_t inFlags);
 void DisposeParticleSystem(void);
 
 void MakePuff(OGLPoint3D *where, float scale, short texNum, GLint src, GLint dst, float decayRate);
@@ -120,18 +120,16 @@ void MakeBombExplosion(float x, float z, OGLVector3D *delta);
 void MakeSplash(float x, float y, float z);
 
 void SprayWater(ObjNode *theNode, float x, float y, float z);
-void BurnFire(ObjNode *theNode, float x, float y, float z, Boolean doSmoke, short particleType, float scale, u_long moreFlags);
+void BurnFire(ObjNode *theNode, float x, float y, float z, Boolean doSmoke, short particleType, float scale, uint32_t moreFlags);
 
 
 void MakeFireExplosion(float x, float z, OGLVector3D *delta);
 
 void StartDeathExit(float delay);
-void DrawDeathExit(OGLSetupOutputType *setupInfo);
+void DrawDeathExit(void);
 
 void MakeSplatter(OGLPoint3D *where, short modelObjType);
 
 void MakeSteam(ObjNode *blob, float x, float y, float z);
 Boolean AddSmoker(TerrainItemEntryType *itemPtr, long  x, long z);
 
-
-#endif

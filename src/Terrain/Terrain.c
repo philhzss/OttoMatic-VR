@@ -17,11 +17,11 @@
 static short GetFreeSuperTileMemory(void);
 static inline void ReleaseSuperTileObject(short superTileNum);
 static void CalcNewItemDeleteWindow(void);
-static u_short	BuildTerrainSuperTile(long	startCol, long startRow);
+static uint16_t	BuildTerrainSuperTile(long	startCol, long startRow);
 static void ReleaseAllSuperTiles(void);
 static void DoSuperTileDeformation(SuperTileMemoryType *superTile);
 static void UpdateTerrainDeformationFunctions(void);
-static void DrawTerrain(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawTerrain(ObjNode *theNode);
 
 
 /****************************/
@@ -41,7 +41,7 @@ static void DrawTerrain(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
 /**********************/
 
 
-short			gNumSuperTilesDrawn;
+int				gNumSuperTilesDrawn;
 static	Byte	gHiccupTimer;
 
 Boolean			gDisableHiccupTimer = false;
@@ -49,27 +49,27 @@ Boolean			gDisableHiccupTimer = false;
 
 SuperTileStatus	**gSuperTileStatusGrid = nil;				// supertile status grid
 
-long			gTerrainTileWidth,gTerrainTileDepth;			// width & depth of terrain in tiles
-long			gTerrainUnitWidth,gTerrainUnitDepth;			// width & depth of terrain in world units (see TERRAIN_POLYGON_SIZE)
+int					gTerrainTileWidth,gTerrainTileDepth;			// width & depth of terrain in tiles
+int					gTerrainUnitWidth,gTerrainUnitDepth;			// width & depth of terrain in world units (see TERRAIN_POLYGON_SIZE)
 
-long				gNumUniqueSuperTiles;
+int					gNumUniqueSuperTiles;
 SuperTileGridType 	**gSuperTileTextureGrid = nil;			// 2d array
 
 MOMaterialObject	*gSuperTileTextureObjects[MAX_SUPERTILE_TEXTURES];
 
-u_short			**gTileGrid = nil;
+uint16_t			**gTileGrid = nil;
 
-long			gNumSuperTilesDeep,gNumSuperTilesWide;	  		// dimensions of terrain in terms of supertiles
-static long		gCurrentSuperTileRow,gCurrentSuperTileCol;
-static long		gPreviousSuperTileCol,gPreviousSuperTileRow;
+int					gNumSuperTilesDeep,gNumSuperTilesWide;	  		// dimensions of terrain in terms of supertiles
+static int			gCurrentSuperTileRow,gCurrentSuperTileCol;
+static int			gPreviousSuperTileCol,gPreviousSuperTileRow;
 
-short			gNumFreeSupertiles = 0;
+int					gNumFreeSupertiles = 0;
 SuperTileMemoryType	gSuperTileMemoryList[MAX_SUPERTILES];
 
 
 
 TileAttribType	**gTileAttribList = nil;
-u_short			gTileAttribFlags;
+uint16_t		gTileAttribFlags;
 float			gTileSlipperyFactor = 1.0f;			// 1 = totally slippery, 0 = no slippery
 
 			/* TILE SPLITTING TABLES */
@@ -99,7 +99,7 @@ static OGLVector3D				*gSuperTileNormals = nil;
 
 		/* TERRAIN DEFORMATIONS */
 
-short	gNumTerrainDeformations = 0;
+int	gNumTerrainDeformations = 0;
 static Boolean	gCleanupDeformation = false;
 
 static DeformationType	gDeformationList[MAX_DEFORMATIONS];
@@ -145,12 +145,12 @@ int	x,y;
 void InitCurrentScrollSettings(void)
 {
 long	x,y;
-long	dummy1,dummy2;
+int		dummy;
 ObjNode	*obj;
 
 	x = gPlayerInfo.coord.x-(SUPERTILE_ACTIVE_RANGE*SUPERTILE_SIZE*TERRAIN_POLYGON_SIZE);
 	y = gPlayerInfo.coord.z-(SUPERTILE_ACTIVE_RANGE*SUPERTILE_SIZE*TERRAIN_POLYGON_SIZE);
-	GetSuperTileInfo(x, y, &gCurrentSuperTileCol, &gCurrentSuperTileRow, &dummy1, &dummy2);
+	GetSuperTileInfo(x, y, &gCurrentSuperTileCol, &gCurrentSuperTileRow, &dummy, &dummy);
 
 	gPreviousSuperTileCol = -100000;
 	gPreviousSuperTileRow = -100000;
@@ -256,6 +256,12 @@ void DisposeTerrain(void)
 		gMasterItemList = nil;
 	}
 
+	if (gTerrainItemFileIDs)
+	{
+		DisposePtr((Ptr) gTerrainItemFileIDs);
+		gTerrainItemFileIDs = nil;
+	}
+
 	if (gMapYCoords)
 	{
 		Free_2d_array(gMapYCoords);
@@ -286,12 +292,14 @@ void DisposeTerrain(void)
 	{
 		for (int i = 0; i < gNumSplines; i++)
 		{
+			DisposeHandle((Handle)(*gSplineList)[i].nubList);		// nuke nub list
 			DisposeHandle((Handle)(*gSplineList)[i].pointList);		// nuke point list
 			DisposeHandle((Handle)(*gSplineList)[i].itemList);		// nuke item list
 		}
 		DisposeHandle((Handle)gSplineList);
 		gSplineList = nil;
 	}
+	gNumSplines = 0;
 
 				/* NUKE WATER PATCH */
 
@@ -502,10 +510,10 @@ int	i;
 // OUTPUT: index to supertile
 //
 
-static u_short	BuildTerrainSuperTile(long	startCol, long startRow)
+static uint16_t	BuildTerrainSuperTile(long	startCol, long startRow)
 {
 long	 			row,col,row2,col2,numPoints,i;
-u_short				superTileNum;
+uint16_t				superTileNum;
 float				height,miny,maxy;
 MOVertexArrayData	*meshData = nil;
 SuperTileMemoryType	*superTilePtr = nil;
@@ -518,7 +526,7 @@ OGLVector3D			*fillDir1 = nil;
 Byte				numFillLights;
 MOTriangleIndecies	*triangleList = nil;
 OGLPoint3D			*vertexPointList = nil;
-OGLTextureCoord		*uvs = nil;
+//OGLTextureCoord		*uvs = nil;
 OGLVector3D			*vertexNormals = nil;
 
 	superTileNum = GetFreeSuperTileMemory();						// get memory block for the data
@@ -565,7 +573,7 @@ OGLVector3D			*vertexNormals = nil;
 	vertexPointList 		= meshData->points;									// get ptr to points list
 	vertexColorList 		= nil;	//meshData->colorsByte;								// get ptr to vertex color
 	vertexNormals			= meshData->normals;								// get ptr to vertex normals
-	uvs						= meshData->uvs[0];									// get ptr to uvs
+//	uvs						= meshData->uvs[0];									// get ptr to uvs
 
 	miny = 10000000;													// init bbox counters
 	maxy = -miny;
@@ -888,10 +896,10 @@ long	i;
 // This is the main call to update the screen.  It draws all ObjNode's and the terrain itself
 //
 
-static void DrawTerrain(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawTerrain(ObjNode *theNode)
 {
 int				r,c;
-u_short			i,unique;
+uint16_t			i,unique;
 Boolean			superTileVisible;
 
 #pragma unused(theNode)
@@ -956,21 +964,30 @@ Boolean			superTileVisible;
 
 					/* SUBMIT THE TEXTURE */
 
-				MO_DrawMaterial(gSuperTileTextureObjects[unique], setupInfo);
+				MO_DrawMaterial(gSuperTileTextureObjects[unique]);
 
 
 					/* SUBMIT THE GEOMETRY */
 
-				MO_DrawGeometry_VertexArray(gSuperTileMemoryList[i].meshData, setupInfo);
+				MO_DrawGeometry_VertexArray(gSuperTileMemoryList[i].meshData);
 				gNumSuperTilesDrawn++;
 			}
 		}
 	}
 
+
+	if (gDebugMode == 2)
+	{
+		glDisable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		glColor4f(1,1,1,1);
+		DrawSplines();
+	}
+
 	OGL_PopState();
 
 	// Don't do anything else! We are only rendering the first eye; we'll be back here real soon.
-	if (setupInfo->renderLeftEye)
+	if (gGameViewInfoPtr->renderLeftEye)
 		return;
 
 	gCleanupDeformation = false;							// reset this now
@@ -998,7 +1015,7 @@ Boolean			superTileVisible;
 
 				/* ASSUME SUPERTILES WILL BE UNUSED ON NEXT FRAME */
 
-			if ((!gGamePrefs.anaglyph) || (gAnaglyphPass > 0))
+			if ((gGamePrefs.anaglyphMode == ANAGLYPH_OFF) || (gAnaglyphPass > 0))
 				gSuperTileStatusGrid[r][c].statusFlags &= ~SUPERTILE_IS_USED_THIS_FRAME;			// clear the isUsed bit
 
 		}
@@ -1037,15 +1054,15 @@ int	i;
 
 static void DoSuperTileDeformation(SuperTileMemoryType *superTile)
 {
-int		v,row,col,i,startRow,startCol;
+int		v;
 float	x,y,z, dist, decay, off, d2, originalY;
 float	oneOverWaveLength,r,rw,dampenRatio;
 
 	if ((gNumTerrainDeformations == 0) && (!gCleanupDeformation))
 		return;
 
-	startRow = superTile->tileRow;													// get tile row/col of this supertile
-	startCol = superTile->tileCol;
+	long startRow = superTile->tileRow;													// get tile row/col of this supertile
+	long startCol = superTile->tileCol;
 
 
 			/***************************************/
@@ -1053,9 +1070,9 @@ float	oneOverWaveLength,r,rw,dampenRatio;
 			/***************************************/
 
 	v = 0;
-	for (row = 0; row < (SUPERTILE_SIZE+1); row++)
+	for (int row = 0; row < (SUPERTILE_SIZE+1); row++)
 	{
-		for (col = 0; col < (SUPERTILE_SIZE+1); col++)
+		for (int col = 0; col < (SUPERTILE_SIZE+1); col++)
 		{
 					/* GET ORIGINAL COORDS */
 
@@ -1070,7 +1087,7 @@ float	oneOverWaveLength,r,rw,dampenRatio;
 
 			dampenRatio = 1.0;								// assume no dampening
 
-			for (i = 0; i < MAX_DEFORMATIONS; i++)
+			for (int i = 0; i < MAX_DEFORMATIONS; i++)
 			{
 				if (!gDeformationList[i].isUsed)			// skip blank slots
 					continue;
@@ -1203,10 +1220,9 @@ float	oneOverWaveLength,r,rw,dampenRatio;
 
 static void UpdateTerrainDeformationFunctions(void)
 {
-short	i;
 float	fps = gFramesPerSecondFrac;
 
-	for (i = 0; i < gNumTerrainDeformations; i++)
+	for (int i = 0; i < gNumTerrainDeformations; i++)
 	{
 
 		switch(gDeformationList[i].type)
@@ -1313,7 +1329,7 @@ float				xi,zi;
 
 	if (gLevelNum == LEVEL_NUM_CLOUD)									// special check on cloud level
 	{
-		u_short	 flags = GetTileAttribsAtRowCol(row, col);
+		uint16_t	 flags = GetTileAttribsAtRowCol(row, col);
 		if (flags & TILE_ATTRIB_BLANK)									// see if on blank tile
 		{
 			gRecentTerrainNormal.x = gRecentTerrainNormal.z = 0;		// for blanks, return some really low y
@@ -1584,17 +1600,15 @@ float			minX,maxX,minZ,maxZ;
 // OUTPUT: row/col in tile coords and supertile coords
 //
 
-void GetSuperTileInfo(long x, long z, long *superCol, long *superRow, long *tileCol, long *tileRow)
+void GetSuperTileInfo(long x, long z, int* superCol, int* superRow, int* tileCol, int* tileRow)
 {
-long	row,col;
-
 	if ((x < 0) || (z < 0))									// see if out of bounds
 		return;
 	if ((x >= gTerrainUnitWidth) || (z >= gTerrainUnitDepth))
 		return;
 
-	col = x * (1.0f/TERRAIN_SUPERTILE_UNIT_SIZE);			// calc supertile relative row/col that the coord lies on
-	row = z * (1.0f/TERRAIN_SUPERTILE_UNIT_SIZE);
+	int col = (int) (x * (1.0f/TERRAIN_SUPERTILE_UNIT_SIZE));	// calc supertile relative row/col that the coord lies on
+	int row = (int) (z * (1.0f/TERRAIN_SUPERTILE_UNIT_SIZE));
 
 	*superRow = row;										// return which supertile relative row/col it is
 	*superCol = col;
@@ -1605,11 +1619,8 @@ long	row,col;
 
 /******************** GET TILE ATTRIBS *************************/
 
-u_short	GetTileAttribsAtRowCol(int row, int col)
+uint16_t	GetTileAttribsAtRowCol(int row, int col)
 {
-u_short	tile;
-
-
 			/* CHECK BOUNDS */
 
 	if ((col < 0) || (col >= gTerrainTileWidth))
@@ -1624,7 +1635,7 @@ u_short	tile;
 			// This is the only place that the tile grid is used by the game.
 			//
 
-	tile = gTileGrid[row][col];									// get tile data from map
+	uint16_t tile = gTileGrid[row][col];						// get tile data from map
 
 	gTileAttribFlags = (*gTileAttribList)[tile].flags;			// get attribute flags
 
@@ -1642,7 +1653,6 @@ u_short	tile;
 
 void DoPlayerTerrainUpdate(float x, float y)
 {
-int			row,col,maxRow,maxCol,maskRow,maskCol,deltaRow,deltaCol;
 Boolean		fullItemScan,moved;
 Byte		mask;
 
@@ -1780,8 +1790,8 @@ static const Byte gridMask[(SUPERTILE_ACTIVE_RANGE+SUPERTILE_ITEMRING_MARGIN)*2]
 
 		/* FIRST CLEAR OUT THE PLAYER FLAGS - ASSUME NO PLAYERS ON ANY SUPERTILES */
 
-	for (row = 0; row < gNumSuperTilesDeep; row++)
-		for (col = 0; col < gNumSuperTilesWide; col++)
+	for (long row = 0; row < gNumSuperTilesDeep; row++)
+		for (long col = 0; col < gNumSuperTilesWide; col++)
 			gSuperTileStatusGrid[row][col].playerHereFlag 	= false;
 
 	gHiccupTimer = 0;
@@ -1799,8 +1809,8 @@ static const Byte gridMask[(SUPERTILE_ACTIVE_RANGE+SUPERTILE_ITEMRING_MARGIN)*2]
 
 				/* SEE IF ROW/COLUMN HAVE CHANGED */
 
-	deltaRow = labs(gCurrentSuperTileRow - gPreviousSuperTileRow);
-	deltaCol = labs(gCurrentSuperTileCol - gPreviousSuperTileCol);
+	int deltaRow = SDL_abs(gCurrentSuperTileRow - gPreviousSuperTileRow);
+	int deltaCol = SDL_abs(gCurrentSuperTileCol - gPreviousSuperTileCol);
 
 	if (deltaRow || deltaCol)
 	{
@@ -1821,17 +1831,17 @@ static const Byte gridMask[(SUPERTILE_ACTIVE_RANGE+SUPERTILE_ITEMRING_MARGIN)*2]
 		/* SCAN THE GRID AND SEE WHICH SUPERTILES NEED TO BE INITIALIZED */
 		/*****************************************************************/
 
-	maxRow = gCurrentSuperTileRow + (SUPERTILE_ACTIVE_RANGE*2) + SUPERTILE_ITEMRING_MARGIN;
-	maxCol = gCurrentSuperTileCol + (SUPERTILE_ACTIVE_RANGE*2) + SUPERTILE_ITEMRING_MARGIN;
+	long maxRow = gCurrentSuperTileRow + (SUPERTILE_ACTIVE_RANGE*2) + SUPERTILE_ITEMRING_MARGIN;
+	long maxCol = gCurrentSuperTileCol + (SUPERTILE_ACTIVE_RANGE*2) + SUPERTILE_ITEMRING_MARGIN;
 
-	for (row = gCurrentSuperTileRow - SUPERTILE_ITEMRING_MARGIN, maskRow = 0; row < maxRow; row++, maskRow++)
+	for (long row = gCurrentSuperTileRow - SUPERTILE_ITEMRING_MARGIN, maskRow = 0; row < maxRow; row++, maskRow++)
 	{
 		if (row < 0)													// see if row is out of range
 			continue;
 		if (row >= gNumSuperTilesDeep)
 			break;
 
-		for (col = gCurrentSuperTileCol-SUPERTILE_ITEMRING_MARGIN, maskCol = 0; col < maxCol; col++, maskCol++)
+		for (long col = gCurrentSuperTileCol-SUPERTILE_ITEMRING_MARGIN, maskCol = 0; col < maxCol; col++, maskCol++)
 		{
 			if (col < 0)												// see if col is out of range
 				continue;

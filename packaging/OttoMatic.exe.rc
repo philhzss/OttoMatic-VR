@@ -1,9 +1,7 @@
 #include <windows.h>
-#include "version.h"
 
-#pragma code_page(1252)
-
-#define PROJECT_VERSION_4_WORDS PROJECT_VERSION_MAJOR,PROJECT_VERSION_MINOR,PROJECT_VERSION_PATCH,0
+// UTF-8
+#pragma code_page(65001)
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
@@ -13,8 +11,8 @@
 IDI_ICON1 ICON DISCARDABLE "OttoMatic.ico"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     PROJECT_VERSION_4_WORDS
-PRODUCTVERSION  PROJECT_VERSION_4_WORDS
+FILEVERSION     4,0,2,0
+PRODUCTVERSION  4,0,2,0
 FILEOS          VOS_NT_WINDOWS32
 FILETYPE        VFT_APP
 BEGIN
@@ -23,13 +21,13 @@ BEGIN
         BLOCK "040904b0" // US English cp1252 (hex)
         BEGIN
             VALUE "CompanyName",        "Pangea Software, Inc."
-            VALUE "FileDescription",    "Otto Matic"
-            VALUE "FileVersion",        PROJECT_VERSION
-            VALUE "InternalName",       "OttoMatic"
-            VALUE "LegalCopyright",     "(C) 2001 Pangea Software, Inc. (C) 2021 Iliyas Jorio."
-            VALUE "OriginalFilename",   "OttoMatic.exe"
             VALUE "ProductName",        "Otto Matic"
-            VALUE "ProductVersion",     PROJECT_VERSION
+            VALUE "FileDescription",    "Otto Matic"
+            VALUE "ProductVersion",     "4.0.2"
+            VALUE "FileVersion",        "4.0.2"
+            VALUE "InternalName",       "OttoMatic"
+            VALUE "OriginalFilename",   "OttoMatic.exe"
+            VALUE "LegalCopyright",     "© 2001 Pangea Software, Inc., © 2025 Iliyas Jorio."
         END
     END
     BLOCK "VarFileInfo"

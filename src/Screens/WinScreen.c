@@ -17,10 +17,10 @@
 
 static void FreeWinScreen(void);
 static void SetupWinScreen(void);
-static void DrawWinCallback(OGLSetupOutputType *info);
+static void DrawWinCallback(void);
 
 static void StartTabloid(void);
-static void DrawTabloid(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawTabloid(ObjNode *theNode);
 static void MoveTabloid(ObjNode *theNode);
 
 static void DoTheEnd(void);
@@ -57,8 +57,6 @@ void DoWinScreen(void)
 float	timer = 90.0f;
 float	delayToTabloid = 6.0f;
 
-	GammaFadeOut();
-
 			/* SETUP */
 
 	SetupWinScreen();
@@ -79,7 +77,7 @@ float	delayToTabloid = 6.0f;
 
 			/* DRAW */
 
-		OGL_DrawScene(gGameViewInfoPtr, DrawWinCallback);
+		OGL_DrawScene(DrawWinCallback);
 
 
 			/* CHECK TIMERS */
@@ -110,7 +108,7 @@ float	delayToTabloid = 6.0f;
 
 			/* CLEANUP */
 
-	GammaFadeOut();
+	OGL_FadeOutScene(DrawWinCallback, NULL);
 	FreeWinScreen();
 }
 
@@ -140,7 +138,7 @@ float	timer;
 	gNewObjectDefinition.moveCall 	= MoveTheEndPane;
 	gNewObjectDefinition.rot 		= 0;
 	gNewObjectDefinition.scale 	    = 1;
-	pane = MakeSpriteObject(&gNewObjectDefinition, gGameViewInfoPtr);
+	pane = MakeSpriteObject(&gNewObjectDefinition);
 	pane->ColorFilter.a = 0;
 
 
@@ -152,7 +150,7 @@ float	timer;
 	gNewObjectDefinition.coord.y 	= -scale.y/2 - 100;
 	gNewObjectDefinition.flags 		= STATUS_BIT_GLOW;
 	gNewObjectDefinition.moveCall 	= MoveTheEndText;
-	glow = MakeSpriteObject(&gNewObjectDefinition, gGameViewInfoPtr);
+	glow = MakeSpriteObject(&gNewObjectDefinition);
 
 	glow->Scale = scale;
 	glow->SpecialF[0] = glow->ColorFilter.a = 0;
@@ -162,7 +160,7 @@ float	timer;
 
 	gNewObjectDefinition.type 		= WIN_SObjType_TheEnd_Text;
 	gNewObjectDefinition.flags 		= 0;
-	text = MakeSpriteObject(&gNewObjectDefinition, gGameViewInfoPtr);
+	text = MakeSpriteObject(&gNewObjectDefinition);
 
 	text->Scale = scale;
 	text->SpecialF[0] = text->ColorFilter.a = 0;
@@ -175,7 +173,7 @@ float	timer;
 	gNewObjectDefinition.coord.y 	= -scale2.y/2 + 40;
 	gNewObjectDefinition.flags 		= STATUS_BIT_GLOW;
 	gNewObjectDefinition.moveCall 	= MoveTheEndText;
-	glow = MakeSpriteObject(&gNewObjectDefinition, gGameViewInfoPtr);
+	glow = MakeSpriteObject(&gNewObjectDefinition);
 
 	glow->Scale = scale2;
 	glow->SpecialF[0] = glow->ColorFilter.a = -2;
@@ -185,7 +183,7 @@ float	timer;
 
 	gNewObjectDefinition.type 		= WIN_SObjType_QText;
 	gNewObjectDefinition.flags 		= 0;
-	text = MakeSpriteObject(&gNewObjectDefinition, gGameViewInfoPtr);
+	text = MakeSpriteObject(&gNewObjectDefinition);
 
 	text->Scale = scale2;
 	text->SpecialF[0] = text->ColorFilter.a = -2;
@@ -209,7 +207,7 @@ float	timer;
 
 		CalcFramesPerSecond();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawObjects);
+		OGL_DrawScene(DrawWinCallback);
 	}
 
 }
@@ -318,52 +316,47 @@ static const OGLPoint3D	humanPt[] =
 
 	viewDef.lights.fillDirection[0] = fillDirection1;
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
 
 				/************/
 				/* LOAD ART */
 				/************/
 
-	InitSparkles();
+	InitEffects();
 
 
 			/* LOAD MODELS */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:winscreen.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_WINSCREEN, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_WINSCREEN);
 
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_WINSCREEN, WIN_ObjType_Rocket,
 								 -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_Blue);
 
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:global.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_GLOBAL, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_GLOBAL);
 
 
 			/* LOAD SPRITES */
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:particle.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_PARTICLES, gGameViewInfoPtr);
+//	LoadSpriteGroup(SPRITE_GROUP_PARTICLES, PARTICLE_SObjType_COUNT, "particle");
+	LoadSpriteGroup(SPRITE_GROUP_SPHEREMAPS, SPHEREMAP_SObjType_COUNT, "spheremap");
+	LoadSpriteGroup(SPRITE_GROUP_LOSE, GAMEOVER_SObjType_COUNT, "lose");
 	BlendAllSpritesInGroup(SPRITE_GROUP_PARTICLES);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:spheremap.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_SPHEREMAPS, gGameViewInfoPtr);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:lose.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_LOSE, gGameViewInfoPtr);
 
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_OTTO, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_OTTO);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_OTTO,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-	LoadASkeleton(SKELETON_TYPE_FARMER, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_BEEWOMAN, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SCIENTIST, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SKIRTLADY, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_FARMER);
+	LoadASkeleton(SKELETON_TYPE_BEEWOMAN);
+	LoadASkeleton(SKELETON_TYPE_SCIENTIST);
+	LoadASkeleton(SKELETON_TYPE_SKIRTLADY);
 
 
 
@@ -487,23 +480,22 @@ static void FreeWinScreen(void)
 	MyFlushEvents();
 	DeleteAllObjects();
 	FreeAllSkeletonFiles(-1);
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeAllBG3DContainers();
-//	DisposeSoundBank(SOUND_BANK_WIN);
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);
+	OGL_DisposeWindowSetup();
 	Pomme_FlushPtrTracking(true);
 }
 
 
 /***************** DRAW WIN CALLBACK *******************/
 
-static void DrawWinCallback(OGLSetupOutputType *info)
+static void DrawWinCallback(void)
 {
 	UpdateRobotHands(gPlayerInfo.objNode);
 	UpdatePlayerSparkles(gPlayerInfo.objNode);
 
-	DrawObjects(info);
-	DrawSparkles(info);											// draw light sparkles
+	DrawObjects();
 }
 
 
@@ -575,13 +567,13 @@ float	s;
 
 /***************** DRAW TABLOID *************************/
 
-static void DrawTabloid(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawTabloid(ObjNode *theNode)
 {
 	OGL_PushState();
 
 	SetInfobarSpriteState(true);
 
-	MO_DrawObject(theNode->BaseGroup, setupInfo);
+	MO_DrawObject(theNode->BaseGroup);
 
 	OGL_PopState();
 }

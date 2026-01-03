@@ -15,7 +15,7 @@
 /*    PROTOTYPES            */
 /****************************/
 
-static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawSky(ObjNode *theNode);
 
 
 /****************************/
@@ -24,7 +24,7 @@ static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
 
 #define	SKY_GRID_SIZE		10			// # verts x / z
 
-#define	SKY_GRID_SCALE		(setupInfo->yon / (SKY_GRID_SIZE / 2.0f))		// scale of each grid segment
+#define	SKY_GRID_SCALE		(gGameViewInfoPtr->yon / (SKY_GRID_SIZE / 2.0f))		// scale of each grid segment
 
 #define	NUM_SKY_TRIANGLES	((SKY_GRID_SIZE-1) * (SKY_GRID_SIZE-1) * 2)
 
@@ -72,7 +72,7 @@ const SkyStyle kSkyTable[NUM_LEVELS] =
 // Called at the beginning of each level to prime the sky
 //
 
-void InitSky(OGLSetupOutputType *setupInfo)
+void InitSky(void)
 {
 int					r,c;
 float				cornerX,cornerZ,dist,alpha;
@@ -102,7 +102,7 @@ ObjNode				*obj;
 			dist = CalcDistance3D(0,0,0, gSkyPoints[r][c].x,gSkyPoints[r][c].y, gSkyPoints[r][c].z);
 			if (mySky->fadeEdges)
 			{
-				alpha = 1.0f - (dist / (setupInfo->yon * .7f));
+				alpha = 1.0f - (dist / (gGameViewInfoPtr->yon * .7f));
 				if (alpha < 0.0f)
 					alpha = 0.0f;
 				else
@@ -176,7 +176,7 @@ void DisposeSky(void)
 
 /**************** DRAW SKY *****************/
 
-static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawSky(ObjNode *theNode)
 {
 #pragma unused(theNode)
 
@@ -199,7 +199,7 @@ static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
 	v += gPlayerInfo.camera.cameraLocation.z * .0003f;
 
 	// Only do this once
-	if (setupInfo->renderLeftEye)
+	if (gGameViewInfoPtr->renderLeftEye)
 	{
 		for (r = 0; r < SKY_GRID_SIZE; r++)
 		{
@@ -229,12 +229,12 @@ static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
 			/* SETUP VERTEX ARRAY */
 
 	glEnableClientState(GL_VERTEX_ARRAY);								// enable vertex arrays
-	glVertexPointer(3, GL_FLOAT, 0, (GLfloat *)&gSkyPoints[0][0]);		// point to point array
+	glVertexPointer(3, GL_FLOAT, 0, &gSkyPoints[0][0].x);				// point to point array
 
 
 			/* SETUP VERTEX UVS */
 
-	glTexCoordPointer(2, GL_FLOAT, 0,(GLfloat *)&gSkyUVs1[0][0]);			// enable uv arrays
+	glTexCoordPointer(2, GL_FLOAT, 0, &gSkyUVs1[0][0].u);				// enable uv arrays
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 
@@ -242,7 +242,7 @@ static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
 
 	if (kSkyTable[gLevelNum].fadeEdges)
 	{
-		glColorPointer(4, GL_FLOAT, 0, (GLfloat *)&gSkyColors[0][0]);
+		glColorPointer(4, GL_FLOAT, 0, &gSkyColors[0][0].r);
 		glEnableClientState(GL_COLOR_ARRAY);								// enable color arrays
 	}
 	else
@@ -254,12 +254,12 @@ static void DrawSky(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
 	OGLMatrix4x4_SetTranslate(&m, gPlayerInfo.camera.cameraLocation.x,
 								kSkyTable[gLevelNum].altitude,
 								gPlayerInfo.camera.cameraLocation.z);
-	glMultMatrixf((GLfloat *)&m);
+	glMultMatrixf(m.value);
 
 
 			/* SUBMIT IT */
 
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][0].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][0].materialObject);
 
 	glDrawElements(GL_TRIANGLES,NUM_SKY_TRIANGLES*3,GL_UNSIGNED_INT,&gSkyTriangles[0]);
 	if (OGL_CheckError())

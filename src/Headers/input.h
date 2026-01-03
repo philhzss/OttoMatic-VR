@@ -103,7 +103,11 @@ Boolean GetNeedState(int needID);
 Boolean FlushMouseButtonPress(uint8_t sdlButton);
 Boolean UserWantsOut(void);
 void Rumble(float amplitude, float durationSeconds, float frequency, int handToVibrate);
+Boolean IsCmdQPressed(void);
+Boolean GetCheatKeyCombo(void);
 float SnapAngle(float angle, float snap);
 
-SDL_GameController* TryOpenController(bool showMessageOnFailure);
+SDL_Gamepad* TryOpenGamepad(bool showMessageOnFailure);
 void OnJoystickRemoved(SDL_JoystickID which);
+
+void SetMacLinearMouse(int linear);

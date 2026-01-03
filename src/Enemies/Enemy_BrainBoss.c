@@ -26,10 +26,10 @@ static Boolean HurtBrainBoss(ObjNode *enemy, float damage);
 
 static void SetBrainStaticLocation(ObjNode *stat);
 static void MoveBrainStatic(ObjNode *theNode);
-static void DrawBrainStatic(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawBrainStatic(ObjNode *theNode);
 
 static void MoveBrainAlienPort(ObjNode *theNode);
-static void DrawPortalBeams(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawPortalBeams(ObjNode *theNode);
 static Boolean PortalHitByWeapon(ObjNode *weapon, ObjNode *portal, OGLPoint3D *weaponCoord, OGLVector3D *weaponDelta);
 
 static void SeeIfBrainBossShoot(ObjNode *core);
@@ -368,7 +368,7 @@ static void MoveBrainStatic(ObjNode *theNode)
 
 /********************** DRAW BRAIN STATIC *****************************/
 
-static void DrawBrainStatic(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawBrainStatic(ObjNode *theNode)
 {
 OGLMatrix4x4	m;
 OGLPoint3D		pts[4];
@@ -417,27 +417,27 @@ OGLPoint3D		pts[4];
 
 	gGlobalTransparency = .6;
 
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][BRAINBOSS_SObjType_Static1+(MyRandomLong()&0x3)].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][BRAINBOSS_SObjType_Static1+(MyRandomLong()&0x3)].materialObject);
 
 
 			/* DRAW QUAD */
 
 	glBegin(GL_QUADS);
 
-		if (MyRandomLong()&1)								// random flip
-		{
-			glTexCoord2f(0,1);	glVertex3fv((GLfloat *)&pts[0]);
-			glTexCoord2f(0,0);	glVertex3fv((GLfloat *)&pts[1]);
-			glTexCoord2f(1,0);	glVertex3fv((GLfloat *)&pts[2]);
-			glTexCoord2f(1,1);	glVertex3fv((GLfloat *)&pts[3]);
-		}
-		else
-		{
-			glTexCoord2f(0,0);	glVertex3fv((GLfloat *)&pts[0]);
-			glTexCoord2f(0,1);	glVertex3fv((GLfloat *)&pts[1]);
-			glTexCoord2f(1,1);	glVertex3fv((GLfloat *)&pts[2]);
-			glTexCoord2f(1,0);	glVertex3fv((GLfloat *)&pts[3]);
-		}
+	if (MyRandomLong()&1)								// random flip
+	{
+		glTexCoord2f(0,1);	glVertex3fv(&pts[0].x);
+		glTexCoord2f(0,0);	glVertex3fv(&pts[1].x);
+		glTexCoord2f(1,0);	glVertex3fv(&pts[2].x);
+		glTexCoord2f(1,1);	glVertex3fv(&pts[3].x);
+	}
+	else
+	{
+		glTexCoord2f(0,0);	glVertex3fv(&pts[0].x);
+		glTexCoord2f(0,1);	glVertex3fv(&pts[1].x);
+		glTexCoord2f(1,1);	glVertex3fv(&pts[2].x);
+		glTexCoord2f(1,0);	glVertex3fv(&pts[3].x);
+	}
 
 	glEnd();
 
@@ -528,13 +528,11 @@ float	fps = gFramesPerSecondFrac;
 
 	if (gNumPortalsBlown >= NUM_BRAIN_PORTALS)
 	{
-		float	angle,r;
-
 				/* TURN AND MOVE */
 
-		angle = TurnObjectTowardTarget(core, &gCoord, gPlayerInfo.coord.x, gPlayerInfo.coord.z, 1.0, false);
+		TurnObjectTowardTarget(core, &gCoord, gPlayerInfo.coord.x, gPlayerInfo.coord.z, 1.0, false);
 
-		r = core->Rot.y;
+		float r = core->Rot.y;
 		gDelta.x = -sin(r) * BRAINBOSS_SPEED;
 		gDelta.z = -cos(r) * BRAINBOSS_SPEED;
 
@@ -550,7 +548,6 @@ float	fps = gFramesPerSecondFrac;
 				/* UPDATE DEFORMATION COORDS */
 
 		UpdateDeformationCoords(gBrainBossDeformation, gCoord.x, gCoord.z);
-
 	}
 
 
@@ -1128,7 +1125,7 @@ ObjNode	*newObj;
 
 /******************** DRAW PORTAL BEAMS *************************/
 
-static void DrawPortalBeams(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawPortalBeams(ObjNode *theNode)
 {
 short	i,i2;
 float	x,y,z,x2,y2,z2,u,u2,yo;
@@ -1165,7 +1162,7 @@ float	x,y,z,x2,y2,z2,u,u2,yo;
 			u = RandomFloat() * 5.0f;
 			u2 = u + 3.0f;
 
-			MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][BRAINBOSS_SObjType_RedZap].materialObject, setupInfo);
+			MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][BRAINBOSS_SObjType_RedZap].materialObject);
 
 			glBegin(GL_QUADS);
 			glTexCoord2f(u,0);			glVertex3f(x,y+yo,z);

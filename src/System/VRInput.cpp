@@ -6,7 +6,7 @@
 #include "game.h"
 #include <iostream>
 #include <cstring>
-#include <SDL_filesystem.h>
+#include <SDL3/SDL_filesystem.h>
 
 
 struct VRActionHandlers // vrActions is an instance of this

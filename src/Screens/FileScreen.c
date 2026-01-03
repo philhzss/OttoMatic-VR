@@ -5,7 +5,7 @@
 #include "game.h"
 #include <time.h>
 
-bool DoFileScreen(int fileScreenType, void (*backgroundDrawRoutine)(OGLSetupOutputType *))
+bool DoFileScreen(int fileScreenType, void (*backgroundDrawRoutine)(void))
 {
 	bool isSave = fileScreenType == FILE_SCREEN_TYPE_SAVE;
 
@@ -13,7 +13,7 @@ bool DoFileScreen(int fileScreenType, void (*backgroundDrawRoutine)(OGLSetupOutp
 	char* labelBuffer = AllocPtrClear(maxLabelLength * NUM_SAVE_SLOTS);
 
 	MenuItem menu[NUM_SAVE_SLOTS+5];
-	memset(menu, 0, sizeof(menu));
+	SDL_memset(menu, 0, sizeof(menu));
 
 	int menuIndex = 0;
 
@@ -45,7 +45,7 @@ bool DoFileScreen(int fileScreenType, void (*backgroundDrawRoutine)(OGLSetupOutp
 			time_t timestamp = (time_t) saveData.timestamp;
 			struct tm *timeinfo = localtime(&timestamp);
 
-			snprintf(labelBuffer+maxLabelLength*i, maxLabelLength,
+			SDL_snprintf(labelBuffer+maxLabelLength*i, maxLabelLength,
 					"%s %d\t%d %s %d",
 					Localize(STR_LEVEL),
 					saveData.realLevel+1,

@@ -71,6 +71,7 @@ Boolean AddEnemy_FlyTrap(TerrainItemEntryType *itemPtr, long x, long z)
 {
 ObjNode	*newObj;
 
+#if !VIP_ENEMIES
 	if (gNumEnemies >= gMaxEnemies)								// keep from getting absurd
 		return(false);
 
@@ -79,6 +80,7 @@ ObjNode	*newObj;
 		if (gNumEnemyOfKind[ENEMY_KIND_FLYTRAP] >= MAX_FLYTRAPS)
 			return(false);
 	}
+#endif
 
 
 
@@ -117,7 +119,9 @@ ObjNode	*newObj;
 		newObj->CType &= ~CTYPE_AUTOTARGETWEAPON;
 
 
+#if !VIP_ENEMIES
 	gNumEnemies++;
+#endif
 	gNumEnemyOfKind[ENEMY_KIND_FLYTRAP]++;
 	return(true);
 }
@@ -218,7 +222,7 @@ static void  MoveFlyTrap_Eat(ObjNode *theNode)
 		Boolean		overTop;
 		float		fenceTop;
 
-		if (!SeeIfLineSegmentHitsFence(&gPlayerInfo.coord, &gCoord, &intersect, &overTop, &fenceTop))			// dont grab if there's a fence between us
+		if (!SeeIfLineSegmentHitsFence(&gPlayerInfo.coord, &theNode->Coord, &intersect, &overTop, &fenceTop))			// dont grab if there's a fence between us
 		{
 			OGLPoint3D	p;
 

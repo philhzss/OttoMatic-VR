@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.jor.ottomatic</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>CC-BY-NC-SA-4.0</project_license>
+  <name>Otto Matic</name>
+  <developer_name>Pangea Software, Inc., Iliyas Jorio</developer_name>
+
+  <summary>Save the Earth from the clutches of the Giant Brain from Planet X</summary>
+  <summary xml:lang="fr">Sauvez la Terre de l’emprise du Cerveau Géant de la Planète X !</summary>
+
+  <description>
+    <p>The year is 1957 and a fleet of flying saucers from Planet X have come to Earth. These saucers are under the control of the evil Brain Aliens who are abducting helpless human beings and taking them away to strange alien worlds to become slaves of The Giant Brain. Luckily for the human race there exist the Otto Matics, robots who police the galaxy in name of all that is good and decent.</p>
+    <p xml:lang="fr">Nous sommes en 1957 et une flotte de soucoupes volantes de la Planète X est arrivée sur Terre. Ces soucoupes sont sous le contrôle des Aliens Cérébroïdes maléfiques. Ils kidnappent des humains sans défense et les emmènent dans d’étranges mondes extraterrestres pour en faire les esclaves du Cerveau Géant. Heureusement pour l’humanité, il existe les Otto Matics, d’honorables robots qui font respecter la loi à travers la galaxie au nom de tout ce qui est juste et bon.</p>
+
+    <p>You are Otto Matic, the robot who is given the job of saving Earth from the clutches of The Giant Brain from Planet X. You must rescue as many humans as you can while defeating the Brain Aliens and all of their evil followers. Your mission will take you to strange and fantastic alien worlds which are often treacherous and will require Otto to perform amazing feats.</p>
+    <p xml:lang="fr">Vous incarnez Otto Matic, le robot chargé de sauver la Terre de l’emprise du Cerveau Géant de la Planète X. Vous devez secourir autant d’humains que vous le pouvez tout en terrassant les Cérébroïdes et leurs sbires maléfiques. Votre mission vous mènera dans des mondes extraterrestres fantastiques et semés d’embûches, obligeant Otto à accomplir des exploits extraordinaires.</p>
+
+    <p>Your rocket ship will take you to each of the planets, starting with Earth. While on each planet you must save as many humans as you can, but be careful because the Brain Aliens will try to abduct the humans before you can save them. When you save humans, they are teleported to your rocket ship. To escape the planet you must also collect rocket fuel. Once The Giant Brain has been defeated and peace restored to the galaxy, you will return to Earth with your human cargo where they will be freed.</p>
+    <p xml:lang="fr">Votre fusée vous emmènera sur chacune des planètes, en commençant par la Terre. Sur chaque planète, vous devez secourir autant d’humains que possible, mais prenez garde : les Cérébroïdes essaieront d’enlever les humains avant que vous ne puissiez les secourir ! Quand vous sauvez des humains, ils sont téléportés en sécurité dans votre fusée que vous devez alimenter avec suffisamment de carburant pour pouvoir décoller de la planète. Une fois le Cerveau Géant vaincu et la paix rétablie dans la galaxie, vous retournerez sur Terre avec votre cargaison d’humains, où ils seront enfin libérés.</p>
+
+    <p>In Otto Matic...</p>
+    <p xml:lang="fr">Dans Otto Matic...</p>
+
+    <ul>
+      <li>10 levels on strange alien planets!</li>
+      <li xml:lang="fr">10 niveaux sur d’étranges planètes extraterrestres !</li>
+
+      <li>Battle 25 different alien creatures!</li>
+      <li xml:lang="fr">Combattez 25 créatures extraterrestres différentes !</li>
+
+      <li>Attack with 7 different types of space-age weapons</li>
+      <li xml:lang="fr">Attaquez avec 7 armes différentes de l’ère spatiale !</li>
+
+      <li>Fight off giant radioactive killer vegetables!</li>
+      <li xml:lang="fr">Luttez contre des légumes tueurs radioactifs géants !</li>
+
+      <li>Ski behind giant metal beasts on a sea of toxic ooze!</li>
+      <li xml:lang="fr">Faites du ski nautique sur un océan d’écume toxique !</li>
+
+      <li>Ride soap bubbles across noxious lakes of slimy goo!</li>
+      <li xml:lang="fr">Survolez des lacs gluants dans une bulle de savon géante !</li>
+
+      <li>Get shot out of a cannon!</li>
+      <li xml:lang="fr">Faites-vous propulser par un canon !</li>
+
+      <li>Smash alien clowns in hovercraft bumper-cars!</li>
+      <li xml:lang="fr">Fracassez des clowns extraterrestres dans des aéroglisseurs auto-tamponneurs !</li>
+
+      <li>Drink radioactive potions to grow to 50ft tall!</li>
+      <li xml:lang="fr">Buvez une potion radioactive pour grandir jusqu’à 15 mètres !</li>
+
+      <li>Ride a zip-line to escape mutant radioactive robots!</li>
+      <li xml:lang="fr">Prenez une tyrolienne pour échapper aux robots mutants radioactifs !</li>
+
+      <li>Pilot a flying saucer and lay waste to an alien fortress!</li>
+      <li xml:lang="fr">Pilotez une soucoupe volante pour bousiller une forteresse extraterrestre !</li>
+
+      <li>Battle the Giant Brain from Planet X</li>
+      <li xml:lang="fr">Affrontez le Cerveau Géant de la Planète X !</li>
+
+      <li>And much, much more!</li>
+      <li xml:lang="fr">Et bien plus encore !</li>
+    </ul>
+
+    <p>About this port: Otto Matic was released in 2001 by Pangea Software. It was a pack-in game on Macs that came out around that time. This port aims to provide the best way to experience the game today. This port was made and re-released under permission from Pangea Software, Inc.</p>
+    <p xml:lang="fr">À propos de ce portage : Otto Matic fut initialement lancé en 2001 par Pangea Software. Ce jeu était fourni sur les Macs qui sortaient à cette époque. Ce portage a pour objectif d’offrir la meilleure façon de jouer à ce jeu aujourd’hui. Ce portage a été réalisé et rediffusé avec la permission de Pangea Software, Inc.</p>
+  </description>
+
+  <categories>
+    <category>Game</category>
+    <category>ActionGame</category>
+  </categories>
+
+  <supports>
+    <control>keyboard</control>
+    <control>gamepad</control>
+    <control>pointing</control>
+  </supports>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-cartoon">mild</content_attribute>
+    <content_attribute id="violence-fantasy">mild</content_attribute>
+  </content_rating>
+
+  <launchable type="desktop-id">io.jor.ottomatic.desktop</launchable>
+  <provides>
+    <id>io.jor.ottomatic.desktop</id>
+  </provides>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://img.itch.zone/aW1hZ2UvMTU2ODMzOS85MTc5OTY1LmpwZw==/794x1000/83cOXC.jpg</image>
+    </screenshot>
+    <screenshot>
+      <image>https://img.itch.zone/aW1hZ2UvMTU2ODMzOS85MTc5OTY2LmpwZw==/794x1000/BFvggo.jpg</image>
+    </screenshot>
+    <screenshot>
+      <image>https://img.itch.zone/aW1hZ2UvMTU2ODMzOS85MTc5OTY3LmpwZw==/794x1000/h0PHVg.jpg</image>
+    </screenshot>
+    <screenshot>
+      <image>https://img.itch.zone/aW1hZ2UvMTU2ODMzOS85MTc5OTc1LmpwZw==/794x1000/L61HNj.jpg</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://jorio.itch.io/ottomatic</url>
+  <url type="donation">https://ko-fi.com/jorio</url>
+  <url type="vcs-browser">https://github.com/jorio/OttoMatic</url>
+  <url type="bugtracker">https://github.com/jorio/OttoMatic/issues</url>
+
+  <releases>
+    <release version="4.0.1" date="2023-01-31">
+      <url>https://github.com/jorio/OttoMatic/releases/tag/4.0.1</url>
+      <description>
+        <p>Here are the major changes since version 4.0.0 in a nutshell:</p>
+        <ul>
+          <li>New quality-of-life settings: infobar centering/scaling, camera auto-alignment on/off, etc.</li>
+          <li>For completionists: all humans should now be possible to rescue, and the bonus screen will let you know if you've rescued them all</li>
+          <li>Physics are more stable, enabling the game to be played at higher framerates</li>
+          <li>A lot of polishing: seamless terrain texturing, smooth spline motions, etc.</li>
+          <li>Fixed a whole host of minor gameplay bugs and softlocks</li>
+          <li>And more!</li>
+        </ul>
+      </description>
+    </release>
+
+    <release version="4.0.0" date="2021-08-21">
+      <url>https://github.com/jorio/OttoMatic/releases/tag/4.0.0</url>
+      <description>
+        <p>Initial playable release of the modern version of Otto Matic for modern operating systems.</p>
+        <ul>
+          <li>Cross-platform support</li>
+          <li>Many, many gameplay and cosmetic bugfixes and improvements</li>
+          <li>Reworked UI and scenes for widescreen support</li>
+          <li>Modern controller support</li>
+          <li>All-new menu system</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

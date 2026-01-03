@@ -12,13 +12,21 @@
 enum
 {
 	MAP_ITEM_MYSTARTCOORD		= 0,			// map item # for my start coords
+	MAP_ITEM_HUMAN				= 4,
+	MAP_ITEM_ATOM				= 5,
+	MAP_ITEM_POWERUPPOD			= 6,
 	MAP_ITEM_EXITROCKET			= 26,
 	MAP_ITEM_CHECKPOINT			= 27,
+	MAP_ITEM_BUBBLEPUMP			= 37,
 	MAP_ITEM_BLOBBOSS			= 41,
 	MAP_ITEM_TELEPORTER			= 57,
 	MAP_ITEM_ZIPLINE			= 58,
+	MAP_ITEM_HUMAN_SCIENTIST	= 61,
 	MAP_ITEM_BUMPERCARPOWER		= 80,
-	MAP_ITEM_BRAINPORTAL		= 108
+	MAP_ITEM_BUMPERCARGATE		= 82,
+	MAP_ITEM_ROCKETSLED			= 83,
+	MAP_ITEM_PEOPLE_HUT			= 101,
+	MAP_ITEM_BRAINPORTAL		= 108,
 };
 
 
@@ -148,8 +156,8 @@ enum
 
 typedef	struct
 {
-	u_short		supertileIndex;
-	u_char		statusFlags;
+	uint16_t	supertileIndex;
+	uint8_t		statusFlags;
 	Boolean		playerHereFlag;
 }SuperTileStatus;
 
@@ -192,21 +200,21 @@ enum
 
 void CreateSuperTileMemoryList(void);
 void DisposeSuperTileMemoryList(void);
-extern 	void DisposeTerrain(void);
-extern	void GetSuperTileInfo(long x, long z, long *superCol, long *superRow, long *tileCol, long *tileRow);
-extern	void InitTerrainManager(void);
+void DisposeTerrain(void);
+void GetSuperTileInfo(long x, long z, int* superCol, int* superRow, int* tileCol, int* tileRow);
+void InitTerrainManager(void);
 float	GetTerrainY(float x, float z);
 float	GetTerrainY2(float x, float z);
 float	GetTerrainY_Undeformed(float x, float z);
 float	GetMinTerrainY(float x, float z, short group, short type, float scale);
 void InitCurrentScrollSettings(void);
 
-extern 	void BuildTerrainItemList(void);
+void BuildTerrainItemList(void);
 void AddTerrainItemsOnSuperTile(long row, long col);
-extern 	Boolean TrackTerrainItem(ObjNode *theNode);
+Boolean TrackTerrainItem(ObjNode *theNode);
 Boolean TrackTerrainItem_FromInit(ObjNode *theNode);
 Boolean SeeIfCoordsOutOfRange(float x, float z);
-extern 	void FindPlayerStartCoordItems(void);
+void FindPlayerStartCoordItems(void);
 void InitSuperTileGrid(void);
 void RotateOnTerrain(ObjNode *theNode, float yOffset, OGLVector3D *surfaceNormal);
 void DoPlayerTerrainUpdate(float x, float y);
@@ -215,7 +223,7 @@ void CalcTileNormals_NotNormalized(long row, long col, OGLVector3D *n1, OGLVecto
 void CalculateSplitModeMatrix(void);
 void CalculateSupertileVertexNormals(MOVertexArrayData	*meshData, long	startRow, long startCol);
 
-u_short	GetTileAttribsAtRowCol(int row, int col);
+uint16_t GetTileAttribsAtRowCol(int row, int col);
 short NewSuperTileDeformation(DeformationType *data);
 void DeleteTerrainDeformation(short	i);
 void UpdateDeformationCoords(short defNum, float x, float z);

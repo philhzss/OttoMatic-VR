@@ -14,9 +14,8 @@ enum
 
 typedef struct
 {
-	Boolean				isActive;								// true if this one is active
 	ObjNode				*owner;									// node which owns this sparkle (or nil)
-	u_long				flags;						
+	uint32_t			flags;						
 	OGLPoint3D			where;	
 	OGLVector3D			aim;
 	OGLColorRGBA		color;
@@ -27,9 +26,9 @@ typedef struct
 
 
 void InitSparkles(void);
-short GetFreeSparkle(ObjNode *theNode);
-void DeleteSparkle(short i);
-void DrawSparkles(OGLSetupOutputType *setupInfo);
+void DisposeSparkles(void);
+int GetFreeSparkle(ObjNode *theNode);
+void DeleteSparkle(int i);
 
 void CreatePlayerSparkles(ObjNode *theNode);
 void UpdatePlayerSparkles(ObjNode *theNode);

@@ -72,6 +72,7 @@ static void DoPlayerMagnetSkiing(ObjNode *player);
 static void EndMagnetSkiing(ObjNode *player, Boolean crash);
 static void VerifyTargetPickup(void);
 
+static Boolean ShouldApplySlopesToPlayer(float newDistToFloor);
 
 /****************************/
 /*    CONSTANTS             */
@@ -103,11 +104,7 @@ static void VerifyTargetPickup(void);
 #define	JUMP_JET_ACCELERATION_GIANT	(JUMP_JET_ACCELERATION * .5f)
 #define	JUMP_JET_DECELERATION		2000.0f
 
-#define	DELTA_SUBDIV			30.0f				// smaller == more subdivisions per frame
-// Source port note: DELTA_SUBDIV was originally 15. At 60 fps, that value caused hiccups in the player's
-// movement speed when walking on non-ground objects, such as spinning platforms in level 3.
-// These hiccups start disappearing at about 75 fps, which was ok in the original game because the framerate
-// was uncapped. For 60 fps (v-sync), a delta subdiv of 30 gets rid of this issue.
+#define	DELTA_SUBDIV			15.0f				// smaller == more subdivisions per frame
 
 #define	CONTROL_SENSITIVITY		2200.0f
 #define	CONTROL_SENSITIVITY_AIR	5000.0f
@@ -134,7 +131,7 @@ enum
 /*    VARIABLES      */
 /*********************/
 
-u_short			gPlayerTileAttribs;
+uint16_t			gPlayerTileAttribs;
 
 OGLVector3D		gPreCollisionDelta;
 
@@ -212,7 +209,8 @@ int		i;
 
 	newObj = MakeNewSkeletonObject(&gNewObjectDefinition);
 
-	gPlayerInfo.objNode 	= newObj;
+	gPlayerInfo.objNode 		= newObj;
+	gPlayerInfo.isTeleporting 	= false;
 
 	newObj->Rot.y = rotY;
 
@@ -926,7 +924,7 @@ update:
 static void TurnPlayerTowardPunchable(ObjNode *player)
 {
 ObjNode *thisNode,*nearest;
-float	ex,ey,ez,dist,bestDist,maxDist;
+float	bestDist,maxDist;
 
 	bestDist = 10000000;
 	nearest = nil;
@@ -942,11 +940,10 @@ float	ex,ey,ez,dist,bestDist,maxDist;
 		if (thisNode->HitByWeaponHandler[WEAPON_TYPE_FIST] == nil)					// only look for punchables
 			goto next;
 
-		ex = thisNode->Coord.x;									// get obj coords
-		ey = thisNode->Coord.y;
-		ez = thisNode->Coord.z;
+		float ex = thisNode->Coord.x;							// get obj coords
+		float ez = thisNode->Coord.z;
 
-		dist = CalcDistance(gCoord.x, gCoord.z, ex, ez);
+		float dist = CalcDistance(gCoord.x, gCoord.z, ex, ez);
 		if ((dist < bestDist) && (dist < maxDist))				// see if best dist & close enough
 		{
 			bestDist = dist;
@@ -1171,7 +1168,7 @@ float	fps = gFramesPerSecondFrac;
 		gPlayerInfo.invincibilityTimer = 2.0f;
 		MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FLATTENED, 8.0);
 		gPlayerInfo.knockDownTimer = 1.5;
-		PlayEffect3D(EFFECT_PLAYERCLANG, &gCoord);
+		PlayEffect_Parms3D(EFFECT_PLAYERCLANG, &gCoord, NORMAL_CHANNEL_RATE, 0.8f);
 		PlayerLoseHealth(.2, PLAYER_DEATH_TYPE_EXPLODE);
 	}
 
@@ -1270,7 +1267,7 @@ static void MovePlayerRobot_Drowned(ObjNode *theNode)
 
 static void MovePlayerRobot_Flattened(ObjNode *theNode)
 {
-u_long	wasOnGround = theNode->StatusBits & STATUS_BIT_ONGROUND;
+Boolean	wasOnGround = !!(theNode->StatusBits & STATUS_BIT_ONGROUND);
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
@@ -1287,7 +1284,7 @@ u_long	wasOnGround = theNode->StatusBits & STATUS_BIT_ONGROUND;
 	if ((theNode->StatusBits & STATUS_BIT_ONGROUND) && (!wasOnGround))
 	{
 //		if (gDelta.y > 20.0f)
-			PlayEffect3D(EFFECT_PLAYERCLANG, &gCoord);
+			PlayEffect_Parms3D(EFFECT_PLAYERCLANG, &gCoord, NORMAL_CHANNEL_RATE, 0.8f);
 	}
 
 
@@ -1558,7 +1555,7 @@ float	fps = gFramesPerSecondFrac;
 	{
 		SetSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_BELLYSLIDE);
 		gPlayerInfo.knockDownTimer = 1.0f;
-		PlayEffect3D(EFFECT_PLAYERCLANG, &gCoord);
+		PlayEffect_Parms3D(EFFECT_PLAYERCLANG, &gCoord, NORMAL_CHANNEL_RATE, 0.8f);
 	}
 
 
@@ -2254,7 +2251,7 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	{
 		float	dx, dy, dz;
 
-		oldCoord = gCoord;								// remember starting coord
+//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
 
 
 				/* GET DELTA */
@@ -2369,7 +2366,6 @@ OGLVector3D			accVec;
 OGLMatrix4x4		m;
 static const OGLVector3D up = {0,1,0};
 Boolean				killed = false;
-OGLPoint3D			oldCoord;
 int					numPasses,pass;
 
 
@@ -2422,7 +2418,7 @@ int					numPasses,pass;
 	{
 		float	dx,dy,dz;
 
-		oldCoord = gCoord;								// remember starting coord
+//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
 
 
 				/* GET DELTA */
@@ -2774,10 +2770,8 @@ float	x,z,fps;
 
 static Boolean DoRobotCollisionDetect(ObjNode *theNode, Boolean useBBoxForTerrain)
 {
-short		i;
 ObjNode		*hitObj;
-unsigned long	ctype;
-u_char		sides;
+uint32_t	ctype;
 float		distToFloor, terrainY, fps = gFramesPerSecondFrac;
 float		bottomOff;
 Boolean		killed = false;
@@ -2802,12 +2796,12 @@ Boolean		killed = false;
 	else
 		theNode->BottomOff = gPlayerBottomOff;
 
-	sides = HandleCollisions(theNode, ctype, -.3);
+	HandleCollisions(theNode, ctype, -.3);
 
 			/* SCAN FOR INTERESTING STUFF */
 
 
-	for (i=0; i < gNumCollisions; i++)
+	for (int i = 0; i < gNumCollisions; i++)
 	{
 		if (gCollisionList[i].type == COLLISION_TYPE_OBJ)
 		{
@@ -2899,13 +2893,10 @@ Boolean		killed = false;
 			// Only apply slopes when on the ground (or really close to it)
 			//
 
-	if ((fabs(gPlayerInfo.analogControlX) < 0.5f) && (fabs(gPlayerInfo.analogControlZ) < 0.5f))			// only do slopes if player isn't controlling
+	if (ShouldApplySlopesToPlayer(distToFloor))
 	{
-		if ((distToFloor <= 0.0f) || (gPlayerInfo.distToFloor < 15.0f))
-		{
-			gDelta.x += gRecentTerrainNormal.x * (fps * PLAYER_SLOPE_ACCEL);
-			gDelta.z += gRecentTerrainNormal.z * (fps * PLAYER_SLOPE_ACCEL);
-		}
+		gDelta.x += gRecentTerrainNormal.x * (fps * PLAYER_SLOPE_ACCEL);
+		gDelta.z += gRecentTerrainNormal.z * (fps * PLAYER_SLOPE_ACCEL);
 	}
 
 			/**************************/
@@ -3016,19 +3007,28 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 {
 		/* SEE IF DO CHEAT */
 
-	if (GetKeyState(SDL_SCANCODE_B) &&
-		GetKeyState(SDL_SCANCODE_R) &&
-		GetKeyState(SDL_SCANCODE_I))
+	if (GetCheatKeyCombo())
 	{
 		if (gPlayerInfo.lives < 3)
 			gPlayerInfo.lives 	= 3;
 		gPlayerInfo.health 	= 1.0;
 		gPlayerInfo.fuel 	= 1.0;
 		gPlayerInfo.jumpJet = 1.0;
+
+		gPlayerInfo.weaponInventory[1].type = WEAPON_TYPE_STUNPULSE;
+		gPlayerInfo.weaponInventory[2].type = WEAPON_TYPE_FREEZE;
+		gPlayerInfo.weaponInventory[3].type = WEAPON_TYPE_FLAME;
+		gPlayerInfo.weaponInventory[4].type = WEAPON_TYPE_GROWTH;
+		gPlayerInfo.weaponInventory[5].type = WEAPON_TYPE_FLARE;
 		gPlayerInfo.weaponInventory[6].type = WEAPON_TYPE_SUPERNOVA;
-		gPlayerInfo.weaponInventory[6].quantity = 99;
-		gPlayerInfo.weaponInventory[7].type = WEAPON_TYPE_STUNPULSE;
-		gPlayerInfo.weaponInventory[7].quantity = 99;
+		gPlayerInfo.weaponInventory[7].type = WEAPON_TYPE_DART;
+
+		for (int i = 1; i <= 7; i++)
+			gPlayerInfo.weaponInventory[i].quantity = 99;
+
+		gPlayerInfo.weaponInventory[4].quantity = 1;		// just one growth vial so we can test tossing it
+
+		gPlayerInfo.didCheat = true;
 	}
 
 			/***************/
@@ -3084,11 +3084,19 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 
 			gDelta.y += JUMP_DELTA;
 
-			if (theNode->MPlatform != nil)			// if jumping off of mplatform then also use platform's deltas
+			if (theNode->MPlatform != nil)			
 			{
-				gDelta.x += theNode->MPlatform->Delta.x;
-				gDelta.y += theNode->MPlatform->Delta.y;
-				gDelta.z += theNode->MPlatform->Delta.z;
+				if (theNode->MPlatform->CType & CTYPE_MPLATFORM_FREEJUMP)
+				{
+					theNode->MPlatform = nil;
+				}
+				else
+				{
+					// if jumping off of mplatform then also use platform's deltas
+					gDelta.x += theNode->MPlatform->Delta.x;
+					gDelta.y += theNode->MPlatform->Delta.y;
+					gDelta.z += theNode->MPlatform->Delta.z;
+				}
 			}
 		}
 	}
@@ -3118,7 +3126,7 @@ static void StartJumpJet(ObjNode *theNode)
 	}
 
 	gPlayerInfo.jumpJet -= .1f;						// dec fuel
-	if (gPlayerInfo.jumpJet < 0.0f)
+	if (gPlayerInfo.jumpJet < EPS)					// avoid free shot when real close to 0 due to FP imprecision
 		gPlayerInfo.jumpJet = 0.0f;
 
 	gResetJumpJet = false;
@@ -3557,20 +3565,37 @@ ObjNode		*magMonster;
 
 
 
+/******************** SHOULD APPLY SLOPES **************************/
 
+static Boolean ShouldApplySlopesToPlayer(float newDistToFloor)
+{
+	switch (gPlayerInfo.objNode->Skeleton->AnimNum)
+	{
+		case PLAYER_ANIM_WALK:
+		case PLAYER_ANIM_WALKWITHGUN:
+		case PLAYER_ANIM_BELLYSLIDE:
+		case PLAYER_ANIM_THROWN:
+			// allow slopes for these
+			break;
 
+		default:
+			// don't apply slopes this while standing
+			// otherwise some weird rotation may occur on steep slopes at high framerates
+			return false;
+	}
 
+	// only do slopes if player isn't controlling
+	if ((fabs(gPlayerInfo.analogControlX) >= 0.5f)
+		|| (fabs(gPlayerInfo.analogControlZ) >= 0.5f))
+	{
+		return false;
+	}
 
+	if ((newDistToFloor > 0.0f) && (gPlayerInfo.distToFloor >= 15.0f))
+	{
+		return false;
+	}
 
-
-
-
-
-
-
-
-
-
-
-
+	return true;
+}
 

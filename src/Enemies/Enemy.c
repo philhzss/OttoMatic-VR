@@ -28,10 +28,9 @@
 /*    VARIABLES      */
 /*********************/
 
-signed char	gNumEnemyOfKind[NUM_ENEMY_KINDS];
-short		gNumEnemies;
-
-short		gMaxEnemies;
+int			gNumEnemyOfKind[NUM_ENEMY_KINDS];
+int			gNumEnemies;
+int			gMaxEnemies;
 
 
 /*********************  INIT ENEMY MANAGER **********************/
@@ -71,7 +70,19 @@ void DeleteEnemy(ObjNode *theEnemy)
 			gNumEnemyOfKind[theEnemy->Kind] = 0;
 		}
 
+#if !VIP_ENEMIES
 		gNumEnemies--;										// dec global count
+#else
+		switch (theEnemy->Kind)
+		{
+			case ENEMY_KIND_GIANTLIZARD:
+			case ENEMY_KIND_FLYTRAP:
+				// VIP enemies don't count towards global enemy count
+				break;
+			default:
+				gNumEnemies--;
+		}
+#endif
 	}
 
 	DeleteObject(theEnemy);								// nuke the obj
@@ -86,7 +97,7 @@ void DeleteEnemy(ObjNode *theEnemy)
 // OUTPUT: true = was deleted
 //
 
-Boolean DoEnemyCollisionDetect(ObjNode *theEnemy, unsigned long ctype, Boolean useBBoxBottom)
+Boolean DoEnemyCollisionDetect(ObjNode *theEnemy, uint32_t ctype, Boolean useBBoxBottom)
 {
 float	terrainY,distToFloor,bottomOff;
 

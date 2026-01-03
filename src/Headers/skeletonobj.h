@@ -41,11 +41,11 @@ enum
 
 //===============================
 
-extern	ObjNode	*MakeNewSkeletonObject(NewObjectDefinitionType *newObjDef);
+ObjNode* MakeNewSkeletonObject(NewObjectDefinitionType* newObjDef);
 extern	void DisposeSkeletonObjectMemory(SkeletonDefType *skeleton);
 extern	void AllocSkeletonDefinitionMemory(SkeletonDefType *skeleton);
 extern	void InitSkeletonManager(void);
-void LoadASkeleton(Byte num, OGLSetupOutputType *setupInfo);
+void LoadASkeleton(Byte num);
 extern	void FreeSkeletonFile(Byte skeletonType);
 extern	void FreeAllSkeletonFiles(short skipMe);
 extern	void FreeSkeletonBaseData(SkeletonObjDataType *data);

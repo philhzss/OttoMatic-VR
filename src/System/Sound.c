@@ -17,7 +17,7 @@
 /****************************/
 
 static short FindSilentChannel(void);
-static void Calc3DEffectVolume(short effectNum, OGLPoint3D *where, float volAdjust, u_long *leftVolOut, u_long *rightVolOut);
+static void Calc3DEffectVolume(short effectNum, OGLPoint3D *where, float volAdjust, uint32_t *leftVolOut, uint32_t *rightVolOut);
 //static void UpdateGlobalVolume(void);
 
 
@@ -48,7 +48,7 @@ typedef struct
 	SndListHandle	sndHandle;
 	long			sndOffset;
 	short			lastPlayedOnChannel;
-	u_long			lastLoudness;
+	uint32_t			lastLoudness;
 } LoadedEffect;
 
 enum
@@ -102,7 +102,6 @@ static	SndChannelPtr		gMusicChannel = nil;
 Boolean						gAllowAudioKeys = true;
 
 
-static short				gMusicFileRefNum = 0x0ded;
 static short				gCurrentSong = -1;
 static Boolean				gSongPlayingFlag = false;
 
@@ -113,179 +112,179 @@ static Boolean				gSongPlayingFlag = false;
 
 static const char* kSoundBankNames[] =
 {
-	[SOUNDBANK_MAIN]      = "main",
-	[SOUNDBANK_MENU]      = "menu",
-	[SOUNDBANK_BONUS]     = "bonus",
-	[SOUNDBANK_FARM]      = "farm",
-	[SOUNDBANK_SLIME]     = "slime",
-	[SOUNDBANK_APOC]      = "apocalypse",
-	[SOUNDBANK_CLOUD]     = "cloud",
-	[SOUNDBANK_JUNGLE]    = "jungle",
-	[SOUNDBANK_FIREICE]   = "fireice",
-	[SOUNDBANK_SAUCER]    = "saucer",
-	[SOUNDBANK_BRAIN]     = "brainboss",
-	[SOUNDBANK_LOSE]      = "lose",
+	[SOUNDBANK_MAIN]      = "Main",
+	[SOUNDBANK_MENU]      = "Menu",
+	[SOUNDBANK_BONUS]     = "Bonus",
+	[SOUNDBANK_FARM]      = "Farm",
+	[SOUNDBANK_SLIME]     = "Slime",
+	[SOUNDBANK_APOC]      = "Apocalypse",
+	[SOUNDBANK_CLOUD]     = "Cloud",
+	[SOUNDBANK_JUNGLE]    = "Jungle",
+	[SOUNDBANK_FIREICE]   = "FireIce",
+	[SOUNDBANK_SAUCER]    = "Saucer",
+	[SOUNDBANK_BRAIN]     = "BrainBoss",
+	[SOUNDBANK_LOSE]      = "Lose",
 };
 
 static const EffectDef kEffectsTable[] =
 {
-	[EFFECT_BADSELECT]        = {SOUNDBANK_MAIN   , "badselect"       , 2000, 0	},
-	[EFFECT_SAUCER]           = {SOUNDBANK_MAIN   , "saucer"          , 1000, 0	},
-	[EFFECT_STUNGUN]          = {SOUNDBANK_MAIN   , "stungun"         , 700 , 0	},
-	[EFFECT_ZAP]              = {SOUNDBANK_MAIN   , "zap"             , 2000, 0	},
-	[EFFECT_ROCKET]           = {SOUNDBANK_MAIN   , "rocket"          , 2500, 0	},
-	[EFFECT_ROCKETLANDED]     = {SOUNDBANK_MAIN   , "landed"          , 3000, 0	},
-	[EFFECT_JUMPJET]          = {SOUNDBANK_MAIN   , "jumpjet"         , 2000, 0	},
-	[EFFECT_SHATTER]          = {SOUNDBANK_MAIN   , "shatter"         , 3000, 0	},
-	[EFFECT_WEAPONCLICK]      = {SOUNDBANK_MAIN   , "weaponclick"     , 3000, kSoundFlag_Unique	},
-	[EFFECT_WEAPONWHIR]       = {SOUNDBANK_MAIN   , "weaponwhir"      , 3000, kSoundFlag_NoInterp	},
-	[EFFECT_NEWLIFE]          = {SOUNDBANK_MAIN   , "newlife"         , 3000, kSoundFlag_NoInterp	},
-	[EFFECT_FREEZEGUN]        = {SOUNDBANK_MAIN   , "freezegun"       , 3000, 0	},
-	[EFFECT_PUNCHHIT]         = {SOUNDBANK_MAIN   , "punchhit"        , 1000, 0	},
-	[EFFECT_PLAYERCRASH]      = {SOUNDBANK_MAIN   , "playercrash"     , 1000, 0	},
-	[EFFECT_NOJUMPJET]        = {SOUNDBANK_MAIN   , "nojumpjet"       , 1000, 0	},
-	[EFFECT_PLAYERCRUSH]      = {SOUNDBANK_MAIN   , "playercrush"     , 1400, 0	},
-	[EFFECT_HEADSWOOSH]       = {SOUNDBANK_MAIN   , "headswoosh"      , 1200, 0	},
-	[EFFECT_HEADTHUD]         = {SOUNDBANK_MAIN   , "headthud"        , 1200, 0	},
-	[EFFECT_POWPODHIT]        = {SOUNDBANK_MAIN   , "powpodhit"       , 400 , 0	},
-	[EFFECT_METALLAND]        = {SOUNDBANK_MAIN   , "metalland"       , 50  , 0	},
-	[EFFECT_SERVO]            = {SOUNDBANK_MAIN   , "servo"           , 300 , 0	},
-	[EFFECT_LEFTFOOT]         = {SOUNDBANK_MAIN   , "leftfoot"        , 40  , 0	},
-	[EFFECT_RIGHTFOOT]        = {SOUNDBANK_MAIN   , "rightfoot"       , 40  , 0	},
-	[EFFECT_NOVACHARGE]       = {SOUNDBANK_MAIN   , "novacharge"      , 4000, 0	},
-	[EFFECT_TELEPORTHUMAN]    = {SOUNDBANK_MAIN   , "teleporthuman"   , 3000, 0	},
-	[EFFECT_CHECKPOINTHIT]    = {SOUNDBANK_MAIN   , "checkpointhit"   , 3000, 0	},
-	[EFFECT_CHECKPOINTLOOP]   = {SOUNDBANK_MAIN   , "checkpointloop"  , 800 , 0	},
-	[EFFECT_FLARESHOOT]       = {SOUNDBANK_MAIN   , "flareshoot"      , 3000, 0	},
-	[EFFECT_FLAREEXPLODE]     = {SOUNDBANK_MAIN   , "flareexplode"    , 3000, 0	},
-	[EFFECT_DARTWOOSH]        = {SOUNDBANK_MAIN   , "dartwoosh"       , 3000, 0	},
-	[EFFECT_ATOMCHIME]        = {SOUNDBANK_MAIN   , "atomchime"       , 3000, 0	},
-	[EFFECT_PLAYERCLANG]      = {SOUNDBANK_MAIN   , "metalhit"        , 2000, kSoundFlag_Unique		},
-	[EFFECT_THROWNSWOOSH]     = {SOUNDBANK_MAIN   , "thrownswoosh"    , 4000, 0	},
-	[EFFECT_BEAMHUM]          = {SOUNDBANK_MAIN   , "beamhum"         , 1500, 0	},
-	[EFFECT_JUMP]             = {SOUNDBANK_MAIN   , "jump"            , 1000, 0	},
-	[EFFECT_HEALTHWARNING]    = {SOUNDBANK_MAIN   , "healthwarning"   , 1000, 0	},
-	[EFFECT_HATCH]            = {SOUNDBANK_MAIN   , "hatch"           , 2000, 0	},
-	[EFFECT_BRAINWAVE]        = {SOUNDBANK_MAIN   , "brainwave"       , 10  , 0	},
-	[EFFECT_WEAPONDEPOSIT]    = {SOUNDBANK_MAIN   , "weapondeposit"   , 2000, 0	},
-	[EFFECT_BRAINDIE]         = {SOUNDBANK_MAIN   , "braindie"        , 2000, kSoundFlag_Unique	},
-	[EFFECT_LASERHIT]         = {SOUNDBANK_MAIN   , "laserhit"        , 1000, 0	},
-	[EFFECT_FLAREUP]          = {SOUNDBANK_MAIN   , "flareup"         , 1500, 0	},
-	[EFFECT_FREEZEPOOF]       = {SOUNDBANK_MAIN   , "freezepoof"      , 300 , 0	},
-	[EFFECT_CHANGEWEAPON]     = {SOUNDBANK_MAIN   , "changeweapon"    , 300 , 0	},
-	[EFFECT_MENUCHANGE]       = {SOUNDBANK_MAIN   , "menuchange"      , 1200, 0	},
+	[EFFECT_BADSELECT]        = {SOUNDBANK_MAIN   , "BadSelect"       , 2000, 0	},
+	[EFFECT_SAUCER]           = {SOUNDBANK_MAIN   , "Saucer"          , 1000, 0	},
+	[EFFECT_STUNGUN]          = {SOUNDBANK_MAIN   , "StunGun"         , 700 , 0	},
+	[EFFECT_ZAP]              = {SOUNDBANK_MAIN   , "Zap"             , 2000, 0	},
+	[EFFECT_ROCKET]           = {SOUNDBANK_MAIN   , "Rocket"          , 2500, 0	},
+	[EFFECT_ROCKETLANDED]     = {SOUNDBANK_MAIN   , "Landed"          , 3000, 0	},
+	[EFFECT_JUMPJET]          = {SOUNDBANK_MAIN   , "JumpJet"         , 2000, 0	},
+	[EFFECT_SHATTER]          = {SOUNDBANK_MAIN   , "Shatter"         , 3000, 0	},
+	[EFFECT_WEAPONCLICK]      = {SOUNDBANK_MAIN   , "WeaponClick"     , 3000, kSoundFlag_Unique	},
+	[EFFECT_WEAPONWHIR]       = {SOUNDBANK_MAIN   , "WeaponWhir"      , 3000, kSoundFlag_NoInterp	},
+	[EFFECT_NEWLIFE]          = {SOUNDBANK_MAIN   , "NewLife"         , 3000, kSoundFlag_NoInterp	},
+	[EFFECT_FREEZEGUN]        = {SOUNDBANK_MAIN   , "FreezeGun"       , 3000, 0	},
+	[EFFECT_PUNCHHIT]         = {SOUNDBANK_MAIN   , "PunchHit"        , 1000, 0	},
+	[EFFECT_PLAYERCRASH]      = {SOUNDBANK_MAIN   , "PlayerCrash"     , 1000, 0	},
+	[EFFECT_NOJUMPJET]        = {SOUNDBANK_MAIN   , "NoJumpJet"       , 1000, 0	},
+	[EFFECT_PLAYERCRUSH]      = {SOUNDBANK_MAIN   , "PlayerCrush"     , 1400, 0	},
+	[EFFECT_HEADSWOOSH]       = {SOUNDBANK_MAIN   , "HeadSwoosh"      , 1200, 0	},
+	[EFFECT_HEADTHUD]         = {SOUNDBANK_MAIN   , "HeadThud"        , 1200, 0	},
+	[EFFECT_POWPODHIT]        = {SOUNDBANK_MAIN   , "PowPodHit"       , 400 , 0	},
+	[EFFECT_METALLAND]        = {SOUNDBANK_MAIN   , "MetalLand"       , 50  , 0	},
+	[EFFECT_SERVO]            = {SOUNDBANK_MAIN   , "Servo"           , 300 , 0	},
+	[EFFECT_LEFTFOOT]         = {SOUNDBANK_MAIN   , "LeftFoot"        , 40  , 0	},
+	[EFFECT_RIGHTFOOT]        = {SOUNDBANK_MAIN   , "RightFoot"       , 40  , 0	},
+	[EFFECT_NOVACHARGE]       = {SOUNDBANK_MAIN   , "NovaCharge"      , 4000, 0	},
+	[EFFECT_TELEPORTHUMAN]    = {SOUNDBANK_MAIN   , "TeleportHuman"   , 3000, 0	},
+	[EFFECT_CHECKPOINTHIT]    = {SOUNDBANK_MAIN   , "CheckpointHit"   , 3000, 0	},
+	[EFFECT_CHECKPOINTLOOP]   = {SOUNDBANK_MAIN   , "CheckpointLoop"  , 800 , 0	},
+	[EFFECT_FLARESHOOT]       = {SOUNDBANK_MAIN   , "FlareShoot"      , 3000, 0	},
+	[EFFECT_FLAREEXPLODE]     = {SOUNDBANK_MAIN   , "FlareExplode"    , 3000, 0	},
+	[EFFECT_DARTWOOSH]        = {SOUNDBANK_MAIN   , "DartWoosh"       , 3000, 0	},
+	[EFFECT_ATOMCHIME]        = {SOUNDBANK_MAIN   , "AtomChime"       , 3000, 0	},
+	[EFFECT_PLAYERCLANG]      = {SOUNDBANK_MAIN   , "PlayerClang"     , 2000, kSoundFlag_Unique		},
+	[EFFECT_THROWNSWOOSH]     = {SOUNDBANK_MAIN   , "ThrownSwoosh"    , 4000, 0	},
+	[EFFECT_BEAMHUM]          = {SOUNDBANK_MAIN   , "BeamHum"         , 1500, 0	},
+	[EFFECT_JUMP]             = {SOUNDBANK_MAIN   , "Jump"            , 1000, 0	},
+	[EFFECT_HEALTHWARNING]    = {SOUNDBANK_MAIN   , "HealthWarning"   , 1000, 0	},
+	[EFFECT_HATCH]            = {SOUNDBANK_MAIN   , "Hatch"           , 2000, 0	},
+	[EFFECT_BRAINWAVE]        = {SOUNDBANK_MAIN   , "BrainWave"       , 10  , 0	},
+	[EFFECT_WEAPONDEPOSIT]    = {SOUNDBANK_MAIN   , "WeaponDeposit"   , 2000, 0	},
+	[EFFECT_BRAINDIE]         = {SOUNDBANK_MAIN   , "BrainDie"        , 2000, kSoundFlag_Unique	},
+	[EFFECT_LASERHIT]         = {SOUNDBANK_MAIN   , "LaserHit"        , 1000, 0	},
+	[EFFECT_FLAREUP]          = {SOUNDBANK_MAIN   , "FlareUp"         , 1500, 0	},
+	[EFFECT_FREEZEPOOF]       = {SOUNDBANK_MAIN   , "FreezePoof"      , 300 , 0	},
+	[EFFECT_CHANGEWEAPON]     = {SOUNDBANK_MAIN   , "ChangeWeapon"    , 300 , 0	},
+	[EFFECT_MENUCHANGE]       = {SOUNDBANK_MAIN   , "MenuChange"      , 1200, 0	},
+	[EFFECT_GIANTFOOTSTEP]    = {SOUNDBANK_MAIN   , "GiantFootstep"   , 1500, 0	},
 
-	[EFFECT_LOGOAMBIENCE]     = {SOUNDBANK_MENU   , "ambience"        , 1200, 0	},
-	[EFFECT_ACCENTDRONE1]     = {SOUNDBANK_MENU   , "accentdrone1"    , 1200, 0	},
-	[EFFECT_ACCENTDRONE2]     = {SOUNDBANK_MENU   , "accentdrone2"    , 1200, 0	},
+	[EFFECT_LOGOAMBIENCE]     = {SOUNDBANK_MENU   , "Ambience"        , 1200, 0	},
+	[EFFECT_ACCENTDRONE1]     = {SOUNDBANK_MENU   , "AccentDrone1"    , 1200, 0	},
+	[EFFECT_ACCENTDRONE2]     = {SOUNDBANK_MENU   , "AccentDrone2"    , 1200, 0	},
 
-	[EFFECT_BONUSTELEPORT]    = {SOUNDBANK_BONUS  , "teleporthuman"   , 5000, 0	},
-	[EFFECT_POINTBEEP]        = {SOUNDBANK_BONUS  , "pointbeep"       , 5000, 0	},
-	[EFFECT_BONUSTRACTORBEAM] = {SOUNDBANK_BONUS  , "tractorbeam"     , 5000, 0	},
-	[EFFECT_BONUSROCKET]      = {SOUNDBANK_BONUS  , "rocket"          , 5000, 0	},
+	[EFFECT_BONUSTELEPORT]    = {SOUNDBANK_BONUS  , "TeleportHuman"   , 5000, 0	},
+	[EFFECT_POINTBEEP]        = {SOUNDBANK_BONUS  , "PointBeep"       , 5000, 0	},
+	[EFFECT_BONUSTRACTORBEAM] = {SOUNDBANK_BONUS  , "TractorBeam"     , 5000, 0	},
+	[EFFECT_BONUSROCKET]      = {SOUNDBANK_BONUS  , "Rocket"          , 5000, 0	},
 
-	[EFFECT_POPCORN]          = {SOUNDBANK_FARM   , "popcornpop"      , 2000, 0	},
-	[EFFECT_SHOOTCORN]        = {SOUNDBANK_FARM   , "shootcorn"       , 2000, 0	},
-	[EFFECT_METALGATEHIT]     = {SOUNDBANK_FARM   , "metalhit"        , 3000, 0	},
-	[EFFECT_METALGATECRASH]   = {SOUNDBANK_FARM   , "metalcrash"      , 3000, 0	},
-	[EFFECT_TRACTOR]          = {SOUNDBANK_FARM   , "tractor"         , 2000, 0	},
-	[EFFECT_ONIONSWOOSH]      = {SOUNDBANK_FARM   , "onionswoosh"     , 2000, 0	},
-	[EFFECT_WOODGATECRASH]    = {SOUNDBANK_FARM   , "woodgatesmash"   , 3000, 0	},
-	[EFFECT_TOMATOJUMP]       = {SOUNDBANK_FARM   , "tomatojump"      , 3000, 0	},
-	[EFFECT_TOMATOSPLAT]      = {SOUNDBANK_FARM   , "tomatosplat"     , 3000, 0	},
-	[EFFECT_WOODDOORHIT]      = {SOUNDBANK_FARM   , "wooddoorhit"     , 2000, 0	},
-	[EFFECT_ONIONSPLAT]       = {SOUNDBANK_FARM   , "onionsplat"      , 3000, 0	},
-	[EFFECT_CORNCRUNCH]       = {SOUNDBANK_FARM   , "corncrunch"      , 3000, kSoundFlag_Unique	},
+	[EFFECT_POPCORN]          = {SOUNDBANK_FARM   , "PopcornPop"      , 2000, 0	},
+	[EFFECT_SHOOTCORN]        = {SOUNDBANK_FARM   , "ShootCorn"       , 2000, 0	},
+	[EFFECT_METALGATEHIT]     = {SOUNDBANK_FARM   , "MetalGateHit"    , 3000, 0	},
+	[EFFECT_METALGATECRASH]   = {SOUNDBANK_FARM   , "MetalGateCrash"  , 3000, 0	},
+	[EFFECT_TRACTOR]          = {SOUNDBANK_FARM   , "Tractor"         , 2000, 0	},
+	[EFFECT_ONIONSWOOSH]      = {SOUNDBANK_FARM   , "OnionSwoosh"     , 2000, 0	},
+	[EFFECT_WOODGATECRASH]    = {SOUNDBANK_FARM   , "WoodGateSmash"   , 3000, 0	},
+	[EFFECT_TOMATOJUMP]       = {SOUNDBANK_FARM   , "TomatoJump"      , 3000, 0	},
+	[EFFECT_TOMATOSPLAT]      = {SOUNDBANK_FARM   , "TomatoSplat"     , 3000, 0	},
+	[EFFECT_WOODDOORHIT]      = {SOUNDBANK_FARM   , "WoodDoorHit"     , 2000, 0	},
+	[EFFECT_ONIONSPLAT]       = {SOUNDBANK_FARM   , "OnionSplat"      , 3000, 0	},
+	[EFFECT_CORNCRUNCH]       = {SOUNDBANK_FARM   , "CornCrunch"      , 3000, kSoundFlag_Unique	},
 
-	[EFFECT_BUBBLEPOP]        = {SOUNDBANK_SLIME  , "bubblepop"       , 3000, 0	},
-	[EFFECT_BLOBMOVE]         = {SOUNDBANK_SLIME  , "slimemonster"    , 400 , 0	},
-	[EFFECT_SLIMEBOAT]        = {SOUNDBANK_SLIME  , "boat"            , 2000, 0	},
-	[EFFECT_CRYSTALCRACK]     = {SOUNDBANK_SLIME  , "crystalcrack"    , 800 , 0	},
-	[EFFECT_SLIMEPIPES]       = {SOUNDBANK_SLIME  , "pipes"           , 500 , 0	},
-	[EFFECT_CRYSTALCRASH]     = {SOUNDBANK_SLIME  , "crystalcrash"    , 3000, 0	},
-	[EFFECT_BUMPERBUBBLE]     = {SOUNDBANK_SLIME  , "bumperbubble"    , 5000, 0	},
-	[EFFECT_SLIMEBOSSOPEN]    = {SOUNDBANK_SLIME  , "bossopen"        , 8000, 0	},
-	[EFFECT_BLOBSHOOT]        = {SOUNDBANK_SLIME  , "blobshoot"       , 3000, 0	},
-	[EFFECT_BLOBBEAMHUM]      = {SOUNDBANK_SLIME  , "beamhum"         , 3000, 0	},
-	[EFFECT_SLIMEBOUNCE]      = {SOUNDBANK_SLIME  , "slimebounce"     , 3000, 0	},
-	[EFFECT_SLIMEBOOM]        = {SOUNDBANK_SLIME  , "slimeboom"       , 6000, 0	},
-	[EFFECT_BLOBBOSSBOOM]     = {SOUNDBANK_SLIME  , "blobbossboom"    , 4000, 0	},
-	[EFFECT_AIRPUMP]          = {SOUNDBANK_SLIME  , "airpump"         , 4000, 0	},
+	[EFFECT_BUBBLEPOP]        = {SOUNDBANK_SLIME  , "BubblePop"       , 3000, 0	},
+	[EFFECT_BLOBMOVE]         = {SOUNDBANK_SLIME  , "SlimeMonster"    , 400 , 0	},
+	[EFFECT_SLIMEBOAT]        = {SOUNDBANK_SLIME  , "Boat"            , 2000, 0	},
+	[EFFECT_CRYSTALCRACK]     = {SOUNDBANK_SLIME  , "CrystalCrack"    , 800 , 0	},
+	[EFFECT_SLIMEPIPES]       = {SOUNDBANK_SLIME  , "Pipes"           , 500 , 0	},
+	[EFFECT_CRYSTALCRASH]     = {SOUNDBANK_SLIME  , "CrystalCrash"    , 3000, 0	},
+	[EFFECT_BUMPERBUBBLE]     = {SOUNDBANK_SLIME  , "BumperBubble"    , 5000, 0	},
+	[EFFECT_SLIMEBOSSOPEN]    = {SOUNDBANK_SLIME  , "BossOpen"        , 8000, 0	},
+	[EFFECT_BLOBSHOOT]        = {SOUNDBANK_SLIME  , "BlobShoot"       , 3000, 0	},
+	[EFFECT_BLOBBEAMHUM]      = {SOUNDBANK_SLIME  , "BeamHum"         , 3000, 0	},
+	[EFFECT_SLIMEBOUNCE]      = {SOUNDBANK_SLIME  , "SlimeBounce"     , 3000, 0	},
+	[EFFECT_SLIMEBOOM]        = {SOUNDBANK_SLIME  , "SlimeBoom"       , 6000, 0	},
+	[EFFECT_BLOBBOSSBOOM]     = {SOUNDBANK_SLIME  , "BlobBossBoom"    , 4000, 0	},
+	[EFFECT_AIRPUMP]          = {SOUNDBANK_SLIME  , "AirPump"         , 4000, 0	},
 
-	[EFFECT_PODBUZZ]          = {SOUNDBANK_APOC   , "podbuzz"         , 4000, 0	},
-	[EFFECT_PODCRASH]         = {SOUNDBANK_APOC   , "podcrash"        , 3000, 0	},
-	[EFFECT_MANHOLEBLAST]     = {SOUNDBANK_APOC   , "manholeblast"    , 2000, 0	},
-	[EFFECT_PODWORM]          = {SOUNDBANK_APOC   , "podworm"         , 2000, 0	},
-	[EFFECT_MANHOLEROLL]      = {SOUNDBANK_APOC   , "manholeroll"     , 900 , kSoundFlag_Unique		},
-	[EFFECT_DOORCLANKOPEN]    = {SOUNDBANK_APOC   , "doorclankopen"   , 1000, 0	},
-	[EFFECT_DOORCLANKCLOSE]   = {SOUNDBANK_APOC   , "doorclankclose"  , 1000, kSoundFlag_Unique		},
-	[EFFECT_MINEEXPLODE]      = {SOUNDBANK_APOC   , "mineexplosion"   , 3000, kSoundFlag_Unique		},
-	[EFFECT_MUTANTROBOTSHOOT] = {SOUNDBANK_APOC   , "mutantrobotshoot", 3000, 0	},
-	[EFFECT_MUTANTGROWL]      = {SOUNDBANK_APOC   , "mutantgrowl"     , 2000, 0	},
-	[EFFECT_PLAYERTELEPORT]   = {SOUNDBANK_APOC   , "teleport"        , 3000, 0	},
-	[EFFECT_TELEPORTERDRONE]  = {SOUNDBANK_APOC   , "teleporterdrone" , 2000, 0	},
-	[EFFECT_DEBRISSMASH]      = {SOUNDBANK_APOC   , "debrissmash"     , 4000, 0	},
+	[EFFECT_PODBUZZ]          = {SOUNDBANK_APOC   , "PodBuzz"         , 4000, 0	},
+	[EFFECT_PODCRASH]         = {SOUNDBANK_APOC   , "PodCrash"        , 3000, 0	},
+	[EFFECT_MANHOLEBLAST]     = {SOUNDBANK_APOC   , "ManholeBlast"    , 2000, 0	},
+	[EFFECT_PODWORM]          = {SOUNDBANK_APOC   , "PodWorm"         , 2000, 0	},
+	[EFFECT_MANHOLEROLL]      = {SOUNDBANK_APOC   , "ManholeRoll"     , 900 , kSoundFlag_Unique		},
+	[EFFECT_DOORCLANKOPEN]    = {SOUNDBANK_APOC   , "DoorClankOpen"   , 1000, 0	},
+	[EFFECT_DOORCLANKCLOSE]   = {SOUNDBANK_APOC   , "DoorClankClose"  , 1000, kSoundFlag_Unique		},
+	[EFFECT_MINEEXPLODE]      = {SOUNDBANK_APOC   , "MineExplosion"   , 3000, kSoundFlag_Unique		},
+	[EFFECT_MUTANTROBOTSHOOT] = {SOUNDBANK_APOC   , "MutantRobotShoot", 3000, 0	},
+	[EFFECT_MUTANTGROWL]      = {SOUNDBANK_APOC   , "MutantGrowl"     , 2000, 0	},
+	[EFFECT_PLAYERTELEPORT]   = {SOUNDBANK_APOC   , "Teleport"        , 3000, 0	},
+	[EFFECT_TELEPORTERDRONE]  = {SOUNDBANK_APOC   , "TeleporterDrone" , 2000, 0	},
+	[EFFECT_DEBRISSMASH]      = {SOUNDBANK_APOC   , "DebrisSmash"     , 4000, 0	},
 
-	[EFFECT_CANNONFIRE]       = {SOUNDBANK_CLOUD  , "cannonfire"      , 4000, 0	},
-	[EFFECT_BUMPERHIT]        = {SOUNDBANK_CLOUD  , "bumperhit"       , 900 , kSoundFlag_Unique		},
-	[EFFECT_BUMPERHUM]        = {SOUNDBANK_CLOUD  , "bumpercarhum"    , 300 , 0	},
-	[EFFECT_BUMPERPOLETAP]    = {SOUNDBANK_CLOUD  , "bumperpoletap"   , 1500, 0	},
-	[EFFECT_BUMPERPOLEHUM]    = {SOUNDBANK_CLOUD  , "bumperpolehum"   , 100 , 0	},
-	[EFFECT_BUMPERPOLEOFF]    = {SOUNDBANK_CLOUD  , "bumperpoleoff"   , 1500, 0	},
-	[EFFECT_CLOWNBUBBLEPOP]   = {SOUNDBANK_CLOUD  , "clownbubblepop"  , 2500, 0	},
-	[EFFECT_INFLATE]          = {SOUNDBANK_CLOUD  , "inflateballoon"  , 1500, 0	},
-	[EFFECT_BOMBDROP]         = {SOUNDBANK_CLOUD  , "bombdrop"        , 200 , 0	},
-	[EFFECT_BUMPERPOLEBREAK]  = {SOUNDBANK_CLOUD  , "bumperpolebreak" , 1500, 0	},
-	[EFFECT_ROCKETSLED]       = {SOUNDBANK_CLOUD  , "rocketsled"      , 3000, 0	},
-	[EFFECT_TRAPDOOR]         = {SOUNDBANK_CLOUD  , "trapdoor"        , 2000, 0	},
-	[EFFECT_BALLOONPOP]       = {SOUNDBANK_CLOUD  , "balloonpop"      , 5000, 0	},
-	[EFFECT_FALLYAA]          = {SOUNDBANK_CLOUD  , "yaaa"            , 5000, 0	},
-	[EFFECT_BIRDBOMBBOOM]     = {SOUNDBANK_CLOUD  , "birdbombboom"    , 3000, 0	},
-	[EFFECT_CONFETTIBOOM]     = {SOUNDBANK_CLOUD  , "confettiboom"    , 3000, 0	},
-	[EFFECT_FISHBOOM]         = {SOUNDBANK_CLOUD  , "fishboom"        , 3000, 0	},
+	[EFFECT_CANNONFIRE]       = {SOUNDBANK_CLOUD  , "CannonFire"      , 4000, 0	},
+	[EFFECT_BUMPERHIT]        = {SOUNDBANK_CLOUD  , "BumperHit"       , 900 , kSoundFlag_Unique		},
+	[EFFECT_BUMPERHUM]        = {SOUNDBANK_CLOUD  , "BumperCarHum"    , 300 , 0	},
+	[EFFECT_BUMPERPOLETAP]    = {SOUNDBANK_CLOUD  , "BumperPoleTap"   , 1500, 0	},
+	[EFFECT_BUMPERPOLEHUM]    = {SOUNDBANK_CLOUD  , "BumperPoleHum"   , 100 , 0	},
+	[EFFECT_BUMPERPOLEOFF]    = {SOUNDBANK_CLOUD  , "BumperPoleOff"   , 1500, 0	},
+	[EFFECT_CLOWNBUBBLEPOP]   = {SOUNDBANK_CLOUD  , "ClownBubblePop"  , 2500, 0	},
+	[EFFECT_INFLATE]          = {SOUNDBANK_CLOUD  , "InflateBalloon"  , 1500, 0	},
+	[EFFECT_BOMBDROP]         = {SOUNDBANK_CLOUD  , "BombDrop"        , 200 , 0	},
+	[EFFECT_BUMPERPOLEBREAK]  = {SOUNDBANK_CLOUD  , "BumperPoleBreak" , 1500, 0	},
+	[EFFECT_ROCKETSLED]       = {SOUNDBANK_CLOUD  , "RocketSled"      , 3000, 0	},
+	[EFFECT_TRAPDOOR]         = {SOUNDBANK_CLOUD  , "TrapDoor"        , 2000, 0	},
+	[EFFECT_BALLOONPOP]       = {SOUNDBANK_CLOUD  , "BalloonPop"      , 5000, 0	},
+	[EFFECT_FALLYAA]          = {SOUNDBANK_CLOUD  , "Yaaa"            , 5000, 0	},
+	[EFFECT_BIRDBOMBBOOM]     = {SOUNDBANK_CLOUD  , "BirdBombBoom"    , 3000, 0	},
+	[EFFECT_CONFETTIBOOM]     = {SOUNDBANK_CLOUD  , "ConfettiBoom"    , 3000, 0	},
+	[EFFECT_FISHBOOM]         = {SOUNDBANK_CLOUD  , "FishBoom"        , 3000, 0	},
 
-	[EFFECT_ACIDSIZZLE]       = {SOUNDBANK_JUNGLE , "acidsizzle"      , 40  , 0	},
-	[EFFECT_LIZARDROAR]       = {SOUNDBANK_JUNGLE , "lizardroar"      , 3000, 0	},
-	[EFFECT_FIREBREATH]       = {SOUNDBANK_JUNGLE , "firebreath"      , 2000, 0	},
-	[EFFECT_LIZARDINHALE]     = {SOUNDBANK_JUNGLE , "inhale"          , 3000, 0	},
-	[EFFECT_MANTISSPIT]       = {SOUNDBANK_JUNGLE , "spit"            , 2000, 0	},
-	[EFFECT_GIANTFOOTSTEP]    = {SOUNDBANK_JUNGLE , "giantfootstep"   , 1500, 0	},
-	[EFFECT_BIGDOORSMASH]     = {SOUNDBANK_JUNGLE , "bigdoorsmash"    , 2000, 0	},
-	[EFFECT_TRACTORBEAM]      = {SOUNDBANK_JUNGLE , "tractorbeam"     , 2000, 0	},
-	[EFFECT_PITCHERPAIN]      = {SOUNDBANK_JUNGLE , "pitcherpain"     , 5000, 0	},
-	[EFFECT_PITCHERPUKE]      = {SOUNDBANK_JUNGLE , "pitcherpuke"     , 5000, 0	},
-	[EFFECT_FLYTRAP]          = {SOUNDBANK_JUNGLE , "flytrap"         , 600 , 0	},
-	[EFFECT_PITCHERBOOM]      = {SOUNDBANK_JUNGLE , "pitcherboom"     , 5000, 0	},
-	[EFFECT_PODSHOOT]         = {SOUNDBANK_JUNGLE , "podshoot"        , 2000, 0	},
-	[EFFECT_PODBOOM]          = {SOUNDBANK_JUNGLE , "podboom"         , 5000, 0	},
+	[EFFECT_ACIDSIZZLE]       = {SOUNDBANK_JUNGLE , "AcidSizzle"      , 40  , 0	},
+	[EFFECT_LIZARDROAR]       = {SOUNDBANK_JUNGLE , "LizardRoar"      , 3000, 0	},
+	[EFFECT_FIREBREATH]       = {SOUNDBANK_JUNGLE , "FireBreath"      , 2000, 0	},
+	[EFFECT_LIZARDINHALE]     = {SOUNDBANK_JUNGLE , "Inhale"          , 3000, 0	},
+	[EFFECT_MANTISSPIT]       = {SOUNDBANK_JUNGLE , "Spit"            , 2000, 0	},
+	[EFFECT_BIGDOORSMASH]     = {SOUNDBANK_JUNGLE , "BigDoorSmash"    , 2000, 0	},
+	[EFFECT_TRACTORBEAM]      = {SOUNDBANK_JUNGLE , "TractorBeam"     , 2000, 0	},
+	[EFFECT_PITCHERPAIN]      = {SOUNDBANK_JUNGLE , "PitcherPain"     , 5000, 0	},
+	[EFFECT_PITCHERPUKE]      = {SOUNDBANK_JUNGLE , "PitcherPuke"     , 5000, 0	},
+	[EFFECT_FLYTRAP]          = {SOUNDBANK_JUNGLE , "Flytrap"         , 600 , 0	},
+	[EFFECT_PITCHERBOOM]      = {SOUNDBANK_JUNGLE , "PitcherBoom"     , 5000, 0	},
+	[EFFECT_PODSHOOT]         = {SOUNDBANK_JUNGLE , "PodShoot"        , 2000, 0	},
+	[EFFECT_PODBOOM]          = {SOUNDBANK_JUNGLE , "PodBoom"         , 5000, 0	},
 
-	[EFFECT_VOLCANOBLOW]      = {SOUNDBANK_FIREICE, "volcanoblow"     , 5000, 0	},
-	[EFFECT_METALHIT]         = {SOUNDBANK_FIREICE, "metalhit"        , 1000, kSoundFlag_Unique		},
-	[EFFECT_SWINGERDRONE]     = {SOUNDBANK_FIREICE, "swingerdrone"    , 10  , 0	},
-	[EFFECT_METALHIT2]        = {SOUNDBANK_FIREICE, "metalhit2"       , 2000, kSoundFlag_Unique		},
-	[EFFECT_SAUCERHATCH]      = {SOUNDBANK_FIREICE, "saucerhatch"     , 4000, 0	},
-	[EFFECT_ICECRACK]         = {SOUNDBANK_FIREICE, "icecrack"        , 4000, 0	},
-	[EFFECT_ROBOTEXPLODE]     = {SOUNDBANK_FIREICE, "robotexplode"    , 4000, kSoundFlag_Unique		},
-	[EFFECT_HAMMERSQUEAK]     = {SOUNDBANK_FIREICE, "hammersqueak"    , 50  , 0	},
-	[EFFECT_DRILLBOTWHINE]    = {SOUNDBANK_FIREICE, "drillbotwhine"   , 500 , 0	},
-	[EFFECT_DRILLBOTWHINEHI]  = {SOUNDBANK_FIREICE, "drillbotwhinehi" , 2000, 0	},
-	[EFFECT_PILLARCRUNCH]     = {SOUNDBANK_FIREICE, "pillarcrunch"    , 2000, kSoundFlag_Unique		},
-	[EFFECT_ROCKETSLED2]      = {SOUNDBANK_FIREICE, "rocketsled"      , 3000, 0	},
-	[EFFECT_SPLATHIT]         = {SOUNDBANK_FIREICE, "splathit"        , 2000, 0	},
-	[EFFECT_SQUOOSHYSHOOT]    = {SOUNDBANK_FIREICE, "squooshyshoot"   , 3000, 0	},
-	[EFFECT_SLEDEXPLODE]      = {SOUNDBANK_FIREICE, "sledexplode"     , 3000, 0	},
+	[EFFECT_VOLCANOBLOW]      = {SOUNDBANK_FIREICE, "VolcanoBlow"     , 5000, 0	},
+	[EFFECT_METALHIT]         = {SOUNDBANK_FIREICE, "MetalHit"        , 1000, kSoundFlag_Unique		},
+	[EFFECT_SWINGERDRONE]     = {SOUNDBANK_FIREICE, "SwingerDrone"    , 10  , 0	},
+	[EFFECT_METALHIT2]        = {SOUNDBANK_FIREICE, "MetalHit2"       , 2000, kSoundFlag_Unique		},
+	[EFFECT_SAUCERHATCH]      = {SOUNDBANK_FIREICE, "SaucerHatch"     , 4000, 0	},
+	[EFFECT_ICECRACK]         = {SOUNDBANK_FIREICE, "IceCrack"        , 4000, 0	},
+	[EFFECT_ROBOTEXPLODE]     = {SOUNDBANK_FIREICE, "RobotExplode"    , 4000, kSoundFlag_Unique		},
+	[EFFECT_HAMMERSQUEAK]     = {SOUNDBANK_FIREICE, "HammerSqueak"    , 50  , 0	},
+	[EFFECT_DRILLBOTWHINE]    = {SOUNDBANK_FIREICE, "DrillBotWhine"   , 500 , 0	},
+	[EFFECT_DRILLBOTWHINEHI]  = {SOUNDBANK_FIREICE, "DrillBotWhineHi" , 2000, 0	},
+	[EFFECT_PILLARCRUNCH]     = {SOUNDBANK_FIREICE, "PillarCrunch"    , 2000, kSoundFlag_Unique		},
+	[EFFECT_ROCKETSLED2]      = {SOUNDBANK_FIREICE, "RocketSled"      , 3000, 0	},
+	[EFFECT_SPLATHIT]         = {SOUNDBANK_FIREICE, "SplatHit"        , 2000, 0	},
+	[EFFECT_SQUOOSHYSHOOT]    = {SOUNDBANK_FIREICE, "SquooshyShoot"   , 3000, 0	},
+	[EFFECT_SLEDEXPLODE]      = {SOUNDBANK_FIREICE, "SledExplode"     , 3000, 0	},
 
-	[EFFECT_SAUCERKABOOM]     = {SOUNDBANK_SAUCER , "mineexplosion"   , 3000, 0	},
-	[EFFECT_SAUCERHIT]        = {SOUNDBANK_SAUCER , "saucerhit"       , 3000, 0	},
+	[EFFECT_SAUCERKABOOM]     = {SOUNDBANK_SAUCER , "MineExplosion"   , 3000, 0	},
+	[EFFECT_SAUCERHIT]        = {SOUNDBANK_SAUCER , "SaucerHit"       , 3000, 0	},
 
-	[EFFECT_BRAINSTATIC]      = {SOUNDBANK_BRAIN  , "brainstatic"     , 1000, 0	},
-	[EFFECT_BRAINBOSSSHOOT]   = {SOUNDBANK_BRAIN  , "brainbossshoot"  , 3000, 0	},
-	[EFFECT_BRAINBOSSDIE]     = {SOUNDBANK_BRAIN  , "brainbossdie"    , 5000, 0	},
-	[EFFECT_PORTALBOOM]       = {SOUNDBANK_BRAIN  , "portalboom"      , 3000, 0	},
-	[EFFECT_BRAINPAIN]        = {SOUNDBANK_BRAIN  , "brainpain"       , 4000, 0	},
+	[EFFECT_BRAINSTATIC]      = {SOUNDBANK_BRAIN  , "BrainStatic"     , 1000, 0	},
+	[EFFECT_BRAINBOSSSHOOT]   = {SOUNDBANK_BRAIN  , "BrainBossShoot"  , 3000, 0	},
+	[EFFECT_BRAINBOSSDIE]     = {SOUNDBANK_BRAIN  , "BrainBossDie"    , 5000, 0	},
+	[EFFECT_PORTALBOOM]       = {SOUNDBANK_BRAIN  , "PortalBoom"      , 3000, 0	},
+	[EFFECT_BRAINPAIN]        = {SOUNDBANK_BRAIN  , "BrainPain"       , 4000, 0	},
 
-	[EFFECT_CONVEYORBELT]     = {SOUNDBANK_LOSE   , "conveyorbelt"    , 3000, 0	},
-	[EFFECT_TRANSFORM]        = {SOUNDBANK_LOSE   , "transform"       , 3000, 0	},
+	[EFFECT_CONVEYORBELT]     = {SOUNDBANK_LOSE   , "ConveyorBelt"    , 3000, 0	},
+	[EFFECT_TRANSFORM]        = {SOUNDBANK_LOSE   , "Transform"       , 3000, 0	},
 };
 
 
@@ -462,7 +461,7 @@ void InitSoundTools(void)
 
 			/* INIT BANK INFO */
 
-	memset(gLoadedEffects, 0, sizeof(gLoadedEffects));
+	SDL_memset(gLoadedEffects, 0, sizeof(gLoadedEffects));
 
 			/******************/
 			/* ALLOC CHANNELS */
@@ -536,7 +535,7 @@ OSErr err;
 		return;
 	}
 
-	snprintf(path, sizeof(path), ":audio:%s.sounds:%s.aiff", kSoundBankNames[effectDef->bank], effectDef->filename);
+	SDL_snprintf(path, sizeof(path), ":Audio:%s.sounds:%s.aiff", kSoundBankNames[effectDef->bank], effectDef->filename);
 
 	err = FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, path, &spec);
 	GAME_ASSERT_MESSAGE(err == noErr, path);
@@ -546,6 +545,10 @@ OSErr err;
 
 	loadedSound->sndHandle = Pomme_SndLoadFileAsResource(refNum);
 	GAME_ASSERT_MESSAGE(loadedSound->sndHandle, path);
+
+			/* CLOSE FILE */
+
+	FSClose(refNum);
 
 			/* GET OFFSET INTO IT */
 
@@ -567,7 +570,7 @@ void DisposeSoundEffect(int effectNum)
 	if (loadedSound->sndHandle)
 	{
 		DisposeHandle((Handle) loadedSound->sndHandle);
-		memset(loadedSound, 0, sizeof(LoadedEffect));
+		SDL_memset(loadedSound, 0, sizeof(LoadedEffect));
 	}
 }
 
@@ -617,7 +620,6 @@ void DisposeSoundBank(int bankNum)
 void StopAChannel(short *channelNum)
 {
 SndCommand 	mySndCmd;
-OSErr 		myErr;
 //SCStatus	theStatus;
 short		c = *channelNum;
 
@@ -631,12 +633,12 @@ short		c = *channelNum;
 		mySndCmd.cmd = flushCmd;
 		mySndCmd.param1 = 0;
 		mySndCmd.param2 = 0;
-		myErr = SndDoImmediate(gSndChannel[c], &mySndCmd);
+		SndDoImmediate(gSndChannel[c], &mySndCmd);
 
 		mySndCmd.cmd = quietCmd;
 		mySndCmd.param1 = 0;
 		mySndCmd.param2 = 0;
-		myErr = SndDoImmediate(gSndChannel[c], &mySndCmd);
+		SndDoImmediate(gSndChannel[c], &mySndCmd);
 	}
 
 	*channelNum = -1;
@@ -651,7 +653,6 @@ short		c = *channelNum;
 void StopAChannelIfEffectNum(short *channelNum, short effectNum)
 {
 SndCommand 	mySndCmd;
-OSErr 		myErr;
 //SCStatus	theStatus;
 short		c = *channelNum;
 
@@ -669,12 +670,12 @@ short		c = *channelNum;
 		mySndCmd.cmd = flushCmd;
 		mySndCmd.param1 = 0;
 		mySndCmd.param2 = 0;
-		myErr = SndDoImmediate(gSndChannel[c], &mySndCmd);
+		SndDoImmediate(gSndChannel[c], &mySndCmd);
 
 		mySndCmd.cmd = quietCmd;
 		mySndCmd.param1 = 0;
 		mySndCmd.param2 = 0;
-		myErr = SndDoImmediate(gSndChannel[c], &mySndCmd);
+		SndDoImmediate(gSndChannel[c], &mySndCmd);
 	}
 
 	*channelNum = -1;
@@ -765,16 +766,15 @@ static const float	volumeTweaks[NUM_SONGS] =
 			/* OPEN APPROPRIATE AIFF FILE */
 			/******************************/
 
-	{
-		FSSpec spec;
-		OSErr iErr;
+	short musicFileRefNum = -1;
+	FSSpec spec;
+	OSErr iErr;
 
-		iErr = FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, songNames[songNum], &spec);
-		GAME_ASSERT(!iErr);
+	iErr = FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, songNames[songNum], &spec);
+	GAME_ASSERT(!iErr);
 
-		iErr = FSpOpenDF(&spec, fsRdPerm, &gMusicFileRefNum);
-		GAME_ASSERT(!iErr);
-	}
+	iErr = FSpOpenDF(&spec, fsRdPerm, &musicFileRefNum);
+	GAME_ASSERT(!iErr);
 
 	gCurrentSong = songNum;
 
@@ -804,9 +804,9 @@ static const float	volumeTweaks[NUM_SONGS] =
 
 			/* START PLAYING FROM FILE */
 
-	OSErr iErr = SndStartFilePlay(
+	iErr = SndStartFilePlay(
 			gMusicChannel,
-			gMusicFileRefNum,
+			musicFileRefNum,
 			0,
 			/*STREAM_BUFFER_SIZE*/0,
 			/*gMusicBuffer*/nil,
@@ -815,6 +815,8 @@ static const float	volumeTweaks[NUM_SONGS] =
 			true);
 	GAME_ASSERT(!iErr);
 	gSongPlayingFlag = true;
+
+	FSClose(musicFileRefNum);		// close the file (Pomme decompresses entire song into memory)
 
 
 			/* SET VOLUME ON STREAM */
@@ -858,20 +860,6 @@ void KillSong(void)
 	gSongPlayingFlag = false;
 
 	SndStopFilePlay(gMusicChannel, true);
-
-	if (gMusicFileRefNum == 0x0ded)
-		DoAlert("KillSong: gMusicFileRefNum == 0x0ded");
-	else
-	{
-		OSErr iErr = FSClose(gMusicFileRefNum);							// close the file
-		if (iErr)
-		{
-			DoAlert("KillSong: FSClose failed!");
-			ShowSystemErr_NonFatal(iErr);
-		}
-	}
-
-	gMusicFileRefNum = 0x0ded;
 }
 
 /******************** TOGGLE MUSIC *********************/
@@ -885,7 +873,7 @@ void EnforceMusicPausePref(void)
 
 	SndChannelStatus(gMusicChannel, sizeof(SCStatus), &theStatus);	// get channel info
 
-	if (gGamePrefs.music != theStatus.scChannelBusy)
+	if (gGamePrefs.music == theStatus.scChannelPaused)
 		SndPauseFilePlay(gMusicChannel);
 }
 
@@ -902,7 +890,7 @@ void EnforceMusicPausePref(void)
 short PlayEffect3D(short effectNum, OGLPoint3D *where)
 {
 short					theChan;
-u_long					leftVol, rightVol;
+uint32_t					leftVol, rightVol;
 
 				/* CALC VOLUME */
 
@@ -928,10 +916,10 @@ u_long					leftVol, rightVol;
 // OUTPUT: channel # used to play sound
 //
 
-short PlayEffect_Parms3D(short effectNum, OGLPoint3D *where, u_long rateMultiplier, float volumeAdjust)
+short PlayEffect_Parms3D(short effectNum, OGLPoint3D *where, uint32_t rateMultiplier, float volumeAdjust)
 {
 short			theChan;
-u_long			leftVol, rightVol;
+uint32_t			leftVol, rightVol;
 
 				/* CALC VOLUME */
 
@@ -959,7 +947,7 @@ u_long			leftVol, rightVol;
 Boolean Update3DSoundChannel(short effectNum, short *channel, OGLPoint3D *where)
 {
 //SCStatus		theStatus;
-u_long			leftVol,rightVol;
+uint32_t			leftVol,rightVol;
 short			c;
 
 	c = *channel;
@@ -1000,12 +988,12 @@ gone:
 
 /******************** CALC 3D EFFECT VOLUME *********************/
 
-static void Calc3DEffectVolume(short effectNum, OGLPoint3D *where, float volAdjust, u_long *leftVolOut, u_long *rightVolOut)
+static void Calc3DEffectVolume(short effectNum, OGLPoint3D *where, float volAdjust, uint32_t *leftVolOut, uint32_t *rightVolOut)
 {
 float	dist;
 float	refDist,volumeFactor;
-u_long	volume,left,right;
-u_long	maxLeft,maxRight;
+uint32_t	volume,left,right;
+uint32_t	maxLeft,maxRight;
 
 	dist 	= OGLPoint3D_Distance(where, &gEarCoords);		// calc dist to sound for pane 0
 
@@ -1107,18 +1095,18 @@ u_long	maxLeft,maxRight;
 // Get ear coord for all local players
 //
 
-void UpdateListenerLocation(OGLSetupOutputType *setupInfo)
+void UpdateListenerLocation(void)
 {
 OGLVector3D	v;
 
-	v.x = setupInfo->cameraPlacement.pointOfInterest.x - setupInfo->cameraPlacement.cameraLocation.x;	// calc line of sight vector
-	v.y = setupInfo->cameraPlacement.pointOfInterest.y - setupInfo->cameraPlacement.cameraLocation.y;
-	v.z = setupInfo->cameraPlacement.pointOfInterest.z - setupInfo->cameraPlacement.cameraLocation.z;
+	v.x = gGameViewInfoPtr->cameraPlacement.pointOfInterest.x - gGameViewInfoPtr->cameraPlacement.cameraLocation.x;	// calc line of sight vector
+	v.y = gGameViewInfoPtr->cameraPlacement.pointOfInterest.y - gGameViewInfoPtr->cameraPlacement.cameraLocation.y;
+	v.z = gGameViewInfoPtr->cameraPlacement.pointOfInterest.z - gGameViewInfoPtr->cameraPlacement.cameraLocation.z;
 	FastNormalizeVector(v.x, v.y, v.z, &v);
 
-	gEarCoords.x = setupInfo->cameraPlacement.cameraLocation.x + (v.x * 300.0f);			// put ear coord in front of camera
-	gEarCoords.y = setupInfo->cameraPlacement.cameraLocation.y + (v.y * 300.0f);
-	gEarCoords.z = setupInfo->cameraPlacement.cameraLocation.z + (v.z * 300.0f);
+	gEarCoords.x = gGameViewInfoPtr->cameraPlacement.cameraLocation.x + (v.x * 300.0f);			// put ear coord in front of camera
+	gEarCoords.y = gGameViewInfoPtr->cameraPlacement.cameraLocation.y + (v.y * 300.0f);
+	gEarCoords.z = gGameViewInfoPtr->cameraPlacement.cameraLocation.z + (v.z * 300.0f);
 
 	gEyeVector = v;
 }
@@ -1142,13 +1130,13 @@ short PlayEffect(short effectNum)
 // OUTPUT: channel # used to play sound
 //
 
-short PlayEffect_Parms(int effectNum, u_long leftVolume, u_long rightVolume, unsigned long rateMultiplier)
+short PlayEffect_Parms(int effectNum, uint32_t leftVolume, uint32_t rightVolume, unsigned long rateMultiplier)
 {
 SndCommand 		mySndCmd;
 SndChannelPtr	chanPtr;
 short			theChan;
 OSErr			myErr;
-u_long			lv2,rv2;
+uint32_t			lv2,rv2;
 
 
 			/* GET BANK & SOUND #'S FROM TABLE */
@@ -1302,16 +1290,32 @@ int		c;
 }
 #endif
 
+
+/*************** PAUSE ALL SOUND CHANNELS **************/
+
+void PauseAllChannels(Boolean pause)
+{
+	SndCommand cmd = { .cmd = pause ? pommePausePlaybackCmd : pommeResumePlaybackCmd };
+
+	for (int c = 0; c < gMaxChannels; c++)
+	{
+		SndDoImmediate(gSndChannel[c], &cmd);
+	}
+
+	SndDoImmediate(gMusicChannel, &cmd);
+}
+
+
 /*************** CHANGE CHANNEL VOLUME **************/
 //
 // Modifies the volume of a currently playing channel
 //
 
-void ChangeChannelVolume(short channel, u_long leftVol, u_long rightVol)
+void ChangeChannelVolume(short channel, uint32_t leftVol, uint32_t rightVol)
 {
 SndCommand 		mySndCmd;
 SndChannelPtr	chanPtr;
-u_long			lv2,rv2;
+uint32_t			lv2,rv2;
 
 	if (channel < 0)									// make sure it's valid
 		return;
