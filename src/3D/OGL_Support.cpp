@@ -293,9 +293,6 @@ static void OGL_CreateDrawContext(void)
 {
 	GAME_ASSERT_MESSAGE(!gAGLContext, "GL context already exists");
 	GAME_ASSERT_MESSAGE(gSDLWindow, "Window must be created before the DC!");
-	
-	// Create log file (temp)
-	gOGLLogFile = std::ofstream ("OGL_CreateDrawContext_log.txt", std::ios::out | std::ios::app);
 
 			/* CREATE AGL CONTEXT & ATTACH TO WINDOW */
 			// Only generate one context, and reuse it.
@@ -562,16 +559,6 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 
 	vrcpp_updateTrackedDevices();
-
-    printf("Camera pos: %.2f, %.2f, %.2f\n",
-        gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-        gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
-        gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
-    
-    printf("Camera looking at: %.2f, %.2f, %.2f\n",
-        gGameViewInfoPtr->cameraPlacement.pointOfInterest.x,
-        gGameViewInfoPtr->cameraPlacement.pointOfInterest.y,
-        gGameViewInfoPtr->cameraPlacement.pointOfInterest.z);
 		
 	// LEFT EYE
 	glPushMatrix();

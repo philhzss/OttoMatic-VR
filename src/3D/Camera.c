@@ -338,6 +338,26 @@ OGLMatrix4x4 rotOnly = vrInfoHMD.rotationMatrixCorrected;
 OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 
 
+	// * Debug camera not attached to player
+    // printf("Camera at: %.2f, %.2f, %.2f\n",
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
+
+    // printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
+    //        playerObj->Coord.x,
+    //        playerObj->Coord.y,
+    //        playerObj->Coord.z);
+
+	// printf("gPlayerInfor cam location: %.2f, %.2f, %.2f\n",
+    //        gPlayerInfo.camera.cameraLocation.x,
+    //        gPlayerInfo.camera.cameraLocation.y,
+    //        gPlayerInfo.camera.cameraLocation.z);
+           
+    // printf("Looking at: %.2f, %.2f, %.2f\n",
+    //        gGameViewInfoPtr->cameraPlacement.pointOfInterest.x,
+    //        gGameViewInfoPtr->cameraPlacement.pointOfInterest.y,
+    //        gGameViewInfoPtr->cameraPlacement.pointOfInterest.z);
 
 	if (!playerObj)
 		return;
@@ -464,7 +484,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	// Calculate up vector
 	calculatedUpVector = globalUp;
 
-	OGL_UpdateCameraFromToUp(gGameViewInfoPtr, &from, &to, &calculatedUpVector);
+	OGL_UpdateCameraFromToUp(&from, &to, &calculatedUpVector);
 
 	/* UPDATE PLAYER'S CAMERA INFO */
 	gPlayerInfo.camera.cameraLocation = from;
@@ -684,34 +704,35 @@ float			oldCamX,oldCamZ,oldCamY,oldPointOfInterestX,oldPointOfInterestZ,oldPoint
 
 				/* MOVE TO BEHIND PLAYER */
 
-		if (gForceCameraAlignment
-			|| (gGamePrefs.autoAlignCamera && gTimeSinceLastThrust > 1.1f))			// don't auto-align if player is being moved & we are not forcing it
-		{
-			float	r,ratio;
-			OGLVector2D	behind;
+		// * Should never be done in VR
+				// if (gForceCameraAlignment
+		// 	|| (gGamePrefs.autoAlignCamera && gTimeSinceLastThrust > 1.1f))			// don't auto-align if player is being moved & we are not forcing it
+		// {
+		// 	float	r,ratio;
+		// 	OGLVector2D	behind;
 
-					/* CALC PLAYER BEHIND VECTOR */
+		// 			/* CALC PLAYER BEHIND VECTOR */
 
-			r = CalcYAngleFromPointToPoint(0, myX, myZ, myX + saucer->Delta.x, myZ + saucer->Delta.z);		// calc angle based on deltas since saucer doesn't have an aim per-se
-			r += gCameraUserRotY;										// offset by user rot
+		// 	r = CalcYAngleFromPointToPoint(0, myX, myZ, myX + saucer->Delta.x, myZ + saucer->Delta.z);		// calc angle based on deltas since saucer doesn't have an aim per-se
+		// 	r += gCameraUserRotY;										// offset by user rot
 
-			behind.x = sin(r);
-			behind.y = cos(r);
+		// 	behind.x = sin(r);
+		// 	behind.y = cos(r);
 
-					/* WEIGH THE VECTORS */
+		// 			/* WEIGH THE VECTORS */
 
-			ratio = .5f;
-			pToC.x = (pToC.x * (1.0f - ratio)) + (behind.x * ratio);
-			pToC.y = (pToC.y * (1.0f - ratio)) + (behind.y * ratio);
+		// 	ratio = .5f;
+		// 	pToC.x = (pToC.x * (1.0f - ratio)) + (behind.x * ratio);
+		// 	pToC.y = (pToC.y * (1.0f - ratio)) + (behind.y * ratio);
 
-			OGLVector2D_Normalize(&pToC,&pToC);
+		// 	OGLVector2D_Normalize(&pToC,&pToC);
 
-			if ((fabs(pToC.x) <= EPS) && (fabs(pToC.y) <= EPS))			// check if looking straight @ player's front
-			{
-				pToC.x = 1;										// assign some random vector
-				pToC.y = 0;
-			}
-		}
+		// 	if ((fabs(pToC.x) <= EPS) && (fabs(pToC.y) <= EPS))			// check if looking straight @ player's front
+		// 	{
+		// 		pToC.x = 1;										// assign some random vector
+		// 		pToC.y = 0;
+		// 	}
+		// }
 
 		dist = gCameraDistFromMe;
 

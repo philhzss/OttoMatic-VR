@@ -11,20 +11,6 @@
 #include "openvr.h"
 vr::IVRSystem *gIVRSystem;
 float gIpdScale = 100.0f; // A larger number makes the world appear smaller
-#define ENABLE_CONSOLE 1
-
-#if ENABLE_CONSOLE
-#include <windows.h>
-#include <stdio.h>
-
-static void EnableConsole(void)
-{
-    AllocConsole();
-    FILE* f;
-    freopen_s(&f, "CONOUT$", "w", stdout);
-    freopen_s(&f, "CONOUT$", "w", stderr);
-}
-#endif
 
 extern "C"
 {
@@ -221,7 +207,6 @@ static void Boot(int argc, char** argv)
 #else
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);
 #endif
-
 
 	// Start our "machine"
 	Pomme::Init();

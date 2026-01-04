@@ -346,6 +346,12 @@ void MovePlayer_Robot(ObjNode *theNode)
 		gFreezeCameraFromXZ = false; // Do move it in VR
 	else
 		gFreezeCameraFromXZ = false;
+
+
+		printf("Player MOVED coord: %.2f, %.2f, %.2f\n",
+		gPlayerInfo.coord.x,
+		gPlayerInfo.coord.y,
+		gPlayerInfo.coord.z);
 }
 
 
