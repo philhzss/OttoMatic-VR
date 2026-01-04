@@ -136,6 +136,30 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 	deviceToParse->translationMatrix = transOnly;
 
 	OGLMatrix4x4_Invert(&deviceToParse->transformationMatrix, &deviceToParse->transformationMatrixInverted);
+
+if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
+{
+    OGLMatrix4x4 controllerRelToHMD;
+
+    // Controller pose relative to HMD
+    OGLMatrix4x4_Multiply(
+        &vrInfoHMD.transformationMatrixInverted,
+        &deviceToParse->transformationMatrix,
+        &controllerRelToHMD
+    );
+
+    // Apply game yaw (thumbstick turning)
+    OGLMatrix4x4 controllerRelToHMD_GameYaw;
+    OGLMatrix4x4_Multiply(
+        &vrInfoHMD.HMDgameYawCorrectionMatrix,
+        &controllerRelToHMD,
+        &controllerRelToHMD_GameYaw
+    );
+
+    // Store this as the controller's FINAL usable transform
+    deviceToParse->transformationMatrixCorrected = controllerRelToHMD_GameYaw;
+}
+
 }
 
 OGLMatrix4x4 hmdMatrix3x4_to_OGLMatrix4x4(vr::HmdMatrix34_t *vrMat) {
@@ -238,15 +262,18 @@ extern "C" void vrcpp_updateTrackedDevices(void)
 			else if (role == vr::TrackedControllerRole_LeftHand)
 			{
 				vrInfoLeftHand.deviceID = deviceID;
+				vrInfoLeftHand.deviceType = VR_DEVICE_CONTROLLER;
 			}
 			else if (role == vr::TrackedControllerRole_RightHand)
 			{
 				vrInfoRightHand.deviceID = deviceID;
+				vrInfoRightHand.deviceType = VR_DEVICE_CONTROLLER;
 			}
 		}
 		else if (deviceClass == vr::TrackedDeviceClass_HMD) {
 			// std::cout << "ID #" << deviceID << " is of type " << deviceClass << std::endl;
 			vrInfoHMD.deviceID = deviceID;
+			vrInfoHMD.deviceType = VR_DEVICE_HMD;
 		}
 	}
 

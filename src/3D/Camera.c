@@ -339,15 +339,15 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 
 
 	// * Debug camera not attached to player
-    // printf("Camera at: %.2f, %.2f, %.2f\n",
-    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
-    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
+    printf("Camera at: %.2f, %.2f, %.2f\n",
+           gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+           gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+           gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
 
-    // printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
-    //        playerObj->Coord.x,
-    //        playerObj->Coord.y,
-    //        playerObj->Coord.z);
+    printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
+           playerObj->Coord.x,
+           playerObj->Coord.y,
+           playerObj->Coord.z);
 
 	// printf("gPlayerInfor cam location: %.2f, %.2f, %.2f\n",
     //        gPlayerInfo.camera.cameraLocation.x,
@@ -440,7 +440,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	else {
 		// VR HMD Controlled view
 		// Set FPS height to VR height
-		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 300; // seems to give reasonable height 
+		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 0; // seems to give reasonable height 
 													   // SLIGHTLY too low when standing? but too high when touching floor. To adjust
 		// firstPersonHeight to be tested / not sure where to apply this now
 		// Set initial to.xyz pos, x & y should be 0, and z -1 * "rotation resolution"
@@ -464,14 +464,14 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 			//playerObj->StatusBits &= ~(STATUS_BIT_NOMOVE);
 		}
 	}
+	// ! Not working
+		// HMD rotation turns Otto:
+		// vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
+	// ! Not working
+		// HMD rotation turns Otto:
+		// playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
 
-	// HMD rotation turns Otto:
-	// vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
-
-	// HMD rotation turns Otto:
-	// playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
-
-			/*************************************/
+				/*************************************/
 			/* CALC FROM (camera location) POINT */
 			/*************************************/
 

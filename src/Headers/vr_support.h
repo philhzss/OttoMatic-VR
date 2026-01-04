@@ -25,7 +25,16 @@ enum playerActions
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
 // This number is APPROXIMATE and should be tweaked as playtesting happens
-#define VRroomDistanceToGameDistanceScale 250
+#define VRroomDistanceToGameDistanceScale 1 // 1 might be ok, maybe this scale is useless?
+
+typedef enum
+{
+	VR_DEVICE_UNKNOWN = 0,
+	VR_DEVICE_HMD,
+	VR_DEVICE_CONTROLLER,
+	VR_DEVICE_TRACKER,
+	VR_DEVICE_BASESTATION
+} vrDeviceType;
 
 typedef struct
 {
@@ -64,6 +73,7 @@ typedef struct
 typedef struct
 {
 	int deviceID;
+	vrDeviceType deviceType;
 	vrMatrix34 rawVRmatrix;
 	vrQuaternion quat;
 
