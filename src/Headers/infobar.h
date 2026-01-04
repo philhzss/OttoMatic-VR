@@ -2,6 +2,9 @@
 // infobar.h
 //
 
+#define NUM_UI_SCALE_LEVELS	8
+#define DEFAULT_UI_SCALE_LEVEL 5
+
 #define	HELP_BEACON_RANGE	500.0f
 
 
@@ -35,16 +38,16 @@ enum
 };
 
 
-void InitInfobar(OGLSetupOutputType *setupInfo);
-void DrawInfobar(OGLSetupOutputType *setupInfo);
+void InitInfobar(void);
+void DrawInfobar(void);
 void DisposeInfobar(void);
-void DrawInfobarSprite(float x, float y, float size, short texNum, const OGLSetupOutputType *setupInfo);
+void DrawInfobarSprite(float x, float y, float size, short texNum);
 
 void InitHelpMessages(void);
 void DisplayHelpMessage(short messNum, float timer, Boolean overrideCurrent);
 Boolean AddHelpBeacon(TerrainItemEntryType *itemPtr, long  x, long z);
 void DisableHelpType(short messNum);
 
-void DrawInfobarSprite2(float x, float y, float size, short group, short texNum, const OGLSetupOutputType *setupInfo);
+void DrawInfobarSprite2(float x, float y, float size, short group, short texNum);
 
-void SetInfobarSpriteState(bool centered);
+void SetInfobarSpriteState(bool setOriginToCenterOfScreen);

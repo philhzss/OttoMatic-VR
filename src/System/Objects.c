@@ -1,7 +1,8 @@
 /*********************************/
 /*    OBJECT MANAGER 		     */
-/* (c)2001 Pangea Software  */
 /* By Brian Greenstone      	 */
+/* (c)2001 Pangea Software       */
+/* (c)2023 Iliyas Jorio          */
 /*********************************/
 
 
@@ -26,6 +27,7 @@ static void DrawBoundingBoxes(ObjNode *theNode);
 
 #define	OBJ_DEL_Q_SIZE	200
 
+#define OBJ_BUDGET		700
 
 /**********************/
 /*     VARIABLES      */
@@ -35,6 +37,9 @@ static void DrawBoundingBoxes(ObjNode *theNode);
 ObjNode		*gFirstNodePtr = nil;
 
 ObjNode		*gCurrentNode,*gMostRecentlyAddedNode,*gNextNode;
+
+static ObjNode	gObjNodeMemory[OBJ_BUDGET];
+static Pool*	gObjNodePool;
 
 
 NewObjectDefinitionType	gNewObjectDefinition;
@@ -61,22 +66,25 @@ OGLMatrix4x4	*gCurrentObjMatrix;
 
 void InitObjectManager(void)
 {
-
-				/* INIT LINKED LIST */
-
+		/* INIT LINKED LIST */
 
 	gCurrentNode = nil;
-
-					/* CLEAR ENTIRE OBJECT LIST */
-
 	gFirstNodePtr = nil;									// no node yet
-
 	gNumObjectNodes = 0;
 
-				/* INIT NEW OBJ DEF */
+		/* INIT OBJECT POOL */
 
-	memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
+	SDL_memset(gObjNodeMemory, 0, sizeof(gObjNodeMemory));
+	gObjNodePool = Pool_New(OBJ_BUDGET);
+
+		/* INIT NEW OBJ DEF */
+
+	SDL_memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
 	gNewObjectDefinition.scale = 1;
+
+#if _DEBUG
+	SDL_Log("ObjNode pool: %d KB", (int)(sizeof(gObjNodeMemory) / 1024));
+#endif
 }
 
 
@@ -87,22 +95,32 @@ void InitObjectManager(void)
 // The linked list is sorted from smallest to largest!
 //
 
-ObjNode	*MakeNewObject(NewObjectDefinitionType *newObjDef)
+ObjNode* MakeNewObject(NewObjectDefinitionType* newObjDef)
 {
-ObjNode	*newNodePtr;
-long	slot,i;
-unsigned long flags = newObjDef->flags;
+ObjNode	*newNodePtr = NULL;
+long	slot;
+uint32_t flags = newObjDef->flags;
 
-				/* ALLOCATE NEW NODE(CLEARED TO 0'S) */
+			/* TRY TO GET AN OBJECT FROM THE POOL */
 
-	newNodePtr = (ObjNode *)AllocPtrClear(sizeof(ObjNode));
-	if (newNodePtr == nil)
-		DoFatalAlert("MakeNewObject: Alloc Ptr failed!");
+	int poolIndex = Pool_AllocateIndex(gObjNodePool);
+	if (poolIndex >= 0)
+	{
+		newNodePtr = &gObjNodeMemory[poolIndex];		// point to pooled node
+	}
+	else
+	{
+		// pool full, allocate new node on heap
+		newNodePtr = (ObjNode*) AllocPtr(sizeof(ObjNode));
+	}
 
+			/* MAKE SURE WE GOT ONE */
 
-
+	GAME_ASSERT(newNodePtr);
 
 			/* INITIALIZE ALL OF THE FIELDS */
+
+	SDL_memset(newNodePtr, 0, sizeof(ObjNode));
 
 	slot = newObjDef->slot;
 
@@ -110,6 +128,7 @@ unsigned long flags = newObjDef->flags;
 	newNodePtr->Type 		= newObjDef->type;
 	newNodePtr->Group 		= newObjDef->group;
 	newNodePtr->MoveCall 	= newObjDef->moveCall;
+	newNodePtr->CustomDrawFunction = newObjDef->drawCall;
 
 	if (flags & STATUS_BIT_ONSPLINE)
 		newNodePtr->SplineMoveCall = newObjDef->moveCall;				// save spline move routine
@@ -120,7 +139,7 @@ unsigned long flags = newObjDef->flags;
 	newNodePtr->Coord = newNodePtr->InitCoord = newNodePtr->OldCoord = newObjDef->coord;		// save coords
 	newNodePtr->StatusBits = flags;
 
-	for (i = 0; i < MAX_NODE_SPARKLES; i++)								// no sparkles
+	for (int i = 0; i < MAX_NODE_SPARKLES; i++)							// no sparkles
 		newNodePtr->Sparkles[i] = -1;
 
 
@@ -165,7 +184,7 @@ unsigned long flags = newObjDef->flags;
 
 		/* NO VAPOR TRAILS YET */
 
-	for (i = 0; i < MAX_JOINTS; i++)
+	for (int i = 0; i < MAX_JOINTS; i++)
 		newNodePtr->VaporTrails[i] = -1;
 
 
@@ -405,7 +424,7 @@ next:
 
 /**************************** DRAW OBJECTS ***************************/
 
-void DrawObjects(OGLSetupOutputType *setupInfo)
+void DrawObjects(void)
 {
 ObjNode		*theNode;
 short		i,numTriMeshes;
@@ -434,14 +453,16 @@ short			skelType;
 
 			/* GET CAMERA COORDS */
 
-	cameraX = setupInfo->cameraPlacement.cameraLocation.x;
-	cameraZ = setupInfo->cameraPlacement.cameraLocation.z;
+	cameraX = gGameViewInfoPtr->cameraPlacement.cameraLocation.x;
+	cameraZ = gGameViewInfoPtr->cameraPlacement.cameraLocation.z;
 
 			/***********************/
 			/* MAIN NODE TASK LOOP */
 			/***********************/
 	do
 	{
+		ObjNode* nextNode = theNode->NextNode;					// save next node in case object deletes itself in custom draw call
+
 		statusBits = theNode->StatusBits;						// get obj's status bits
 
 		if (statusBits & (STATUS_BIT_ISCULLED|STATUS_BIT_HIDDEN))	// see if is culled or hidden
@@ -536,7 +557,7 @@ short			skelType;
 			/* CHECK NO FOG */
 			/****************/
 
-		if (setupInfo->useFog)
+		if (gGameViewInfoPtr->useFog)
 		{
 			if (statusBits & STATUS_BIT_NOFOG)
 			{
@@ -736,7 +757,7 @@ short			skelType;
 							}
 						}
 
-						MO_DrawGeometry_VertexArray(&gLocalTriMeshesOfSkelType[skelType][i], setupInfo);
+						MO_DrawGeometry_VertexArray(&gLocalTriMeshesOfSkelType[skelType][i]);
 
 						if (overrideTexture && oldTexture)											// see if need to set texture back to normal
 							gLocalTriMeshesOfSkelType[skelType][i].materials[0] = oldTexture;
@@ -746,7 +767,7 @@ short			skelType;
 			case	DISPLAY_GROUP_GENRE:
 					if (theNode->BaseGroup)
 					{
-						MO_DrawObject(theNode->BaseGroup, setupInfo);
+						MO_DrawObject(theNode->BaseGroup);
 					}
 					break;
 
@@ -761,7 +782,7 @@ short			skelType;
 						theNode->SpriteMO->objectData.scaleX = theNode->Scale.x;
 						theNode->SpriteMO->objectData.scaleY = theNode->Scale.y;
 
-						MO_DrawObject(theNode->SpriteMO, setupInfo);
+						MO_DrawObject(theNode->SpriteMO);
 						OGL_PopState();									// restore state
 					}
 					break;
@@ -771,9 +792,9 @@ short			skelType;
 					{
 						OGL_PushState();								// keep state
 						SetInfobarSpriteState(true);
-						MO_DrawObject(theNode->BaseGroup, setupInfo);
+						MO_DrawObject(theNode->BaseGroup);
 
-						if (gDebugMode == 1)
+						if (gDebugMode == 2)
 						{
 							TextMesh_DrawExtents(theNode);
 						}
@@ -786,7 +807,7 @@ short			skelType;
 custom_draw:
 					if (theNode->CustomDrawFunction)
 					{
-						theNode->CustomDrawFunction(theNode, setupInfo);
+						theNode->CustomDrawFunction(theNode);
 					}
 					break;
 		}
@@ -807,7 +828,7 @@ custom_draw:
 
 			/* NEXT NODE */
 next:
-		theNode = (ObjNode *)theNode->NextNode;
+		theNode = nextNode;
 	}while (theNode != nil);
 
 
@@ -818,7 +839,7 @@ next:
 	if (noLighting)
 		OGL_EnableLighting();
 
-	if (setupInfo->useFog)
+	if (gGameViewInfoPtr->useFog)
 	{
 		if (noFog)
 			glEnable(GL_FOG);
@@ -859,8 +880,6 @@ next:
 
 static void DrawCollisionBoxes(ObjNode *theNode, Boolean old)
 {
-int					n,i;
-CollisionBoxType	*c;
 float				left,right,top,bottom,front,back;
 
 	OGL_PushState();
@@ -873,31 +892,18 @@ float				left,right,top,bottom,front,back;
 
 		/* SCAN EACH COLLISION BOX */
 
-	n = theNode->NumCollisionBoxes;							// get # collision boxes
-	c = &theNode->CollisionBoxes[0];						// pt to array
+	const CollisionBoxType* c = old ? theNode->OldCollisionBoxes : theNode->CollisionBoxes;
 
-	for (i = 0; i < n; i++)
+	for (int i = 0; i < theNode->NumCollisionBoxes; i++)
 	{
 			/* GET BOX PARAMS */
 
-		if (old)
-		{
-			left 	= c[i].oldLeft;
-			right 	= c[i].oldRight;
-			top 	= c[i].oldTop;
-			bottom 	= c[i].oldBottom;
-			front 	= c[i].oldFront;
-			back 	= c[i].oldBack;
-		}
-		else
-		{
-			left 	= c[i].left;
-			right 	= c[i].right;
-			top 	= c[i].top;
-			bottom 	= c[i].bottom;
-			front 	= c[i].front;
-			back 	= c[i].back;
-		}
+		left 	= c[i].left;
+		right 	= c[i].right;
+		top 	= c[i].top;
+		bottom 	= c[i].bottom;
+		front 	= c[i].front;
+		back 	= c[i].back;
 
 			/* DRAW TOP */
 
@@ -949,6 +955,22 @@ float				left,right,top,bottom,front,back;
 		glEnd();
 
 	}
+
+
+
+	if (gRocketShipHotZone[0].x != 0 && gRocketShipHotZone[0].y != 0)
+	{
+		glBegin(GL_LINE_LOOP);
+		for (int i = 0; i < 4; i++)
+		{
+			float x = gRocketShipHotZone[i].x;
+			float z = gRocketShipHotZone[i].y;
+			float y = 10 + GetTerrainY(x, z);
+			glVertex3f(x,y,z);
+		}
+		glEnd();
+	}
+
 
 	OGL_PopState();
 }
@@ -1195,11 +1217,9 @@ int		i;
 
 	if (theNode->CType == INVALID_NODE_FLAG)		// see if already deleted
 	{
-		char errString[256];
-		snprintf(errString, sizeof(errString),
+		DoFatalAlert(
 			"Attempted to Double Delete an Object.  Object was already deleted!  genre=%d group=%d type=%d",
 			theNode->Genre, theNode->Group, theNode->Type);
-		DoFatalAlert(errString);
 	}
 
 			/* RECURSIVE DELETE OF CHAIN NODE & SHADOW NODE */
@@ -1416,15 +1436,26 @@ out:
 
 static void FlushObjectDeleteQueue(void)
 {
-long	i,num;
+	for (int i = 0; i < gNumObjsInDeleteQueue; i++)
+	{
+		ObjNode* node = gObjectDeleteQueue[i];
+		GAME_ASSERT(node != NULL);
 
-	num = gNumObjsInDeleteQueue;
+		ptrdiff_t poolIndex = node - gObjNodeMemory;
 
-	gNumObjectNodes -= num;
+		if (poolIndex >= 0 && poolIndex < OBJ_BUDGET)
+		{
+			// node is pooled, put back into pool
+			Pool_ReleaseIndex(gObjNodePool, poolIndex);
+		}
+		else
+		{
+			// node was allocated on heap
+			SafeDisposePtr((Ptr) node);
+		}
+	}
 
-
-	for (i = 0; i < num; i++)
-		SafeDisposePtr((Ptr)gObjectDeleteQueue[i]);
+	gNumObjectNodes -= gNumObjsInDeleteQueue;
 
 	gNumObjsInDeleteQueue = 0;
 }
@@ -1498,7 +1529,6 @@ void UpdateObjectTransforms(ObjNode *theNode)
 {
 OGLMatrix4x4	m,m2;
 OGLMatrix4x4	mx,my,mz,mxz;
-u_long			bits;
 
 	if (theNode->CType == INVALID_NODE_FLAG)		// see if already deleted
 		return;
@@ -1514,7 +1544,7 @@ u_long			bits;
 			/* NOW ROTATE & TRANSLATE IT */
 			/*****************************/
 
-	bits = theNode->StatusBits;
+	uint32_t bits = theNode->StatusBits;
 
 				/* USE ALIGNMENT MATRIX */
 
@@ -1607,10 +1637,10 @@ MOMatrixObject	*mo = theNode->BaseTransformObject;
 
 /********************* FIND CLOSEST CTYPE *****************************/
 
-ObjNode *FindClosestCType(OGLPoint3D *pt, u_long ctype)
+ObjNode* FindClosestCType(const OGLPoint3D *pt, uint32_t ctype)
 {
 ObjNode		*thisNodePtr,*best = nil;
-float	d,minDist = 10000000;
+float		minDist = 10000000;
 
 
 	thisNodePtr = gFirstNodePtr;
@@ -1622,7 +1652,7 @@ float	d,minDist = 10000000;
 
 		if (thisNodePtr->CType & ctype)
 		{
-			d = CalcQuickDistance(pt->x,pt->z,thisNodePtr->Coord.x, thisNodePtr->Coord.z);
+			float d = CalcQuickDistance(pt->x, pt->z, thisNodePtr->Coord.x, thisNodePtr->Coord.z);
 			if (d < minDist)
 			{
 				minDist = d;
@@ -1639,10 +1669,10 @@ float	d,minDist = 10000000;
 
 /********************* FIND CLOSEST CTYPE 3D *****************************/
 
-ObjNode *FindClosestCType3D(OGLPoint3D *pt, u_long ctype)
+ObjNode* FindClosestCType3D(const OGLPoint3D* pt, uint32_t ctype)
 {
 ObjNode		*thisNodePtr,*best = nil;
-float	d,minDist = 10000000;
+float		minDist = 10000000;
 
 
 	thisNodePtr = gFirstNodePtr;
@@ -1654,7 +1684,7 @@ float	d,minDist = 10000000;
 
 		if (thisNodePtr->CType & ctype)
 		{
-			d = OGLPoint3D_Distance(pt, &thisNodePtr->Coord);
+			float d = OGLPoint3D_Distance(pt, &thisNodePtr->Coord);
 			if (d < minDist)
 			{
 				minDist = d;
@@ -1667,18 +1697,4 @@ float	d,minDist = 10000000;
 
 	return(best);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

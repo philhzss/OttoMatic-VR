@@ -1,19 +1,53 @@
 # How to build Otto Matic
 
-## How to build the game on Windows
+## The easy way: build.py (automated build script)
+(not tested for VR for now)
+
+`build.py` can produce a game executable from a fresh clone of the repo in a single command. It will work on macOS, Windows and Linux, provided that your system has Python 3, CMake, and an adequate C++ compiler.
+
+```
+git clone --recurse-submodules https://github.com/jorio/OttoMatic
+cd OttoMatic
+python3 build.py
+```
+
+If you want to build the game **manually** instead, the rest of this document describes how to do just that on each of the big 3 desktop operating systems.
+
+## How to build the game manually on macOS
 
 1. Install the prerequisites:
-    - Visual Studio 2019 with the C++ toolchain
-    - [CMake](https://cmake.org/download/) 3.20+
+    - Xcode (preferably the latest version)
+    - [CMake](https://formulae.brew.sh/formula/cmake) 3.21+ (installing via Homebrew is recommended)
 1. Clone the repo **recursively**:
     ```
-    git clone --recurse-submodules https://github.com/fordcars/OttoMatic-VR
+    git clone --recurse-submodules https://github.com/jorio/OttoMatic
+    cd OttoMatic
     ```
-1. Download [SDL2-devel-2.0.16-VC.zip](http://libsdl.org/release/SDL2-devel-2.0.16-VC.zip) and extract the contents into the **extern** folder
-1. Download [OpenVR SDK 1.16.8](https://github.com/ValveSoftware/openvr/archive/refs/tags/v1.16.8.zip) and extract the contents into the **extern** folder.
+1. Download [SDL3-3.2.4.dmg](https://libsdl.org/release/SDL3-3.2.4.dmg), open it, then browse to SDL3.xcframework/macos-arm64_x86_64. In that folder, copy **SDL3.framework** to the game's **extern** folder.
+1. Prep the Xcode project:
+    ```
+    cmake -G Xcode -S . -B build
+    ```
+1. Now you can open `build/OttoMatic.xcodeproj` in Xcode, or you can just go ahead and build the game:
+    ```
+    cmake --build build --config RelWithDebInfo
+    ```
+1. The game gets built in `build/RelWithDebInfo/OttoMatic.app`. Enjoy!
+
+## How to build the game manually on Windows
+
+1. Install the prerequisites:
+    - Visual Studio 2022 with the C++ toolchain
+    - [CMake](https://cmake.org/download/) 3.21+
+1. Clone the repo **recursively**:
+    ```
+    git clone --recurse-submodules https://github.com/jorio/OttoMatic
+    cd OttoMatic
+    ```
+1. Download [SDL3-devel-3.2.4-VC.zip](https://libsdl.org/release/SDL3-devel-3.2.4-VC.zip), extract it, and copy **SDL3-3.2.4** to the **extern** folder. Rename **SDL3-3.2.4** to just **SDL3**.
 1. Prep the Visual Studio solution:
     ```
-    cmake -G "Visual Studio 16 2019" -A x64 -S . -B build
+    cmake -G "Visual Studio 17 2022" -A x64 -S . -B build
     ```
 1. Now you can open `build/OttoMatic.sln` in Visual Studio, or you can just go ahead and build the game:
     ```
@@ -21,27 +55,22 @@
     ```
 1. The game gets built in `build/Release/OttoMatic.exe`. Enjoy!
 
-## How to build the game on Linux et al.
+## How to build the game manually on Linux et al.
 
 1. Install the prerequisites from your package manager:
     - Any C++20 compiler
-    - CMake 3.13+
-    - SDL2 development library (e.g. "libsdl2-dev" on Ubuntu, "sdl2" on Arch, "SDL-devel" on Fedora)
+    - CMake 3.21+
+    - SDL3 development library (e.g. "libsdl3-dev" on Ubuntu, "sdl3" on Arch, "SDL3-devel" on Fedora)
     - OpenGL development libraries (e.g. "libgl1-mesa-dev" on Ubuntu)
 1. Clone the repo **recursively**:
     ```
-    git clone --recurse-submodules https://github.com/fordcars/OttoMatic-VR
+    git clone --recurse-submodules https://github.com/jorio/OttoMatic
+    cd OttoMatic
     ```
 1. Build the game:
     ```
-    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
     cmake --build build
     ```
-1. The game gets built in `build/Release/OttoMatic`. Enjoy!
-
-## TL;DR: Automated build script (not tested for VR for now)
-
-~~Clone the repo **recursively**, then run `python3 build.py` to execute the build steps described in this document and package up the game.~~
-
-~~build.py is the script that is used by the CI setup to produce builds. If you want to build the game manually instead, read on.~~
-
+    If you'd like to enable runtime sanitizers, append `-DSANITIZE=1` to the **first** `cmake` call above.
+1. The game gets built in `build/OttoMatic`. Enjoy!

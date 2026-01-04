@@ -28,7 +28,7 @@
 /*********************/
 
 SpriteType	*gSpriteGroupList[MAX_SPRITE_GROUPS];
-long		gNumSpritesInGroupList[MAX_SPRITE_GROUPS];		// note:  this must be long's since that's what we read from the sprite file!
+int			gNumSpritesInGroupList[MAX_SPRITE_GROUPS];
 
 
 
@@ -92,22 +92,15 @@ int 		i,n;
 //			because all imported textures are named with OpenGL and loaded into OpenGL!
 //
 
-void LoadSpriteFile(FSSpec *spec, int groupNum, OGLSetupOutputType *setupInfo)
+void LoadSpriteGroup(int groupNum, int numSprites, const char* groupName)
 {
-short			refNum;
-int				i,w,h;
-long			count;
 MOMaterialData	matData;
+char			path[256];
 
 
-		/* OPEN THE FILE */
+		/* READ # SPRITES IN THIS GROUP */
 
-	if (FSpOpenDF(spec, fsRdPerm, &refNum) != noErr)
-		DoFatalAlert("LoadSpriteFile: FSpOpenDF failed");
-
-		/* READ # SPRITES IN THIS FILE */
-
-	gNumSpritesInGroupList[groupNum] = FSReadBELong(refNum);
+	gNumSpritesInGroupList[groupNum] = numSprites;
 
 
 		/* ALLOCATE MEMORY FOR SPRITE RECORDS */
@@ -121,50 +114,38 @@ MOMaterialData	matData;
 			/* READ EACH SPRITE */
 			/********************/
 
-	for (i = 0; i < gNumSpritesInGroupList[groupNum]; i++)
+	for (int i = 0; i < numSprites; i++)
 	{
-		long		bufferSize;
-		u_char *buffer;
+		SDL_snprintf(path, sizeof(path), ":Sprites:%s:%s%03d.tga", groupName, groupName, i);
+
+		FSSpec spec;
+		OSErr iErr = FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, path, &spec);
+		GAME_ASSERT_MESSAGE(!iErr, path);
+
+		uint8_t* buffer = NULL;
+		TGAHeader tgaHeader = {0};
+		iErr = ReadTGA(&spec, &buffer, &tgaHeader, true);
+		GAME_ASSERT_MESSAGE(!iErr, path);
+
+
+		GAME_ASSERT(tgaHeader.bpp == 32);
+		GAME_ASSERT(tgaHeader.imageType == TGA_IMAGETYPE_CONVERTED_RGBA);
+
 
 			/* READ WIDTH/HEIGHT, ASPECT RATIO, SRC/DEST FORMATS */
 
-		gSpriteGroupList[groupNum][i].width			= FSReadBELong(refNum);
-		gSpriteGroupList[groupNum][i].height		= FSReadBELong(refNum);
-		gSpriteGroupList[groupNum][i].aspectRatio	= FSReadBEFloat(refNum);
-		gSpriteGroupList[groupNum][i].srcFormat		= FSReadBELong(refNum);
-		gSpriteGroupList[groupNum][i].destFormat	= FSReadBELong(refNum);
-
-
-			/* READ BUFFER SIZE */
-
-		bufferSize = FSReadBELong(refNum);
-
-		buffer = AllocPtr(bufferSize);							// alloc memory for buffer
-		if (buffer == nil)
-			DoFatalAlert("LoadSpriteFile: AllocPtr failed");
-
-
-			/* READ THE SPRITE PIXEL BUFFER */
-
-		count = bufferSize;
-		FSRead(refNum, &count, (Ptr) buffer);
-
-		if (gSpriteGroupList[groupNum][i].srcFormat == GL_UNSIGNED_SHORT_1_5_5_5_REV)
-		{
-			int		q;
-			u_short *pix = (u_short *)buffer;
-			for (q = 0; q < (count/2); q++)
-			{
-				pix[q] = SwizzleUShort(&pix[q]);
-			}
-		}
+		gSpriteGroupList[groupNum][i].width			= tgaHeader.width;
+		gSpriteGroupList[groupNum][i].height		= tgaHeader.height;
+		gSpriteGroupList[groupNum][i].aspectRatio	= (float) tgaHeader.height / (float) tgaHeader.width;
+		gSpriteGroupList[groupNum][i].srcFormat		= GL_RGBA;
+		gSpriteGroupList[groupNum][i].destFormat	= GL_RGBA;
 
 
 				/*****************************/
 				/* CREATE NEW TEXTURE OBJECT */
 				/*****************************/
 
-		matData.setupInfo		= setupInfo;
+		matData.setupInfo		= gGameViewInfoPtr;
 		matData.flags			= BG3D_MATERIALFLAG_TEXTURED;
 		matData.diffuseColor.r	= 1;
 		matData.diffuseColor.g	= 1;
@@ -172,14 +153,15 @@ MOMaterialData	matData;
 		matData.diffuseColor.a	= 1;
 
 		matData.numMipmaps		= 1;
-		w = matData.width		= gSpriteGroupList[groupNum][i].width;
-		h = matData.height		= gSpriteGroupList[groupNum][i].height;
+		matData.width			= gSpriteGroupList[groupNum][i].width;
+		matData.height			= gSpriteGroupList[groupNum][i].height;
 
 		matData.pixelSrcFormat	= gSpriteGroupList[groupNum][i].srcFormat;
 		matData.pixelDstFormat	= gSpriteGroupList[groupNum][i].destFormat;
 
 		matData.texturePixels[0]= nil;											// we're going to preload
 
+#if 0
 					/* SPRITE IS 16-BIT PACKED PIXEL FORMAT */
 
 		if (matData.pixelSrcFormat == GL_UNSIGNED_SHORT_1_5_5_5_REV)	// see if convert 24 to 16-bit
@@ -193,7 +175,7 @@ MOMaterialData	matData;
 		else
 		if ((matData.pixelSrcFormat == GL_RGB) && (matData.pixelDstFormat == GL_RGB5_A1))
 		{
-			u_short	*buff16 = (u_short *)AllocPtr(matData.width*matData.height*2);			// alloc buff for 16-bit texture
+			uint16_t	*buff16 = (uint16_t *)AllocPtr(matData.width*matData.height*2);			// alloc buff for 16-bit texture
 
 			ConvertTexture24To16(buffer, buff16, matData.width, matData.height);
 			matData.textureName[0] = OGL_TextureMap_Load(buff16, matData.width, matData.height, GL_BGRA_EXT, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV); // load 16 as 16
@@ -204,12 +186,17 @@ MOMaterialData	matData;
 
 				/* USE INPUT FORMATS */
 		else
+#endif
 		{
-			matData.textureName[0] 	= OGL_TextureMap_Load(buffer,
-													 matData.width,
-													 matData.height,
-													 matData.pixelSrcFormat,
-													 matData.pixelDstFormat, GL_UNSIGNED_BYTE);
+			matData.textureName[0] 	= OGL_TextureMap_Load(
+				buffer,
+				matData.width,
+				matData.height,
+				matData.pixelSrcFormat,
+				matData.pixelDstFormat,
+				//GL_UNSIGNED_INT_8_8_8_8
+				GL_UNSIGNED_BYTE
+			);
 		}
 
 		gSpriteGroupList[groupNum][i].materialObject = MO_CreateNewObjectOfType(MO_TYPE_MATERIAL, 0, &matData);
@@ -220,14 +207,6 @@ MOMaterialData	matData;
 
 		SafeDisposePtr((Ptr)buffer);														// free the buffer
 	}
-
-
-
-		/* CLOSE FILE */
-
-	FSClose(refNum);
-
-
 }
 
 
@@ -235,7 +214,7 @@ MOMaterialData	matData;
 
 /************* MAKE NEW SRITE OBJECT *************/
 
-ObjNode *MakeSpriteObject(NewObjectDefinitionType *newObjDef, OGLSetupOutputType *setupInfo)
+ObjNode *MakeSpriteObject(NewObjectDefinitionType *newObjDef)
 {
 ObjNode				*newObj;
 MOSpriteObject		*spriteMO;
@@ -258,7 +237,6 @@ MOSpriteSetupData	spriteData;
 
 			/* MAKE SPRITE META-OBJECT */
 
-	spriteData.loadFile = false;										// these sprites are already loaded into gSpriteList
 	spriteData.group	= newObjDef->group;								// set group
 	spriteData.type 	= newObjDef->type;								// set group subtype
 
@@ -285,7 +263,7 @@ MOSpriteSetupData	spriteData;
 
 /*********************** MODIFY SPRITE OBJECT IMAGE ******************************/
 
-void ModifySpriteObjectFrame(ObjNode *theNode, short type, OGLSetupOutputType *setupInfo)
+void ModifySpriteObjectFrame(ObjNode *theNode, short type)
 {
 MOSpriteSetupData	spriteData;
 MOSpriteObject		*spriteMO;
@@ -301,7 +279,6 @@ MOSpriteObject		*spriteMO;
 
 		/* MAKE NEW SPRITE MO */
 
-	spriteData.loadFile = false;									// these sprites are already loaded into gSpriteList
 	spriteData.group	= theNode->Group;							// set group
 	spriteData.type 	= type;										// set group subtype
 
@@ -379,7 +356,7 @@ MOMaterialObject	*m;
 
 /************************** DRAW SPRITE ************************/
 
-void DrawSprite(int	group, int type, float x, float y, float scale, float rot, u_long flags, const OGLSetupOutputType *setupInfo)
+void DrawSprite(int	group, int type, float x, float y, float scale, float rot, uint32_t flags)
 {
 			/* SET STATE */
 
@@ -406,16 +383,16 @@ void DrawSprite(int	group, int type, float x, float y, float scale, float rot, u
 
 		/* ACTIVATE THE MATERIAL */
 
-	MO_DrawMaterial(gSpriteGroupList[group][type].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[group][type].materialObject);
 
 
 			/* DRAW IT */
 
 	glBegin(GL_QUADS);
-	glTexCoord2f(0,1);	glVertex2f(x, y);
-	glTexCoord2f(1,1);	glVertex2f(x+scale, y);
-	glTexCoord2f(1,0);	glVertex2f(x+scale, y+scale);
-	glTexCoord2f(0,0);	glVertex2f(x, y+scale);
+	glTexCoord2f(0,0);	glVertex2f(x, y);
+	glTexCoord2f(1,0);	glVertex2f(x+scale, y);
+	glTexCoord2f(1,1);	glVertex2f(x+scale, y+scale);
+	glTexCoord2f(0,1);	glVertex2f(x, y+scale);
 	glEnd();
 
 

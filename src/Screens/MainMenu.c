@@ -38,7 +38,7 @@ static void DoHelp(void);
 static void MakeCreditsIcon(void);
 static void MakeSavedGameIcon(void);
 static void MakeExitIcon(void);
-static void DrawOttoLogo(OGLSetupOutputType *info);
+static void DrawOttoLogo(ObjNode* theNode);
 static void MakeIconString(void);
 static void MoveIconString(ObjNode *theNode);
 
@@ -161,7 +161,7 @@ void DoMainMenuScreen(void)
 
 		CalcFramesPerSecond();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawMainMenuCallback);
+		OGL_DrawScene(DrawObjects);
 
 			/* SEE IF SPAWN SAUCER */
 
@@ -179,31 +179,19 @@ void DoMainMenuScreen(void)
 
 			/* CLEANUP */
 
-	GammaFadeOut();
+	OGL_FadeOutScene(DrawObjects, NULL);
 	FreeMainMenuScreen();
 
 	gDoCompanyLogos = false;						// dont do these again
 }
 
 
-/***************** DRAW MAINMENU CALLBACK *******************/
-
-void DrawMainMenuCallback(OGLSetupOutputType *info)
-{
-
-	DrawObjects(info);
-	DrawSparkles(info);											// draw light sparkles
-
-			/* DRAW LOGO */
-
-	DrawOttoLogo(info);
-}
-
-
 /****************** DRAW OTTO LOGO ***********************/
 
-static void DrawOttoLogo(OGLSetupOutputType *info)
+static void DrawOttoLogo(ObjNode* theNode)
 {
+	(void) theNode;
+
 			/* SET STATE */
 
 	OGL_PushState();
@@ -226,7 +214,7 @@ static void DrawOttoLogo(OGLSetupOutputType *info)
 	if (gGlobalTransparency > 0.0f)
 	{
 		gGlobalTransparency = gMenuLogoFadeAlpha;
-		MO_DrawObject(gBG3DGroupList[MODEL_GROUP_MAINMENU][MAINMENU_ObjType_LogoNoPlanet], info);
+		MO_DrawObject(gBG3DGroupList[MODEL_GROUP_MAINMENU][MAINMENU_ObjType_LogoNoPlanet]);
 	}
 
 	gGlobalTransparency = 1;
@@ -276,9 +264,9 @@ static OGLVector3D			fillDirection1 = { -1, 0, -1 };
 			/* SET ANAGLYPH INFO */
 			/*********************/
 
-	if (gGamePrefs.anaglyph)
+	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-		if (!gGamePrefs.anaglyphColor)
+		if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		{
 			viewDef.lights.ambientColor.r 		+= .1f;					// make a little brighter
 			viewDef.lights.ambientColor.g 		+= .1f;
@@ -290,10 +278,8 @@ static OGLVector3D			fillDirection1 = { -1, 0, -1 };
 	}
 
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
-
-	InitSparkles();
 
 				/************/
 				/* LOAD ART */
@@ -302,7 +288,7 @@ static OGLVector3D			fillDirection1 = { -1, 0, -1 };
 			/* LOAD MODELS */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:mainmenu.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_MAINMENU, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_MAINMENU);
 
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_MAINMENU, MAINMENU_ObjType_HelpIcon,
 							 -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
@@ -315,30 +301,33 @@ static OGLVector3D			fillDirection1 = { -1, 0, -1 };
 
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:global.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_GLOBAL, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_GLOBAL);
 
 
 			/* LOAD SPRITES */
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:spheremap.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_SPHEREMAPS, gGameViewInfoPtr);
-	InitParticleSystem(gGameViewInfoPtr);
+	LoadSpriteGroup(SPRITE_GROUP_SPHEREMAPS, SPHEREMAP_SObjType_COUNT, "spheremap");
+	
+
+			/* INIT EFFECT SYSTEMS */
+	
+	InitEffects();
 
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_OTTO, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_OTTO);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_OTTO,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-	LoadASkeleton(SKELETON_TYPE_FARMER, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_BEEWOMAN, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_CLOWN, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_MANTIS, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_FARMER);
+	LoadASkeleton(SKELETON_TYPE_BEEWOMAN);
+	LoadASkeleton(SKELETON_TYPE_CLOWN);
+	LoadASkeleton(SKELETON_TYPE_MANTIS);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_MANTIS,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-	LoadASkeleton(SKELETON_TYPE_BRAINALIEN, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_BRAINALIEN);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_BRAINALIEN,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
@@ -387,9 +376,22 @@ static OGLVector3D			fillDirection1 = { -1, 0, -1 };
 	}
 
 
+			/* MAKE CORNER LOGO */
+
+	NewObjectDefinitionType cornerLogoDef =
+	{
+		.genre = CUSTOM_GENRE,
+		.slot = DRAWEXTRA_SLOT,
+		.scale = 1,
+		.flags = STATUS_BIT_DONTCULL,
+		.drawCall = DrawOttoLogo
+	};
+	MakeNewObject(&cornerLogoDef);
+
+
 				/* START W/ GAME LOGO */
 
-	if (gDoCompanyLogos && !gCommandLine.skipFluff)
+	if (gDoCompanyLogos && !gSkipFluff)
 		StartCompanyLogos();
 	else
 		StartGameLogo();
@@ -498,10 +500,10 @@ static void FreeMainMenuScreen(void)
 	DeleteAllObjects();
 	FreeAllSkeletonFiles(-1);
 	DisposeSoundBank(SOUNDBANK_MENU);
-	DisposeParticleSystem();
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeAllBG3DContainers();
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);
+	OGL_DisposeWindowSetup();
 	Pomme_FlushPtrTracking(true);
 }
 
@@ -1022,7 +1024,7 @@ ObjNode	*icon;
 static void CalcIconMatrix(ObjNode *theNode)
 {
 OGLMatrix4x4	m,m2,m3;
-float			r,s;
+float			s;
 
 				/* SET SCALE MATRIX */
 
@@ -1036,7 +1038,7 @@ float			r,s;
 
 			/* CALC LOCATION ON RIM */
 
-	r = PI + (theNode->Kind / NUM_SELECTIONS) * PI2;
+//	r = PI + (theNode->Kind / NUM_SELECTIONS) * PI2;
 	OGLMatrix4x4_SetTranslate(&m, theNode->Coord.x, theNode->Coord.y, theNode->Coord.z);
 	OGLMatrix4x4_Multiply(&m3, &m, &m2);
 
@@ -1161,7 +1163,7 @@ static Boolean DoMainMenuControl(void)
 							|| vrcpp_GetDigitalActionData(vrNextWeapon, false)
 							|| vrcpp_GetDigitalActionData(vrPreviousWeapon, false))
 						{
-							int cheatLevel = DoLevelCheatDialog(DrawMainMenuCallback);
+							int cheatLevel = DoLevelCheatDialog(DrawObjects);
 							if (cheatLevel < 0)
 								break;
 							gLevelNum = cheatLevel;
@@ -1187,7 +1189,7 @@ static Boolean DoMainMenuControl(void)
 						break;
 
 				case	SELECT_OPTIONS:
-						DoSettingsOverlay(nil, DrawMainMenuCallback);
+						DoSettingsOverlay(nil, DrawObjects);
 						break;
 
 				case	SELECT_CREDITS:
@@ -1195,7 +1197,7 @@ static Boolean DoMainMenuControl(void)
 						break;
 
 				case	SELECT_LOADSAVEDGAME:
-						if (DoFileScreen(FILE_SCREEN_TYPE_LOAD, DrawMainMenuCallback))
+						if (DoFileScreen(FILE_SCREEN_TYPE_LOAD, DrawObjects))
 						{
 							gPlayingFromSavedGame = true;
 							return true;
@@ -1582,7 +1584,7 @@ ObjNode	*glow, *text, *pane;
 
 		CalcFramesPerSecond();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawMainMenuCallback);
+		OGL_DrawScene(DrawObjects);
 	}
 
 
@@ -1672,7 +1674,7 @@ ObjNode	*pane;
 
 		CalcFramesPerSecond();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawMainMenuCallback);
+		OGL_DrawScene(DrawObjects);
 	}
 
 
@@ -1725,7 +1727,7 @@ static const MenuItem kCreditsMenu[] =
 	MenuStyle creditsMenuStyle = kDefaultMenuStyle;
 	creditsMenuStyle.isInteractive = false;
 
-	StartMenu(kCreditsMenu, &creditsMenuStyle, nil, DrawMainMenuCallback);
+	StartMenu(kCreditsMenu, &creditsMenuStyle, nil, DrawObjects);
 }
 
 
@@ -1774,13 +1776,13 @@ ObjNode *mainText = glow->ChainNode;
 
 /********************** DRAW DARKEN PANE *****************************/
 
-void DrawDarkenPane(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+void DrawDarkenPane(ObjNode *theNode)
 {
 	OGL_PushState();
 	SetInfobarSpriteState(true);
 
 	glDisable(GL_TEXTURE_2D);
-	SetColor4fv((GLfloat *)&theNode->ColorFilter);
+	SetColor4fv(&theNode->ColorFilter.r);
 	glEnable(GL_BLEND);
 
 	glBegin(GL_QUADS);

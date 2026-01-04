@@ -53,27 +53,25 @@ static const short kLevelSongs[NUM_LEVELS] =
 /****************************/
 
 Boolean				gG4 = true;
+Boolean				gIsInGame = false;
+Boolean				gSkipFluff = false;
 
 float				gGravity = NORMAL_GRAVITY;
 
 Byte				gDebugMode = 0;				// 0 == none, 1 = fps, 2 = all
 
-u_long				gAutoFadeStatusBits;
-short				gMainAppRezFile;
+uint32_t			gAutoFadeStatusBits;
 
 OGLSetupOutputType		*gGameViewInfoPtr = nil;
 
 PrefsType			gGamePrefs;
-
-FSSpec				gDataSpec;
-
 
 OGLVector3D			gWorldSunDirection = { .5, -.35, .8};		// also serves as lense flare vector
 OGLColorRGBA		gFillColor1 = { .9, .9, 0.85, 1};
 OGLColorRGBA		gApocalypseColor = {.6, .6, .7,1};
 OGLColorRGBA		gFireIceColor = {.7, .6, .6,1};
 
-u_long				gGameFrameNum = 0;
+uint32_t			gGameFrameNum = 0;
 
 Boolean				gPlayingFromSavedGame = false;
 Boolean				gGameOver = false;
@@ -87,7 +85,8 @@ short				gBestCheckpointNum;
 OGLPoint2D			gBestCheckpointCoord;
 float				gBestCheckpointAim;
 
-u_long	gScore,gLoadedScore;
+uint32_t			gScore;
+uint32_t			gLoadedScore;
 
 Boolean gPlayerInMainMenu = false;
 
@@ -101,40 +100,19 @@ Boolean gPlayerInMainMenu = false;
 
 
 /****************** TOOLBOX INIT  *****************/
+//
+// Note: the preferences are loaded in Main.cpp
+//
 
 void ToolBoxInit(void)
 {
-	MyFlushEvents();
-
-	gMainAppRezFile = CurResFile();
-
-
-
-
-
-
-
-			/* BOOT OGL */
+	SetFullscreenMode(true);
 
 	OGL_Boot();
 
-
  	InitInput();
 
-
-			/*********************/
-			/* APPLY PREFERENCES */
-			/*********************/
-			//
-			// Note: the preferences are loaded in Main.cpp
-			//
-
 	LoadLocalizedStrings(gGamePrefs.language);
-
-	if (gSDLWindow)
-	{
-		SetFullscreenModeFromPrefs();
-	}
 
 	MyFlushEvents();
 }
@@ -144,27 +122,32 @@ void ToolBoxInit(void)
 
 void InitDefaultPrefs(void)
 {
-	memset(&gGamePrefs, 0, sizeof(gGamePrefs));
+	SDL_memset(&gGamePrefs, 0, sizeof(gGamePrefs));
 
 	gGamePrefs.language						= GetBestLanguageIDFromSystemLocale();
 	gGamePrefs.fullscreen					= true;
-	gGamePrefs.preferredDisplay				= 0;
+	gGamePrefs.vsync						= true;
+	gGamePrefs.uiCentering					= false;
+	gGamePrefs.uiScaleLevel					= DEFAULT_UI_SCALE_LEVEL;
+	gGamePrefs.autoAlignCamera				= true;
+	gGamePrefs.displayNumMinus1				= 0;
 	gGamePrefs.antialiasingLevel			= 0;
 	gGamePrefs.music						= true;
 	gGamePrefs.playerRelControls			= false;
 	gGamePrefs.mouseControlsOtto			= true;
 	gGamePrefs.snappyCameraControl			= true;
 	gGamePrefs.mouseSensitivityLevel		= DEFAULT_MOUSE_SENSITIVITY_LEVEL;
-	gGamePrefs.anaglyph						= false;
-	gGamePrefs.anaglyphColor				= true;
+	gGamePrefs.anaglyphMode					= ANAGLYPH_OFF;
 	gGamePrefs.anaglyphCalibrationRed		= DEFAULT_ANAGLYPH_R;
 	gGamePrefs.anaglyphCalibrationGreen		= DEFAULT_ANAGLYPH_G;
 	gGamePrefs.anaglyphCalibrationBlue		= DEFAULT_ANAGLYPH_B;
 	gGamePrefs.doAnaglyphChannelBalancing	= true;
 	gGamePrefs.gamepadRumble				= true;
 
-	memcpy(gGamePrefs.keys, kDefaultKeyBindings, sizeof(gGamePrefs.keys));
-	_Static_assert(sizeof(kDefaultKeyBindings) == sizeof(gGamePrefs.keys), "size mismatch: default keybindings / prefs keybindings");
+	for (int i = 0; i < NUM_REMAPPABLE_NEEDS; i++)
+	{
+		gGamePrefs.remappableKeys[i] = kDefaultKeyBindings[i];
+	}
 }
 
 
@@ -220,7 +203,6 @@ static void PlayGame(void)
 			/* CLEANUP LEVEL */
 
 		MyFlushEvents();
-		GammaFadeOut();
 		CleanupLevel();
 
 
@@ -271,6 +253,7 @@ static void PlayArea(void)
 	CalcFramesPerSecond();
 	CalcFramesPerSecond();
 	gDisableHiccupTimer = true;
+	gIsInGame = true;
 
 	MakeFadeEvent(true, 1.0);
 
@@ -301,7 +284,7 @@ static void PlayArea(void)
 			/* DRAW IT ALL */
 
 
-		OGL_DrawScene(gGameViewInfoPtr,DrawArea);
+		OGL_DrawScene(DrawObjects);
 
 
 
@@ -323,7 +306,9 @@ static void PlayArea(void)
 
 		gGameFrameNum++;
 
+#if !_DEBUG
 		if (GetKeyState(SDL_SCANCODE_GRAVE))							// cheat key
+#endif
 		{
 			if (GetNewKeyState(SDL_SCANCODE_F9))						// goto checkpoint
 			{
@@ -351,34 +336,29 @@ static void PlayArea(void)
 
 	}
 
+	gIsInGame = false;
+
+	OGL_FadeOutScene(DrawObjects, PausedUpdateCallback);
+
 
 	CaptureMouse(false);
 
 }
 
 
-/****************** DRAW AREA *******************************/
+/****************** DRAW AREA EXTRA STUFF *******************************/
 
-void DrawArea(OGLSetupOutputType *setupInfo)
+static void DrawAreaExtraStuff(ObjNode* theNode)
 {
-		/* DRAW OBJECTS & TERAIN */
-
-	DrawObjects(setupInfo);												// draw objNodes which includes fences, terrain, etc.
-
-	// Don't draw stuff on top of the UI if the game is paused
-	if (gGamePaused)
-		return;
+	(void) theNode;
 
 			/* DRAW MISC */
 
-	DrawShards(setupInfo);												// draw shards
-	DrawVaporTrails(setupInfo);											// draw vapor trails
-	DrawSparkles(setupInfo);											// draw light sparkles
-	DrawInfobar(setupInfo);												// draw infobar last
-	DrawLensFlare(setupInfo);											// draw lens flare
-	DrawDeathExit(setupInfo);											// draw death exit stuff
-
-
+	DrawShards();												// draw shards
+	DrawVaporTrails();											// draw vapor trails
+	DrawLensFlare();											// draw lens flare
+	DrawInfobar();												// draw infobar last
+	DrawDeathExit();											// draw death exit stuff
 }
 
 
@@ -444,6 +424,8 @@ DeformationType		defData;
 
 
 	gPlayerInfo.objNode = nil;
+	gPlayerInfo.didCheat = false;
+	gPlayerInfo.isTeleporting = false;
 
 
 
@@ -697,9 +679,9 @@ DeformationType		defData;
 			/* SET ANAGLYPH INFO */
 			/*********************/
 
-	if (gGamePrefs.anaglyph)
+	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-		if (!gGamePrefs.anaglyphColor)
+		if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		{
 			viewDef.lights.ambientColor.r 		+= .1f;					// make a little brighter
 			viewDef.lights.ambientColor.g 		+= .1f;
@@ -713,7 +695,7 @@ DeformationType		defData;
 
 
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
 
 			/**********************/
@@ -765,19 +747,31 @@ DeformationType		defData;
 			// NOTE: only call this *after* draw context is created!
 			//
 
-	LoadLevelArt(gGameViewInfoPtr);
-	InitInfobar(gGameViewInfoPtr);
+	LoadLevelArt();
+	InitInfobar();
 	gAlienSaucer = nil;
 
 			/* INIT OTHER MANAGERS */
 
 	InitEnemyManager();
 	InitHumans();
-	InitEffects(gGameViewInfoPtr);
+	InitEffects();
 	InitVaporTrails();
-	InitSparkles();
 	InitItemsManager();
-	InitSky(gGameViewInfoPtr);
+	InitSky();
+
+
+			/* DRAW SHARDS, THE INFOBAR, ETC. AFTER ALL GAMEPLAY OBJECTS */
+
+	NewObjectDefinitionType drawExtraDef =
+	{
+		.scale = 1,
+		.genre = CUSTOM_GENRE,
+		.flags = STATUS_BIT_DONTCULL,
+		.slot = DRAWEXTRA_SLOT,
+		.drawCall = DrawAreaExtraStuff
+	};
+	MakeNewObject(&drawExtraDef);
 
 
 
@@ -887,9 +881,7 @@ DeformationType		defData;
 
 	InitCamera();
 
-	SDL_ShowCursor(0);							// do this again to be sure!
-
-	GammaFadeOut();
+	SDL_HideCursor();							// do this again to be sure!
  }
 
 
@@ -897,6 +889,8 @@ DeformationType		defData;
 
 static void CleanupLevel(void)
 {
+	SDL_memset(gRocketShipHotZone, 0, sizeof(gRocketShipHotZone));
+
 	StopAllEffectChannels();
  	EmptySplineObjectList();
 	DisposeInfobar();
@@ -906,8 +900,7 @@ static void CleanupLevel(void)
 	DisposeSuperTileMemoryList();
 	DisposeTerrain();
 	DisposeSky();
-	DeleteAllParticleGroups();
-	DisposeParticleSystem();
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeFences();
 
@@ -916,19 +909,29 @@ static void CleanupLevel(void)
 
 	DisposeSoundBank(kLevelSoundBanks[gLevelNum]);
 
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);	// do this last!
+	OGL_DisposeWindowSetup();	// do this last!
 
 	Pomme_FlushPtrTracking(true);
 
 	gPlayerInfo.objNode = nil;
 	gPlayerInfo.leftHandObj = nil;
 	gPlayerInfo.rightHandObj = nil;
+
+	gAlienSaucer = nil;
+	gSaucerTarget = nil;
 }
 
 /************ CHEAT KEYS CHECKED AFTER LEGAL SCREEN ******************/
 
 static void CheckBootCheats(void)
 {
+		/* SKIP FLUFF */
+
+	if (GetKeyState(SDL_SCANCODE_F))
+	{
+		gSkipFluff = true;
+	}
+
 		/* TEST HIGH SCORE SCREEN: HOLD DOWN MINUS KEY AFTER LEGAL SCREEN */
 
 	if (GetKeyState(SDL_SCANCODE_MINUS))
@@ -972,11 +975,8 @@ static void CheckBootCheats(void)
 /************************************************************/
 
 
-int GameMain(void)
+void GameMain(void)
 {
-unsigned long	someLong;
-
-
 				/**************/
 				/* BOOT STUFF */
 				/**************/
@@ -987,6 +987,7 @@ unsigned long	someLong;
 
 	InitSpriteManager();
 	InitBG3DManager();
+	InitObjectManager();
 	InitWindowStuff();
 	InitTerrainManager();
 	InitSkeletonManager();
@@ -996,14 +997,22 @@ unsigned long	someLong;
 
 			/* INIT MORE MY STUFF */
 
-	InitObjectManager();
 
-	GetDateTime ((unsigned long *)(&someLong));		// init random seed
-	SetMyRandomSeed(someLong);
-	SDL_ShowCursor(0);
+	{
+			/* INIT RANDOM SEED */
+
+		unsigned long someLong;
+		GetDateTime(&someLong);
+		SetMyRandomSeed((uint32_t) someLong);
+	}
+
+	SDL_HideCursor();
 
 	Pomme_FlushPtrTracking(false);
 
+#if _DEBUG
+	gDebugMode = 1;
+#endif
 
 		/* SHOW LEGAL SCREEN */
 

@@ -2,11 +2,7 @@
 // player.h
 //
 
-#ifndef __PLAYER_H__
-#define __PLAYER_H__
-
-
-
+#pragma once
 
 #define	PLAYER_DEFAULT_SCALE	1.2f
 #define	PLAYER_GIANT_SCALE		(PLAYER_DEFAULT_SCALE * 3.0f)
@@ -41,7 +37,8 @@ enum
 	ROCKET_MODE_LEAVE,
 	ROCKET_MODE_WAITING,
 	ROCKET_MODE_WAITING2,
-	ROCKET_MODE_ENTER
+	ROCKET_MODE_PREENTER,
+	ROCKET_MODE_ENTER,
 };
 
 
@@ -215,7 +212,14 @@ typedef struct
 				
 	float				superNovaCharge;
 	ObjNode				*superNovaStatic;
-				
+
+	Boolean				didCheat;
+
+
+			/* SPECIAL */
+
+	ObjNode*			fellThroughTrapDoor;
+	Boolean				isTeleporting;
 }PlayerInfoType;
 
 
@@ -233,9 +237,9 @@ void InitPlayerInfo_Game(void);
 void InitPlayersAtStartOfLevel(void);
 Boolean PlayerLoseHealth(float damage, Byte deathType);
 void PlayerEntersWater(ObjNode *theNode, int patchNum);
-void PlayerGotHit(ObjNode *byWhat, float altDamage);
+Boolean PlayerGotHit(ObjNode *byWhat, float altDamage);
 Boolean AddExitRocket(TerrainItemEntryType *itemPtr, long  x, long z);
-void DrawRocketFlame(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+void DrawRocketFlame(ObjNode *theNode);
 void MakeRocketExhaust(ObjNode *rocket);
 void KillPlayer(Byte deathType);
 void ResetPlayerAtBestCheckpoint(void);
@@ -261,7 +265,7 @@ void CheckWeaponChangeControls(ObjNode *theNode);
 void CheckPOWControls(ObjNode *theNode);
 Boolean DischargeSuperNova(void);
 short CreateSuperNovaStatic(ObjNode *novaObj, float x, float y, float z, int maxDischarges, float maxDist);
-void DrawSuperNovaDischarge(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+void DrawSuperNovaDischarge(ObjNode *theNode);
 void IncWeaponQuantity(short weaponType, short amount);
 void DecWeaponQuantity(short weaponType);
 short FindWeaponInventoryIndex(short weaponType);
@@ -278,8 +282,3 @@ void BlowUpSaucer(ObjNode *saucer);
 void StopPlayerSaucerBeam(ObjNode *saucer);
 void ImpactPlayerSaucer(float x, float z, float damage, ObjNode *saucer, short particleLimit);
 
-
-		
-
-
-#endif

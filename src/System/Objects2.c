@@ -15,7 +15,7 @@
 /*    PROTOTYPES            */
 /****************************/
 
-static void DrawShadow(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawShadow(ObjNode *theNode);
 
 
 /****************************/
@@ -290,16 +290,9 @@ float			minX,minZ,maxX,maxZ;
 
 void KeepOldCollisionBoxes(ObjNode *theNode)
 {
-long	i;
-
-	for (i = 0; i < theNode->NumCollisionBoxes; i++)
+	for (int i = 0; i < theNode->NumCollisionBoxes; i++)
 	{
-		theNode->CollisionBoxes[i].oldTop = theNode->CollisionBoxes[i].top;
-		theNode->CollisionBoxes[i].oldBottom = theNode->CollisionBoxes[i].bottom;
-		theNode->CollisionBoxes[i].oldLeft = theNode->CollisionBoxes[i].left;
-		theNode->CollisionBoxes[i].oldRight = theNode->CollisionBoxes[i].right;
-		theNode->CollisionBoxes[i].oldFront = theNode->CollisionBoxes[i].front;
-		theNode->CollisionBoxes[i].oldBack = theNode->CollisionBoxes[i].back;
+		theNode->OldCollisionBoxes[i] = theNode->CollisionBoxes[i];
 	}
 
 
@@ -473,7 +466,7 @@ float	dist,scaleX,scaleZ;
 			{
 				if (thisNodePtr->NumCollisionBoxes)
 				{
-					if (y < thisNodePtr->CollisionBoxes[0].top)		// if bottom of owner is below top of blocker, then skip
+					if (y < thisNodePtr->CollisionBoxes[0].top-1)		// if bottom of owner is below top of blocker, then skip
 						goto next;
 					if (x < thisNodePtr->CollisionBoxes[0].left)
 						goto next;
@@ -530,7 +523,7 @@ float	dist,scaleX,scaleZ;
 
 /******************* DRAW SHADOW ******************/
 
-static void DrawShadow(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawShadow(ObjNode *theNode)
 {
 int	shadowType = theNode->Kind;
 
@@ -539,24 +532,24 @@ int	shadowType = theNode->Kind;
 
 			/* SUBMIT THE MATRIX */
 
-	glMultMatrixf((GLfloat *)&theNode->BaseTransformMatrix);
+	glMultMatrixf(theNode->BaseTransformMatrix.value);
 
 
 			/* SUBMIT SHADOW TEXTURE */
 
 	gGlobalTransparency = theNode->ColorFilter.a;
 
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_Shadow_Circular+shadowType].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_Shadow_Circular+shadowType].materialObject);
 
 
 			/* DRAW THE SHADOW */
 
 	glDisable(GL_CULL_FACE);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0,0);	glVertex3f(-20, 0, 20);
-	glTexCoord2f(1,0);	glVertex3f(20, 0, 20);
-	glTexCoord2f(1,1);	glVertex3f(20, 0, -20);
-	glTexCoord2f(0,1);	glVertex3f(-20, 0, -20);
+	glTexCoord2f(0,1);	glVertex3f(-20, 0, 20);
+	glTexCoord2f(1,1);	glVertex3f(20, 0, 20);
+	glTexCoord2f(1,0);	glVertex3f(20, 0, -20);
+	glTexCoord2f(0,0);	glVertex3f(-20, 0, -20);
 	glEnd();
 	glEnable(GL_CULL_FACE);
 
@@ -587,8 +580,9 @@ float		minX,minY,minZ,maxX,maxY,maxZ;
 OGLMatrix4x4		m;
 OGLBoundingBox		*bBox;
 float		minusHW;				// -hW
-u_long		clipFlags;				// Clip in/out tests for point
-u_long		clipCodeAND,clipCodeOR;	// Clip test for entire object
+uint32_t	clipFlags;				// Clip in/out tests for point
+uint32_t	clipCodeAND;			// Clip test for entire object
+//uint32_t	clipCodeOR;				// Clip test for entire object
 float		lX, lY, lZ;				// Local space co-ordinates
 float		hX, hY, hZ, hW;			// Homogeneous co-ordinates
 
@@ -655,7 +649,7 @@ try_cull:
 	maxZ = bBox->max.z;
 
 	clipCodeAND = ~0u;
-	clipCodeOR 	= 0;
+//	clipCodeOR 	= 0;
 
 	for (i = 0; i < 8; i++)
 	{
@@ -707,7 +701,7 @@ try_cull:
 			clipFlags |= 0x1;
 
 		clipCodeAND &= clipFlags;
-		clipCodeOR |= clipFlags;
+//		clipCodeOR |= clipFlags;
 	}
 
 	/****************************/

@@ -21,7 +21,7 @@ static void MoveOrbDebris(ObjNode *theNode);
 
 static ObjNode *MakeAtom(float x, float y, float z, int atomType);
 static void MoveAtom(ObjNode *theNode);
-static void DrawAtom(ObjNode *theNode, const OGLSetupOutputType *setupInfo);
+static void DrawAtom(ObjNode *theNode);
 static void PlayerGotAtom(ObjNode *theNode);
 static void CheckIfRegenerateAtom(ObjNode *theNode);
 static void CheckIfRegeneratePOW(ObjNode *theNode);
@@ -45,11 +45,13 @@ enum
 	ATOM_TYPE_FUEL
 };
 
+#define ATOM_INCREMENT_HEALTH	0.1f
+#define ATOM_INCREMENT_JUMPJET	0.1f
+#define ATOM_INCREMENT_FUEL		0.05f
+
 #define	POD_SCALE	1.8f
 
 #define	BALLOON_SCALE	1.2f
-
-#define	SHIELD_FIELD_SCALE	1.6
 
 
 /*********************/
@@ -63,6 +65,7 @@ enum
 #define	BalloonWobble		SpecialF[1]
 
 #define	AtomDelayToActive	SpecialF[4]
+#define	AtomRegenThreshold	SpecialF[5]
 #define	AtomOnWater			Flag[0]
 
 
@@ -84,6 +87,7 @@ int		i;
 		atom->Delta.y = 500.0f + RandomFloat() * 500.0f;
 		atom->Delta.z = RandomFloat2() * 400.0f;
 		atom->POWRegenerate = regenerate;
+		atom->AtomRegenThreshold = ((float) i) * ATOM_INCREMENT_HEALTH;
 	}
 
 			/* DO GREEN */
@@ -96,6 +100,7 @@ int		i;
 		atom->Delta.y = 500.0f + RandomFloat() * 500.0f;
 		atom->Delta.z = RandomFloat2() * 400.0f;
 		atom->POWRegenerate = regenerate;
+		atom->AtomRegenThreshold = ((float) i) * ATOM_INCREMENT_JUMPJET;
 	}
 
 			/* DO BLUE */
@@ -333,16 +338,18 @@ static void CheckIfRegenerateAtom(ObjNode *theNode)
 {
 Boolean	reGen = false;			// assume no re-gen
 
+	float regenThreshold = theNode->AtomRegenThreshold;
+
 	switch(theNode->Type)
 	{
 		case	ATOM_TYPE_HEALTH:
-				if (gPlayerInfo.health <= 0.0f)												// if player is out of health
+				if (gPlayerInfo.health <= regenThreshold)									// if player is out of health
 					if (!OGL_IsBBoxVisible(&theNode->BBox, &theNode->BaseTransformMatrix))	// and player won't see it pop back to life...
 						reGen = true;														// ... then regenerate it
 				break;
 
 		case	ATOM_TYPE_JUMPJET:
-				if (gPlayerInfo.jumpJet <= 0.0f)											// if player is out of jumpjet
+				if (gPlayerInfo.jumpJet <= regenThreshold)									// if player is out of jumpjet
 					if (!OGL_IsBBoxVisible(&theNode->BBox, &theNode->BaseTransformMatrix))	// and player won't see it pop back to life...
 						reGen = true;														// ... then regenerate it
 				break;
@@ -368,7 +375,7 @@ Boolean	reGen = false;			// assume no re-gen
 
 /******************** DRAW ATOM ****************************/
 
-static void DrawAtom(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+static void DrawAtom(ObjNode *theNode)
 {
 int			atomType = theNode->Type;
 static const OGLVector3D 	up = {0,1,0};
@@ -391,7 +398,7 @@ static OGLPoint3D		nucleusCoords[4] =
 
 			/* SUBMIT TEXTURE */
 
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_AtomicNucleus_Red+atomType].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_AtomicNucleus_Red+atomType].materialObject);
 
 
 			/* CALC COORDS OF VERTICES */
@@ -402,18 +409,18 @@ static OGLPoint3D		nucleusCoords[4] =
 	nucleusCoords[2].x = s;		nucleusCoords[2].y = -s;
 	nucleusCoords[3].x = -s;	nucleusCoords[3].y = -s;
 
-	SetLookAtMatrixAndTranslate(&m, &up, &theNode->Coord, &setupInfo->cameraPlacement.cameraLocation);		// aim at camera & translate
+	SetLookAtMatrixAndTranslate(&m, &up, &theNode->Coord, &gGameViewInfoPtr->cameraPlacement.cameraLocation);		// aim at camera & translate
 	OGLPoint3D_TransformArray(&nucleusCoords[0], &m, tc, 4);
 
 			/* DRAW IT */
 
 
-	SetColor4f(1,1,.7f + sin(theNode->SpecialF[1]) * .3f, 1);
+	SetColor4f(1,1,.7f + sinf(theNode->SpecialF[1]) * .3f, 1);
 	glBegin(GL_QUADS);
-	glTexCoord2f(0,0);	glVertex3fv((GLfloat *)&tc[0]);
-	glTexCoord2f(1,0);	glVertex3fv((GLfloat *)&tc[1]);
-	glTexCoord2f(1,1);	glVertex3fv((GLfloat *)&tc[2]);
-	glTexCoord2f(0,1);	glVertex3fv((GLfloat *)&tc[3]);
+	glTexCoord2f(0,0);	glVertex3fv(&tc[0].x);
+	glTexCoord2f(1,0);	glVertex3fv(&tc[1].x);
+	glTexCoord2f(1,1);	glVertex3fv(&tc[2].x);
+	glTexCoord2f(0,1);	glVertex3fv(&tc[3].x);
 	glEnd();
 
 
@@ -433,7 +440,7 @@ static OGLPoint3D		nucleusCoords[4] =
 
 			/* DRAW IT */
 
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_AtomicRing_Red+atomType].materialObject, setupInfo);
+	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_GLOBAL][GLOBAL_SObjType_AtomicRing_Red+atomType].materialObject);
 	SetColor4f(1,1,1, .5);
 	glBegin(GL_QUADS);
 	glTexCoord2f(0,0);	glVertex3f(-60,0,-60);
@@ -489,23 +496,20 @@ float		x,y,z;
 	switch(theNode->Type)
 	{
 		case	ATOM_TYPE_HEALTH:
-				gPlayerInfo.health += .1f;
-				if (gPlayerInfo.health > 1.0f)
-					gPlayerInfo.health = 1.0f;
+				gPlayerInfo.health += ATOM_INCREMENT_HEALTH;
+				gPlayerInfo.health = MinFloat(1, gPlayerInfo.health);
 				DisableHelpType(HELP_MESSAGE_HEALTHATOM);
 				break;
 
 		case	ATOM_TYPE_JUMPJET:
-				gPlayerInfo.jumpJet += .1f;
-				if (gPlayerInfo.jumpJet > 1.0f)
-					gPlayerInfo.jumpJet = 1.0f;
+				gPlayerInfo.jumpJet += ATOM_INCREMENT_JUMPJET;
+				gPlayerInfo.jumpJet = MinFloat(1, gPlayerInfo.jumpJet);
 				DisableHelpType(HELP_MESSAGE_JUMPJETATOM);
 				break;
 
 		case	ATOM_TYPE_FUEL:
-				gPlayerInfo.fuel += .05f;
-				if (gPlayerInfo.fuel > 1.0f)
-					gPlayerInfo.fuel = 1.0f;
+				gPlayerInfo.fuel += ATOM_INCREMENT_FUEL;
+				gPlayerInfo.fuel = MinFloat(1, gPlayerInfo.fuel);
 				DisableHelpType(HELP_MESSAGE_FUELATOM);
 				break;
 

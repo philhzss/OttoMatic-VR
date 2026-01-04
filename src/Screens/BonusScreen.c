@@ -17,9 +17,9 @@
 
 static void SetupBonusScreen(void);
 static void FreeBonusScreen(void);
-static void DrawBonusCallback(OGLSetupOutputType *info);
-static void DrawHumanBonus(OGLSetupOutputType *info);
-static void DrawInventoryBonus(OGLSetupOutputType *info);
+static void DrawBonusCallback(void);
+static void DrawHumanBonus(void);
+static void DrawInventoryBonus(void);
 static void MoveBonusHuman(ObjNode *theNode);
 static void MoveBonusHuman_WalkOff(ObjNode *theNode);
 static void CreateBonusHumans(void);
@@ -33,7 +33,7 @@ static void DoInventoryBonusTally(void);
 static void DoBonusShipDissolve(void);
 static void MoveBonusInventoryIcon(ObjNode *theNode);
 static void DoTotalBonusTally(void);
-static void DrawBonusToScore(OGLSetupOutputType *info);
+static void DrawBonusToScore(void);
 static int DoSaveGamePrompt(void);
 static void DoTractorBeam(void);
 static void InitBonusTractorBeam(void);
@@ -54,6 +54,21 @@ static void MoveGlowDisc(ObjNode *theNode);
 #define STARS_LOW_Y		(-1000.0f)
 #define STARS_HIGH_Y	(2000.0f)
 
+static const RectF gInteriorStarZones[] =
+{
+	{.top=150, .bottom=-50, .left=-650, .right=-480},
+	{.top=800, .bottom=600, .left=-650, .right=-480},
+
+	{.top=150, .bottom=-50, .left=-200, .right=-20},
+	{.top=700, .bottom=500, .left=-200, .right=-20},
+
+	{.top=150, .bottom=-50, .left=220, .right=400},
+	{.top=700, .bottom=500, .left=220, .right=400},
+
+	{.top=250, .bottom=-50, .left=-1250, .right=-950},
+	{.top=250, .bottom=-50, .left=700, .right=1550},
+};
+
 enum
 {
 	BONUS_ObjType_Star,
@@ -71,23 +86,6 @@ enum
 	BONUS_ObjType_Growth,
 
 	BONUS_ObjType_TractorBeam
-};
-
-
-
-enum
-{
-	BONUS_SObjType_BonusText,
-	BONUS_SObjType_BonusGlow,
-
-	BONUS_SObjType_InventoryText,
-	BONUS_SObjType_InventoryGlow,
-
-	BONUS_SObjType_TotalBonusText,
-	BONUS_SObjType_TotalBonusGlow,
-
-	BONUS_SObjType_ScoreText,
-	BONUS_SObjType_ScoreGlow
 };
 
 
@@ -153,8 +151,10 @@ static const float gWeaponIconYOff[] =
 };
 
 
-float	gBonusTimer;
+static float	gBonusTimer;
+static float	gBonusFastForward = 1.0f;
 
+#define	HumanNumberInSequence	Special[0]
 #define	InvisibleDelay	SpecialF[0]
 #define	RingOffset		SpecialF[0]
 
@@ -164,9 +164,12 @@ static ObjNode *gInteriorObj;
 
 static	Byte	gShowScoreMode;
 
-static	u_long	gBonusTotal, gBonus, gInventoryQuantity;
+static	int			gNumHumansShownSoFar = 0;
+static	uint32_t	gBonusTotal;
+static	uint32_t	gBonus;
+static	uint32_t	gInventoryQuantity;
 
-static	float	gScoreAlpha,gInventoryQuantityAlpha,gInventoryCountTimer;
+static	float	gScoreAlpha,gInventoryQuantityAlpha;
 
 static	short	gPointBeepChannel;
 
@@ -177,10 +180,9 @@ static	float	gBonusBeamTimer;
 
 void DoBonusScreen(void)
 {
-	GammaFadeOut();
-
 			/* SETUP */
 
+	gBonusFastForward = 1;
 	SetupBonusScreen();
 	MakeFadeEvent(true, 1.0);
 
@@ -198,8 +200,11 @@ void DoBonusScreen(void)
 
 			/* DO INVENTORY BONUS */
 
-	DoInventoryBonusTally();
-	gBonusTotal += gBonus;
+	if (!gPlayerInfo.didCheat)
+	{
+		DoInventoryBonusTally();
+		gBonusTotal += gBonus;
+	}
 
 			/* ADD BONUS TO TOTAL */
 
@@ -217,18 +222,26 @@ void DoBonusScreen(void)
 		}
 	}
 
+			/* FADE OUT */
+
+	OGL_FadeOutScene(DrawBonusCallback, NULL);
 
 		/* DO TRACTOR BEAM FOR JUNGLE-BOSS */
 
 	if (gLevelNum == LEVEL_NUM_JUNGLE)
+	{
+		gShowScoreMode = SHOW_SCORE_MODE_OFF;		// reset stars
+
 		DoTractorBeam();
+		// Tractor beam does its own async fadeout
+	}
 
 
 
 			/* CLEANUP */
 
-	GammaFadeOut();
 	FreeBonusScreen();
+	gShowScoreMode = SHOW_SCORE_MODE_OFF;
 }
 
 
@@ -240,8 +253,15 @@ static void SetupBonusScreen(void)
 FSSpec				spec;
 OGLSetupInputType	viewDef;
 ObjNode				*newObj;
-int					i;
 static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
+
+static const OGLColorRGBA	starColors[] =
+{
+	{1.0f, 1.0f, 1.0f, 1.0f},			// white
+	{1.0f, 0.6f, 0.6f, 1.0f},			// red
+	{0.6f, 0.6f, 1.0f, 1.0f},			// blue
+	{0.7f, 0.7f, 1.0f, 1.0f},			// grey
+};
 
 
 	gShowScoreMode = SHOW_SCORE_MODE_OFF;
@@ -285,9 +305,9 @@ static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
 			/* SET ANAGLYPH INFO */
 			/*********************/
 
-	if (gGamePrefs.anaglyph)
+	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-		if (!gGamePrefs.anaglyphColor)
+		if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		{
 			viewDef.lights.ambientColor.r 		+= .1f;					// make a little brighter
 			viewDef.lights.ambientColor.g 		+= .1f;
@@ -299,40 +319,36 @@ static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
 	}
 
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
 
 				/************/
 				/* LOAD ART */
 				/************/
 
-	InitSparkles();
+	InitEffects();
 
 			/* LOAD MODELS */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:bonus.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_BONUS, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_BONUS);
 
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_FARMER, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_BEEWOMAN, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SCIENTIST, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SKIRTLADY, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_FARMER);
+	LoadASkeleton(SKELETON_TYPE_BEEWOMAN);
+	LoadASkeleton(SKELETON_TYPE_SCIENTIST);
+	LoadASkeleton(SKELETON_TYPE_SKIRTLADY);
 
 
 			/* LOAD SPRITES */
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:particle.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_PARTICLES, gGameViewInfoPtr);
+//	LoadSpriteGroup(SPRITE_GROUP_PARTICLES, PARTICLE_SObjType_COUNT, "particle");
+	LoadSpriteGroup(SPRITE_GROUP_BONUS, BONUS_SObjType_COUNT, "bonus");
+	LoadSpriteGroup(SPRITE_GROUP_SPHEREMAPS, SPHEREMAP_SObjType_COUNT, "spheremap");
+
 	BlendAllSpritesInGroup(SPRITE_GROUP_PARTICLES);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:bonus.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_BONUS, gGameViewInfoPtr);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:spheremap.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_SPHEREMAPS, gGameViewInfoPtr);
 
 
 				/* LOAD AUDIO */
@@ -346,16 +362,8 @@ static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
 				/* MAKE STARS */
 				/**************/
 
-		for (i = 0; i < 60*5; i++)
+		for (int i = 0; i < 60*5; i++)
 		{
-			static const OGLColorRGBA colors[] =
-			{
-				{1.0f, 1.0f, 1.0f, 1.0f},			// white
-				{1.0f, 0.6f, 0.6f, 1.0f},			// red
-				{0.6f, 0.6f, 1.0f, 1.0f},			// blue
-				{0.7f, 0.7f, 1.0f, 1.0f},			// grey
-			};
-
 			gNewObjectDefinition.group 		= MODEL_GROUP_BONUS;
 			gNewObjectDefinition.type 		= BONUS_ObjType_Star;
 			gNewObjectDefinition.coord.x 	= RandomFloatRange(-1600.0f, 2000.0f);
@@ -369,9 +377,13 @@ static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
 			gNewObjectDefinition.scale 	    = .1f + RandomFloat() * .2f;
 			newObj = MakeNewDisplayGroupObject(&gNewObjectDefinition);
 
-			newObj->SpecialF[0] = RandomFloat() * PI;
+			newObj->Timer = RandomFloat() * PI;
+			newObj->Mode = 0;
+			newObj->SpecialF[0] = STARS_LOW_Y;
+			newObj->SpecialF[1] = STARS_HIGH_Y;
+			newObj->SpecialF[2] = 1;
 
-			newObj->ColorFilter = colors[MyRandomLong()&0x3];
+			newObj->ColorFilter = starColors[MyRandomLong()&0x3];
 
 			newObj->Delta.y = -(5.0f + RandomFloat() * 15.0f);
 		}
@@ -428,6 +440,43 @@ static const OGLVector3D	fillDirection1 = { 1, 0, -.3 };
 
 	gInteriorObj->ChainNode->ColorFilter.a = gInteriorObj->ColorFilter.a * .99f;
 
+		/* MAKE DENSER STARS VIEWABLE FROM INSIDE WINDOWS */
+
+	int numInteriorStarZones = (int) (sizeof(gInteriorStarZones) / sizeof(gInteriorStarZones[0]));
+
+	for (int starRect = 0; starRect < numInteriorStarZones; starRect++)
+	{
+		RectF r = gInteriorStarZones[starRect];
+		float width = r.right - r.left;
+		float height = r.top - r.bottom;
+		float area = width * height;
+
+		for (int i = 0; i <= (int)(area/4000); i++)
+		{
+			NewObjectDefinitionType def =
+			{
+				.group		= MODEL_GROUP_BONUS,
+				.type		= BONUS_ObjType_Star,
+				.coord		= {RandomFloatRange(r.left, r.right), RandomFloatRange(r.bottom, r.top), -500},
+				.flags		= STATUS_BIT_KEEPBACKFACES | STATUS_BIT_GLOW | STATUS_BIT_NOTEXTUREWRAP |
+								STATUS_BIT_NOZWRITES | STATUS_BIT_DONTCULL | STATUS_BIT_NOLIGHTING,
+				.slot		= 50,
+				.moveCall	= MoveStar,
+				.rot		= 0,
+				.scale		= .15f + RandomFloat() * .2f,
+			};
+			newObj = MakeNewDisplayGroupObject(&def);
+
+			newObj->Timer = RandomFloat() * PI;
+			newObj->Mode = 1;
+			newObj->SpecialF[0] = r.bottom;
+			newObj->SpecialF[1] = r.top;
+			newObj->SpecialF[2] = 0;
+			newObj->ColorFilter = starColors[MyRandomLong()&0x3];
+			newObj->Delta.y = -(5.0f + RandomFloat() * 15.0f);
+		}
+	}
+
 	PlaySong(SONG_BONUS, 0);
 
 }
@@ -441,12 +490,27 @@ static void FreeBonusScreen(void)
 	MyFlushEvents();
 	DeleteAllObjects();
 	FreeAllSkeletonFiles(-1);
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeAllBG3DContainers();
 	DisposeSoundBank(SOUNDBANK_BONUS);
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);
+	OGL_DisposeWindowSetup();
 	Pomme_FlushPtrTracking(true);
 }
+
+
+
+/**************** CHECK FAST FORWARD KEY ********************/
+
+static void CheckFastForward(void)
+{
+	if (GetNeedState(kNeed_Jump))
+		gBonusFastForward = 3.0f;
+	else
+		gBonusFastForward = 1.0f;
+}
+
+
 
 #pragma mark -
 
@@ -465,9 +529,9 @@ static void DoBonusShipDissolve(void)
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawBonusCallback);
+		OGL_DrawScene(DrawBonusCallback);
 
-		OGL_MoveCameraFromTo(gGameViewInfoPtr, fps * 5.0f, 0,0, 0,fps * -80.0f,0);
+		OGL_MoveCameraFromTo(fps * 5.0f, 0,0, 0,fps * -80.0f,0);
 	}
 }
 
@@ -489,19 +553,51 @@ static void MoveTallyText(ObjNode* theNode)
 		case 1:
 			targetTally = gScore;
 			break;
-		default:
+		case 2:
 			targetTally = gInventoryQuantity;
 			theNode->ColorFilter.a *= gInventoryQuantityAlpha;
 			break;
+		case 3:
+			targetTally = gNumHumansInLevel - gNumHumansShownSoFar;
+			if (gNumHumansShownSoFar < gNumHumansRescuedTotal)
+				theNode->ColorFilter.a = 0;
+			else
+			{
+				theNode->Timer += gFramesPerSecondFrac * 2.0f;
+				theNode->Timer = ClampFloat(theNode->Timer, 0, 1);
+				theNode->ColorFilter.a *= theNode->Timer;
+			}
+			break;
+		default:
+			targetTally = -1;
 	}
 
-	if (targetTally != theNode->Special[1])
+	if (targetTally >= 0
+		&& targetTally != theNode->Special[1])
 	{
 		theNode->Special[1] = targetTally;
 
-		Str255 s;
-		NumToStringC(targetTally, s);
-		TextMesh_Update(s, kTextMeshAlignCenter, theNode);
+		char text[128];
+
+		switch (theNode->Special[0])
+		{
+			case 0:
+			case 1:
+			case 2:
+				SDL_snprintf(text, sizeof(text), "%d", targetTally);
+				break;
+
+			case 3:
+				if (targetTally <= 0)
+					SDL_snprintf(text, sizeof(text), "%s", Localize(STR_ALL_HUMANS_RESCUED));
+				else if (targetTally == 1)
+					SDL_snprintf(text, sizeof(text), "%s", Localize(STR_1_HUMAN_MISSING));
+				else
+					SDL_snprintf(text, sizeof(text), Localize(STR_N_HUMANS_MISSING), targetTally);
+				break;
+		}
+
+		TextMesh_Update(text, kTextMeshAlignCenter, theNode);
 	}
 }
 
@@ -538,23 +634,33 @@ static void DoHumansBonusTally(void)
 	gScoreAlpha = 0;
 	gShowScoreMode = SHOW_SCORE_MODE_HUMANBONUS;
 
+	gNumHumansShownSoFar = 0;
+
 	CreateBonusHumans();
 	ObjNode* tallyText = CreateTallyText(0, 150);
+
+	ObjNode* tallyText2 = CreateTallyText(3, 180);
+	tallyText2->Scale.x *= 0.66f;
+	tallyText2->Scale.y *= 0.66f;
+	tallyText2->Scale.z *= 0.66f;
+	UpdateObjectTransforms(tallyText2);
 
 	CalcFramesPerSecond();
 	UpdateInput();
 
 	while(true)
 	{
-		float	fps = gFramesPerSecondFrac;
+		float	fps = gFramesPerSecondFrac * gBonusFastForward;
 
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawBonusCallback);
+		OGL_DrawScene(DrawBonusCallback);
 
 		if (gGameViewInfoPtr->cameraPlacement.cameraLocation.x < 0.0f)				// keep @ 0 for icon alignment
-			OGL_MoveCameraFrom(gGameViewInfoPtr, fps * 5.0f, 0, 0);	// slowly move camera
+			OGL_MoveCameraFrom(fps * 5.0f, 0, 0);	// slowly move camera
+
+		CheckFastForward();
 
 		gBonusTimer -= fps;
 		if (gBonusTimer < 0.0f)
@@ -577,6 +683,7 @@ static void DoHumansBonusTally(void)
 	}
 
 	DeleteObject(tallyText);
+	DeleteObject(tallyText2);
 }
 
 
@@ -600,12 +707,14 @@ static void DoInventoryBonusTally(void)
 
 	while(true)
 	{
-		float	fps = gFramesPerSecondFrac;
+		float	fps = gFramesPerSecondFrac * gBonusFastForward;
 
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawBonusCallback);
+		OGL_DrawScene(DrawBonusCallback);
+
+		CheckFastForward();
 
 		gBonusTimer -= fps;
 		if (gBonusTimer < 0.0f)
@@ -656,12 +765,14 @@ float	tick;
 
 	while(true)
 	{
-		float	fps = gFramesPerSecondFrac;
+		float	fps = gFramesPerSecondFrac * gBonusFastForward;
 
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawBonusCallback);
+		OGL_DrawScene(DrawBonusCallback);
+
+		CheckFastForward();
 
 
 
@@ -765,8 +876,6 @@ static const OGLColorRGBA noHiliteColor = {.3,.5,.2,1};
 
 static void DoTractorBeam(void)
 {
-	GammaFadeOut();
-
 	InitBonusTractorBeam();
 
 
@@ -781,7 +890,7 @@ static void DoTractorBeam(void)
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawObjects);
+		OGL_DrawScene(DrawObjects);
 	}
 
 }
@@ -836,7 +945,7 @@ ObjNode	*newObj;
 
 			/* SET CAMERA */
 
-	OGL_UpdateCameraFromTo(gGameViewInfoPtr, &from, &to);
+	OGL_UpdateCameraFromTo(&from, &to);
 }
 
 /***************** MOVE BONUS ROCKET: TRACTOR BEAM ********************/
@@ -845,7 +954,7 @@ static void MoveBonusRocket_TractorBeam(ObjNode *rocket)
 {
 float	fps = gFramesPerSecondFrac;
 ObjNode	*flame;
-u_long	vol;
+uint32_t	vol;
 
 	GetObjectInfo(rocket);
 
@@ -878,7 +987,7 @@ u_long	vol;
 
 			/* UPDATE AUDIO */
 
-	vol = gGammaFadePercent * FULL_CHANNEL_VOLUME / 2;
+	vol = gGammaFadeFrac * FULL_CHANNEL_VOLUME / 2;
 	if (rocket->EffectChannel == -1)
 		rocket->EffectChannel = PlayEffect_Parms(EFFECT_BONUSROCKET, vol, vol, NORMAL_CHANNEL_RATE);
 	else
@@ -930,29 +1039,28 @@ float	oldTime = gBonusBeamTimer;
 
 /***************** DRAW BONUS CALLBACK *******************/
 
-static void DrawBonusCallback(OGLSetupOutputType *info)
+static void DrawBonusCallback(void)
 {
-	DrawObjects(info);
-	DrawSparkles(info);											// draw light sparkles
+	DrawObjects();
 
 	switch(gShowScoreMode)
 	{
 				/* DRAW HUMAN BONUS */
 
 		case	SHOW_SCORE_MODE_HUMANBONUS:
-				DrawHumanBonus(info);
+				DrawHumanBonus();
 				break;
 
 				/* DRAW INVENTORY BONUS */
 
 		case	SHOW_SCORE_MODE_INVENTORY:
-				DrawInventoryBonus(info);
+				DrawInventoryBonus();
 				break;
 
 				/* DRAW TOTALS */
 
 		case	SHOW_SCORE_MODE_ADDTOSCORE:
-				DrawBonusToScore(info);
+				DrawBonusToScore();
 				break;
 
 	}
@@ -961,7 +1069,7 @@ static void DrawBonusCallback(OGLSetupOutputType *info)
 
 /************************ DRAW HUMAN BONUS *************************/
 
-static void DrawHumanBonus(OGLSetupOutputType *info)
+static void DrawHumanBonus(void)
 {
 
 		/************/
@@ -986,13 +1094,13 @@ static void DrawHumanBonus(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_BonusGlow, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_BonusGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_BonusText, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_BonusText);
 
 
 
@@ -1010,7 +1118,7 @@ static void DrawHumanBonus(OGLSetupOutputType *info)
 
 /************************ DRAW INVENTORY BONUS *************************/
 
-static void DrawInventoryBonus(OGLSetupOutputType *info)
+static void DrawInventoryBonus(void)
 {
 		/************/
 		/* SET TAGS */
@@ -1032,13 +1140,13 @@ static void DrawInventoryBonus(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_InventoryGlow, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_InventoryGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_InventoryText, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_InventoryText);
 
 
 			/***********/
@@ -1054,7 +1162,7 @@ static void DrawInventoryBonus(OGLSetupOutputType *info)
 
 /************************ DRAW BONUS TO SCORE *************************/
 
-static void DrawBonusToScore(OGLSetupOutputType *info)
+static void DrawBonusToScore(void)
 {
 		/************/
 		/* SET TAGS */
@@ -1076,13 +1184,13 @@ static void DrawBonusToScore(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_TotalBonusGlow, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_TotalBonusGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gScoreAlpha;
-	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_TotalBonusText, info);
+	DrawInfobarSprite2(-150, 95, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_TotalBonusText);
 
 
 
@@ -1094,13 +1202,13 @@ static void DrawBonusToScore(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gScoreAlpha;
-	DrawInfobarSprite2(-150, -35, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_ScoreGlow, info);
+	DrawInfobarSprite2(-150, -35, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_ScoreGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gScoreAlpha;
-	DrawInfobarSprite2(-150, -35, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_ScoreText, info);
+	DrawInfobarSprite2(-150, -35, 300, SPRITE_GROUP_BONUS, BONUS_SObjType_ScoreText);
 
 
 
@@ -1177,7 +1285,8 @@ ObjNode	*newObj;
 
 static void MoveBonusInventoryIcon(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+static float gInventoryCountTimer = 0;
+float	fps = gFramesPerSecondFrac * gBonusFastForward;
 
 			/* SEE IF SHOW NOW */
 
@@ -1215,6 +1324,7 @@ float	fps = gFramesPerSecondFrac;
 			theNode->ColorFilter.a -= fps * 2.0;				// fade out and delete when gone
 			if (theNode->ColorFilter.a <= 0.0f)
 			{
+				gInventoryQuantityAlpha = 0;
 				DeleteObject(theNode);
 				return;
 			}
@@ -1223,7 +1333,7 @@ float	fps = gFramesPerSecondFrac;
 
 				/* SPIN THE ICON */
 
-		theNode->Rot.y +=  fps * PI2;
+		theNode->Rot.y +=  fps * PI2 / gBonusFastForward;
 		UpdateObjectTransforms(theNode);
 
 
@@ -1238,7 +1348,7 @@ float	fps = gFramesPerSecondFrac;
 			gInventoryCountTimer -= fps;							// check timer
 			if (gInventoryCountTimer <= 0.0f)
 			{
-				gInventoryCountTimer = INVENTORY_COUNT_DELAY;		// reset timer
+				gInventoryCountTimer += INVENTORY_COUNT_DELAY;		// reset timer
 				theNode->Quantity--;								// dec quanitity
 				gBonus += POINTS_INVENTORY;
 
@@ -1277,6 +1387,11 @@ const short	humanSkeletons[NUM_HUMAN_TYPES] =
 
 	gBonusTimer = gNumHumansRescuedTotal * 1.4f + 3.0f;
 
+	if (gNumHumansRescuedTotal == gNumHumansInLevel)
+		gBonusTimer += 2;
+	else if (gNumHumansRescuedTotal != 0)
+		gBonusTimer += 1;
+
 	d = 1.0;														// MUST start with a non-zero delay or first one will be skipped
 	j = 0;
 
@@ -1290,7 +1405,7 @@ const short	humanSkeletons[NUM_HUMAN_TYPES] =
 
 			gNewObjectDefinition.type 		= humanSkeletons[t];
 			gNewObjectDefinition.animNum	= 0;
-			if (j++ & 1)											// alternate left/right
+			if (j & 1)												// alternate left/right
 				gNewObjectDefinition.coord.x = 200.0f;
 			else
 				gNewObjectDefinition.coord.x = -200.0f;
@@ -1306,8 +1421,10 @@ const short	humanSkeletons[NUM_HUMAN_TYPES] =
 
 			newObj->ColorFilter.a = 0;
 			newObj->InvisibleDelay = d;
+			newObj->HumanNumberInSequence = j;
 
 			d += 1.25f;
+			j++;
 		}
 	}
 }
@@ -1317,7 +1434,7 @@ const short	humanSkeletons[NUM_HUMAN_TYPES] =
 
 static void MoveBonusHuman(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+float	fps = gFramesPerSecondFrac * gBonusFastForward;
 
 			/* SEE IF FADE IN NOW */
 
@@ -1329,6 +1446,7 @@ float	fps = gFramesPerSecondFrac;
 				/* START TELEPORT */
 
 			StartBonusTeleport(theNode);
+			gNumHumansShownSoFar++;
 			gBonus += POINTS_HUMAN;
 		}
 		else
@@ -1345,7 +1463,7 @@ float	fps = gFramesPerSecondFrac;
 
 static void MoveBonusHuman_WalkOff(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+float	fps = gFramesPerSecondFrac * MinFloat(1.5f, gBonusFastForward);
 
 			/* SEE IF WALKED OUT OF VIEW */
 
@@ -1454,7 +1572,7 @@ int		i;
 
 static void UpdateBonusTeleport(ObjNode *human)
 {
-float	fps = gFramesPerSecondFrac;
+float	fps = gFramesPerSecondFrac * gBonusFastForward;
 ObjNode *ring1,*ring2;
 int		i;
 
@@ -1521,13 +1639,31 @@ static void MoveStar(ObjNode *theNode)
 {
 float	fps = gFramesPerSecondFrac;
 
-	theNode->SpecialF[0] += fps * 2.0f;
+	if (theNode->Mode == 1
+		&& gShowScoreMode == SHOW_SCORE_MODE_OFF)
+	{
+		theNode->StatusBits |= STATUS_BIT_HIDDEN;
+		return;
+	}
+	else
+	{
+		theNode->StatusBits &= ~STATUS_BIT_HIDDEN;
+	}
 
-	theNode->ColorFilter.a = .3f + (sin(theNode->SpecialF[0]) + 1.0f) * .5f;
+	float lowY = theNode->SpecialF[0];
+	float highY = theNode->SpecialF[1];
+
+	theNode->Timer += fps * 2.0f;
+
+	theNode->SpecialF[2] += fps * 1.3f;
+	theNode->SpecialF[2] = MinFloat(theNode->SpecialF[2], 1);
+
+	theNode->ColorFilter.a = .3f + (sin(theNode->Timer) + 1.0f) * .5f;
+	theNode->ColorFilter.a *= theNode->SpecialF[2];
 
 	theNode->Coord.y += theNode->Delta.y * fps;
-	if (theNode->Coord.y < STARS_LOW_Y)
-		theNode->Coord.y = STARS_HIGH_Y;
+	if (theNode->Coord.y < lowY)
+		theNode->Coord.y = highY;
 
 	UpdateObjectTransforms(theNode);
 }
@@ -1538,9 +1674,8 @@ float	fps = gFramesPerSecondFrac;
 static void MoveBonusRocket(ObjNode *rocket)
 {
 float	fps = gFramesPerSecondFrac;
-float	a;
 ObjNode	*flame;
-u_long	vol;
+uint32_t	vol;
 
 	GetObjectInfo(rocket);
 
@@ -1551,7 +1686,7 @@ u_long	vol;
 
 	if (gCoord.z > 400.0f)													// fade when close
 	{
-		a = rocket->ColorFilter.a -= fps * 1.3f;							// fade out the ship
+		rocket->ColorFilter.a -= fps * 1.3f;								// fade out the ship
 		if (rocket->ColorFilter.a <= 0.0f)
 		{
 			gInteriorObj->ColorFilter.a = 1.0f;								// make sure interior is full alpha
@@ -1587,7 +1722,7 @@ u_long	vol;
 
 			/* UPDATE AUDIO */
 
-	vol = gGammaFadePercent * FULL_CHANNEL_VOLUME / 2;
+	vol = gGammaFadeFrac * FULL_CHANNEL_VOLUME / 2;
 	if (rocket->EffectChannel == -1)
 		rocket->EffectChannel = PlayEffect_Parms(EFFECT_BONUSROCKET, vol, vol, NORMAL_CHANNEL_RATE);
 	else

@@ -25,7 +25,7 @@ static ObjNode* LayOutCyclerValueText(int row);
 /*    CONSTANTS             */
 /****************************/
 
-#define MAX_MENU_ROWS	25
+#define MAX_MENU_ROWS	32
 #define MAX_MENU_COLS	5
 
 #define kSfxNavigate	EFFECT_WEAPONCLICK
@@ -80,7 +80,7 @@ static int					gMenuRow = 0;
 static int					gLastRowOnRootMenu = -1;
 static int					gKeyColumn = 0;
 static int					gPadColumn = 0;
-static float				gMenuColXs[MAX_MENU_COLS] = { 0, 170, 300, 430, 560 };
+static float				gMenuColXs[MAX_MENU_COLS] = { 0, 190, 300, 430, 560 };
 static float				gMenuRowYs[MAX_MENU_ROWS];
 static float				gMenuFadeAlpha = 0;
 static int					gMenuState = kMenuStateOff;
@@ -114,16 +114,24 @@ static OGLColorRGBA PulsateColor(float* time)
 
 static KeyBinding* GetBindingAtRow(int row)
 {
-	return &gGamePrefs.keys[gMenu[row].kb];
+	return &gGamePrefs.remappableKeys[gMenu[row].kb];
 }
 
 static const char* GetKeyBindingName(int row, int col)
 {
 	int16_t scancode = GetBindingAtRow(row)->key[col];
-	if (scancode == 0)
-		return Localize(STR_UNBOUND_PLACEHOLDER);
-	else
-		return SDL_GetScancodeName(scancode);
+
+	switch (scancode)
+	{
+		case 0:
+			return Localize(STR_UNBOUND_PLACEHOLDER);
+		case SDL_SCANCODE_COMMA:				// on a US layout, it makes more sense to show "<" for camera left
+			return "<";						
+		case SDL_SCANCODE_PERIOD:				// on a US layout, it makes more sense to show ">" for camera right
+			return ">";						
+		default:
+			return SDL_GetScancodeName(scancode);
+	}
 }
 
 static const char* GetPadBindingName(int row, int col)
@@ -138,45 +146,45 @@ static const char* GetPadBindingName(int row, int col)
 		case kInputTypeButton:
 			switch (kb->gamepad[col].id)
 			{
-				case SDL_CONTROLLER_BUTTON_INVALID:			return Localize(STR_UNBOUND_PLACEHOLDER);
-				case SDL_CONTROLLER_BUTTON_A:				return "A";
-				case SDL_CONTROLLER_BUTTON_B:				return "B";
-				case SDL_CONTROLLER_BUTTON_X:				return "X";
-				case SDL_CONTROLLER_BUTTON_Y:				return "Y";
-				case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:	return "LB";
-				case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:	return "RB";
-				case SDL_CONTROLLER_BUTTON_LEFTSTICK:		return "Push LS";
-				case SDL_CONTROLLER_BUTTON_RIGHTSTICK:		return "Push RS";
+				case SDL_GAMEPAD_BUTTON_INVALID:		return Localize(STR_UNBOUND_PLACEHOLDER);
+				case SDL_GAMEPAD_BUTTON_SOUTH:			return "A";
+				case SDL_GAMEPAD_BUTTON_EAST:			return "B";
+				case SDL_GAMEPAD_BUTTON_WEST:			return "X";
+				case SDL_GAMEPAD_BUTTON_NORTH:			return "Y";
+				case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER:	return "LB";
+				case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER:	return "RB";
+				case SDL_GAMEPAD_BUTTON_LEFT_STICK:		return "Push LS";
+				case SDL_GAMEPAD_BUTTON_RIGHT_STICK:	return "Push RS";
 				default:
-					return SDL_GameControllerGetStringForButton(kb->gamepad[col].id);
+					return SDL_GetGamepadStringForButton(kb->gamepad[col].id);
 			}
 			break;
 
 		case kInputTypeAxisPlus:
 			switch (kb->gamepad[col].id)
 			{
-				case SDL_CONTROLLER_AXIS_LEFTX:				return "LS right";
-				case SDL_CONTROLLER_AXIS_LEFTY:				return "LS down";
-				case SDL_CONTROLLER_AXIS_RIGHTX:			return "RS right";
-				case SDL_CONTROLLER_AXIS_RIGHTY:			return "RS down";
-				case SDL_CONTROLLER_AXIS_TRIGGERLEFT:		return "LT";
-				case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:		return "RT";
+				case SDL_GAMEPAD_AXIS_LEFTX:			return "LS right";
+				case SDL_GAMEPAD_AXIS_LEFTY:			return "LS down";
+				case SDL_GAMEPAD_AXIS_RIGHTX:			return "RS right";
+				case SDL_GAMEPAD_AXIS_RIGHTY:			return "RS down";
+				case SDL_GAMEPAD_AXIS_LEFT_TRIGGER:		return "LT";
+				case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER:	return "RT";
 				default:
-					return SDL_GameControllerGetStringForAxis(kb->gamepad[col].id);
+					return SDL_GetGamepadStringForAxis(kb->gamepad[col].id);
 			}
 			break;
 
 		case kInputTypeAxisMinus:
 			switch (kb->gamepad[col].id)
 			{
-				case SDL_CONTROLLER_AXIS_LEFTX:				return "LS left";
-				case SDL_CONTROLLER_AXIS_LEFTY:				return "LS up";
-				case SDL_CONTROLLER_AXIS_RIGHTX:			return "RS left";
-				case SDL_CONTROLLER_AXIS_RIGHTY:			return "RS up";
-				case SDL_CONTROLLER_AXIS_TRIGGERLEFT:		return "LT";
-				case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:		return "RT";
+				case SDL_GAMEPAD_AXIS_LEFTX:			return "LS left";
+				case SDL_GAMEPAD_AXIS_LEFTY:			return "LS up";
+				case SDL_GAMEPAD_AXIS_RIGHTX:			return "RS left";
+				case SDL_GAMEPAD_AXIS_RIGHTY:			return "RS up";
+				case SDL_GAMEPAD_AXIS_LEFT_TRIGGER:		return "LT";
+				case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER:	return "RT";
 				default:
-					return SDL_GameControllerGetStringForAxis(kb->gamepad[col].id);
+					return SDL_GetGamepadStringForAxis(kb->gamepad[col].id);
 			}
 			break;
 
@@ -200,7 +208,7 @@ static const char* GetMouseBindingName(int row)
 		case SDL_BUTTON_WHEELUP:		return Localize(STR_MOUSE_WHEEL_UP);
 		case SDL_BUTTON_WHEELDOWN:		return Localize(STR_MOUSE_WHEEL_DOWN);
 		default:
-			snprintf(buf, bufSize, "%s %d", Localize(STR_BUTTON), kb->mouseButton);
+			SDL_snprintf(buf, bufSize, "%s %d", Localize(STR_BUTTON), kb->mouseButton);
 			return buf;
 	}
 }
@@ -391,11 +399,18 @@ static void NavigateSettingEntriesMouseHover(void)
 	if (!gMouseMotionNow)
 		return;
 
-	int mxRaw, myRaw;
+	float mxRaw, myRaw;
 	SDL_GetMouseState(&mxRaw, &myRaw);
 
-	float mx = (mxRaw - gGameWindowWidth/2.0f) * g2DLogicalWidth / gGameWindowWidth;
-	float my = (myRaw - gGameWindowHeight/2.0f) * g2DLogicalHeight / gGameWindowHeight;
+	// On macOS, the mouse position is relative to the window's "point size" on Retina screens.
+	int windowW = 1;
+	int windowH = 1;
+	SDL_GetWindowSize(gSDLWindow, &windowW, &windowH);
+	float dpiScaleX = (float) gGameWindowWidth / (float) windowW;		// gGameWindowWidth is in actual pixels
+	float dpiScaleY = (float) gGameWindowHeight / (float) windowH;		// gGameWindowHeight is in actual pixels
+
+	float mx = (mxRaw*dpiScaleX - gGameWindowWidth*0.5f) * g2DLogicalWidth / gGameWindowWidth;
+	float my = (myRaw*dpiScaleY - gGameWindowHeight*0.5f) * g2DLogicalHeight / gGameWindowHeight;
 
 	gMouseHoverValidRow = false;
 	gMouseHoverColumn = -1;
@@ -593,7 +608,8 @@ static void NavigateKeyBinding(const MenuItem* entry)
 	if (GetNewNeedState(kNeed_UIDelete)
 		|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_MIDDLE)))
 	{
-		gGamePrefs.keys[entry->kb].key[gKeyColumn] = 0;
+		gGamePrefs.remappableKeys[entry->kb].key[gKeyColumn] = 0;
+
 		PlayEffect(kSfxDelete);
 		MakeTextAtRowCol(Localize(STR_UNBOUND_PLACEHOLDER), gMenuRow, gKeyColumn+1);
 		return;
@@ -636,7 +652,8 @@ static void NavigatePadBinding(const MenuItem* entry)
 	if (GetNewNeedState(kNeed_UIDelete)
 		|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_MIDDLE)))
 	{
-		gGamePrefs.keys[entry->kb].gamepad[gPadColumn].type = kInputTypeUnbound;
+		gGamePrefs.remappableKeys[entry->kb].gamepad[gPadColumn].type = kInputTypeUnbound;
+
 		PlayEffect(kSfxDelete);
 		MakeTextAtRowCol(Localize(STR_UNBOUND_PLACEHOLDER), gMenuRow, gPadColumn+1);
 		return;
@@ -666,7 +683,8 @@ static void NavigateMouseBinding(const MenuItem* entry)
 	if (GetNewNeedState(kNeed_UIDelete)
 		|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_MIDDLE)))
 	{
-		gGamePrefs.keys[entry->kb].mouseButton = 0;
+		gGamePrefs.remappableKeys[entry->kb].mouseButton = 0;
+
 		PlayEffect(kSfxDelete);
 		MakeTextAtRowCol(Localize(STR_UNBOUND_PLACEHOLDER), gMenuRow, 1);
 		return;
@@ -839,12 +857,13 @@ static void AwaitKeyPress(void)
 
 	KeyBinding* kb = GetBindingAtRow(gMenuRow);
 
-	for (int16_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
+	for (int16_t scancode = 0; scancode < SDL_SCANCODE_COUNT; scancode++)
 	{
 		if (GetNewKeyState(scancode))
 		{
 			UnbindScancodeFromAllRemappableInputNeeds(scancode);
 			kb->key[gKeyColumn] = scancode;
+
 			MakeTextAtRowCol(GetKeyBindingName(gMenuRow, gKeyColumn), gMenuRow, gKeyColumn+1);
 			gMenuState = kMenuStateReady;
 			PlayEffect(kSfxCycle);
@@ -857,7 +876,7 @@ static void AwaitKeyPress(void)
 static void AwaitPadPress(void)
 {
 	if (GetNewKeyState(SDL_SCANCODE_ESCAPE)
-		|| SDL_GameControllerGetButton(gSDLController, SDL_CONTROLLER_BUTTON_START))
+		|| SDL_GetGamepadButton(gSDLGamepad, SDL_GAMEPAD_BUTTON_START))
 	{
 		MakeTextAtRowCol(GetPadBindingName(gMenuRow, gPadColumn), gMenuRow, 1 + gPadColumn);
 		gMenuState = kMenuStateReady;
@@ -868,25 +887,26 @@ static void AwaitPadPress(void)
 
 	KeyBinding* kb = GetBindingAtRow(gMenuRow);
 
-	if (!gSDLController)
+	if (!gSDLGamepad)
 		return;
 
-	for (int8_t button = 0; button < SDL_CONTROLLER_BUTTON_MAX; button++)
+	for (int8_t button = 0; button < SDL_GAMEPAD_BUTTON_COUNT; button++)
 	{
 		switch (button)
 		{
-			case SDL_CONTROLLER_BUTTON_DPAD_UP:			// prevent binding those
-			case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
-			case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-			case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+			case SDL_GAMEPAD_BUTTON_DPAD_UP:			// prevent binding those
+			case SDL_GAMEPAD_BUTTON_DPAD_DOWN:
+			case SDL_GAMEPAD_BUTTON_DPAD_LEFT:
+			case SDL_GAMEPAD_BUTTON_DPAD_RIGHT:
 				continue;
 		}
 
-		if (SDL_GameControllerGetButton(gSDLController, button))
+		if (SDL_GetGamepadButton(gSDLGamepad, button))
 		{
 			UnbindPadButtonFromAllRemappableInputNeeds(kInputTypeButton, button);
 			kb->gamepad[gPadColumn].type = kInputTypeButton;
 			kb->gamepad[gPadColumn].id = button;
+
 			MakeTextAtRowCol(GetPadBindingName(gMenuRow, gPadColumn), gMenuRow, gPadColumn+1);
 			gMenuState = kMenuStateReady;
 			PlayEffect(kSfxCycle);
@@ -895,24 +915,25 @@ static void AwaitPadPress(void)
 		}
 	}
 
-	for (int8_t axis = 0; axis < SDL_CONTROLLER_AXIS_MAX; axis++)
+	for (int8_t axis = 0; axis < SDL_GAMEPAD_AXIS_COUNT; axis++)
 	{
 		switch (axis)
 		{
-			case SDL_CONTROLLER_AXIS_LEFTX:				// prevent binding those
-			case SDL_CONTROLLER_AXIS_LEFTY:
-			case SDL_CONTROLLER_AXIS_RIGHTX:
-			case SDL_CONTROLLER_AXIS_RIGHTY:
+			case SDL_GAMEPAD_AXIS_LEFTX:				// prevent binding those
+			case SDL_GAMEPAD_AXIS_LEFTY:
+			case SDL_GAMEPAD_AXIS_RIGHTX:
+			case SDL_GAMEPAD_AXIS_RIGHTY:
 				continue;
 		}
 
-		int16_t axisValue = SDL_GameControllerGetAxis(gSDLController, axis);
-		if (abs(axisValue) > kJoystickDeadZone_BindingThreshold)
+		int16_t axisValue = SDL_GetGamepadAxis(gSDLGamepad, axis);
+		if (SDL_abs(axisValue) > kJoystickDeadZone_BindingThreshold)
 		{
 			int axisType = axisValue < 0 ? kInputTypeAxisMinus : kInputTypeAxisPlus;
 			UnbindPadButtonFromAllRemappableInputNeeds(axisType, axis);
 			kb->gamepad[gPadColumn].type = axisType;
 			kb->gamepad[gPadColumn].id = axis;
+
 			MakeTextAtRowCol(GetPadBindingName(gMenuRow, gPadColumn), gMenuRow, gPadColumn+1);
 			gMenuState = kMenuStateReady;
 			PlayEffect(kSfxCycle);
@@ -940,6 +961,7 @@ static void AwaitMouseClick(void)
 		{
 			UnbindMouseButtonFromAllRemappableInputNeeds(mouseButton);
 			kb->mouseButton = mouseButton;
+
 			MakeTextAtRowCol(GetMouseBindingName(gMenuRow), gMenuRow, 1);
 			gMenuState = kMenuStateReady;
 			PlayEffect(kSfxCycle);
@@ -960,7 +982,7 @@ static ObjNode* MakeDarkenPane(void)
 	gNewObjectDefinition.genre		= CUSTOM_GENRE;
 	gNewObjectDefinition.flags		= STATUS_BIT_NOZWRITES|STATUS_BIT_NOLIGHTING|STATUS_BIT_NOFOG|STATUS_BIT_NOTEXTUREWRAP|
 										STATUS_BIT_KEEPBACKFACES|STATUS_BIT_MOVEINPAUSE;
-	gNewObjectDefinition.slot		= SLOT_OF_DUMB+100-1;
+	gNewObjectDefinition.slot		= MENU_SLOT-1;
 	gNewObjectDefinition.scale		= 1;
 	gNewObjectDefinition.moveCall 	= nil;
 
@@ -1091,7 +1113,7 @@ static void LayOutCycler(
 
 	const MenuItem* entry = &gMenu[row];
 
-	snprintf(buf, bufSize, "%s:", GetMenuItemLabel(entry));
+	SDL_snprintf(buf, bufSize, "%s:", GetMenuItemLabel(entry));
 
 	ObjNode* node1 = MakeTextAtRowCol(buf, row, 0);
 	node1->MoveCall = MoveAction;
@@ -1124,9 +1146,9 @@ static void LayOutMenu(const MenuItem* menu)
 
 	DeleteAllText();
 
-	memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
+	SDL_memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
 	gNewObjectDefinition.scale		= gMenuStyle->standardScale;
-	gNewObjectDefinition.slot		= SLOT_OF_DUMB+100;
+	gNewObjectDefinition.slot		= MENU_SLOT;
 
 	float totalHeight = 0;
 	for (int row = 0; menu[row].type != kMenuItem_END_SENTINEL; row++)
@@ -1198,7 +1220,7 @@ static void LayOutMenu(const MenuItem* menu)
 
 			case kMenuItem_KeyBinding:
 			{
-				snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
+				SDL_snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
 
 				gNewObjectDefinition.scale = 0.6f;
 				ObjNode* label = MakeTextAtRowCol(buf, row, 0);
@@ -1217,7 +1239,7 @@ static void LayOutMenu(const MenuItem* menu)
 
 			case kMenuItem_PadBinding:
 			{
-				snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
+				SDL_snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
 
 				ObjNode* label = MakeTextAtRowCol(buf, row, 0);
 				label->ColorFilter = gMenuStyle->inactiveColor2;
@@ -1235,7 +1257,7 @@ static void LayOutMenu(const MenuItem* menu)
 
 			case kMenuItem_MouseBinding:
 			{
-				snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
+				SDL_snprintf(buf, bufSize, "%s:", Localize(STR_KEYBINDING_DESCRIPTION_0 + entry->kb));
 
 				ObjNode* label = MakeTextAtRowCol(buf, row, 0);
 				label->ColorFilter = gMenuStyle->inactiveColor2;
@@ -1280,16 +1302,16 @@ int StartMenu(
 		const MenuItem* menu,
 		const MenuStyle* style,
 		void (*updateRoutine)(void),
-		void (*backgroundDrawRoutine)(OGLSetupOutputType *))
+		void (*backgroundDrawRoutine)(void))
 {
-	int cursorStateBeforeMenu = SDL_ShowCursor(-1);
-	gStandardCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-	gHandCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
-	SDL_ShowCursor(1);
+	bool cursorStateBeforeMenu = SDL_CursorVisible();
+	gStandardCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
+	gHandCursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+	SDL_ShowCursor();
 
 		/* INITIALIZE MENU STATE */
 
-	memset(gMenuObjects, 0, sizeof(gMenuObjects));
+	SDL_memset(gMenuObjects, 0, sizeof(gMenuObjects));
 	gMenuStyle			= style? style: &kDefaultMenuStyle;
 	gRootMenu			= menu;
 	gMenuState			= kMenuStateFadeIn;
@@ -1375,7 +1397,7 @@ int StartMenu(
 		MoveObjects();
 		if (updateRoutine)
 			updateRoutine();
-		OGL_DrawScene(gGameViewInfoPtr, backgroundDrawRoutine);
+		OGL_DrawScene(backgroundDrawRoutine);
 	}
 
 
@@ -1395,7 +1417,7 @@ int StartMenu(
 			}
 		}
 
-		memset(gMenuObjects, 0, sizeof(gMenuObjects));
+		SDL_memset(gMenuObjects, 0, sizeof(gMenuObjects));
 	}
 	else
 	{
@@ -1411,12 +1433,15 @@ int StartMenu(
 	gMenu = nil;
 
 	SDL_SetCursor(gStandardCursor);
-	SDL_FreeCursor(gStandardCursor);
-	SDL_FreeCursor(gHandCursor);
+	SDL_DestroyCursor(gStandardCursor);
+	SDL_DestroyCursor(gHandCursor);
 	gStandardCursor = nil;
 	gHandCursor = nil;
 
-	SDL_ShowCursor(cursorStateBeforeMenu);
+	if (cursorStateBeforeMenu)
+		SDL_ShowCursor();
+	else
+		SDL_HideCursor();
 
 	return gMenuPick;
 }

@@ -56,24 +56,33 @@ typedef struct
 typedef struct
 {
 	Boolean	fullscreen;
-	Byte	preferredDisplay;
+	Boolean	vsync;
+	Boolean	uiCentering;
+	Byte	uiScaleLevel;
+	Byte	displayNumMinus1;
 	Byte	antialiasingLevel;
 	Boolean	music;
 	Byte	language;
 	Boolean	playerRelControls;
+	Boolean	autoAlignCamera;
 	Byte	mouseSensitivityLevel;
 	Boolean	mouseControlsOtto;
 	Boolean	snappyCameraControl;		// if false, vanilla momentum-y camera swinging
 	Boolean	gamepadRumble;
-	Boolean	anaglyph;
-	Boolean	anaglyphColor;
+	Byte	anaglyphMode;
 	uint8_t	anaglyphCalibrationRed;
 	uint8_t	anaglyphCalibrationGreen;
 	uint8_t	anaglyphCalibrationBlue;
 	Boolean doAnaglyphChannelBalancing;
-	KeyBinding	keys[NUM_CONTROL_NEEDS];
+	KeyBinding	remappableKeys[NUM_REMAPPABLE_NEEDS];
 }PrefsType;
 
+enum
+{
+	ANAGLYPH_OFF,
+	ANAGLYPH_COLOR,
+	ANAGLYPH_MONO,
+};
 
 
 
@@ -95,14 +104,16 @@ typedef struct
 
 //=================================================
 
-SkeletonDefType *LoadSkeletonFile(short skeletonType, OGLSetupOutputType *setupInfo);
-extern	OSErr LoadPrefs(PrefsType *prefBlock);
+SkeletonDefType *LoadSkeletonFile(short skeletonType);
+OSErr LoadPrefs(void);
 void SavePrefs(void);
 
-void LoadPlayfield(FSSpec *specPtr, OGLSetupOutputType *setupInfo);
-void LoadLevelArt(OGLSetupOutputType *setupInfo);
+void LoadPlayfield(FSSpec *specPtr);
+void LoadLevelArt(void);
 
 bool SaveGame(int saveSlot);
 bool LoadSaveGameStruct(int saveSlot, SaveGameType* saveData);
 bool LoadSavedGame(int saveSlot);
 
+Ptr LoadDataFile(const char* path, long* outLength);
+char* CSVIterator(char** csvCursor, bool* eolOut);

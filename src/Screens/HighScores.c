@@ -17,9 +17,9 @@
 
 static void SetupScoreScreen(void);
 static void FreeScoreScreen(void);
-static void DrawHighScoresCallback(OGLSetupOutputType *info);
-static void DrawScoreVerbage(OGLSetupOutputType *info);
-static void DrawHighScoresAndCursor(OGLSetupOutputType *info);
+static void DrawHighScoresSprites(ObjNode* theNode);
+static void DrawScoreVerbage(void);
+static void DrawHighScoresAndCursor(void);
 static void SetHighScoresSpriteState(void);
 static void StartEnterName(void);
 static void MoveHighScoresCyc(ObjNode *theNode);
@@ -31,21 +31,6 @@ static void SaveHighScores(void);
 /***************************/
 /*    CONSTANTS            */
 /***************************/
-
-enum
-{
-	HIGHSCORES_SObjType_Cyc
-};
-
-
-enum
-{
-	HIGHSCORES_SObjType_ScoreText,
-	HIGHSCORES_SObjType_ScoreTextGlow,
-	HIGHSCORES_SObjType_EnterNameText,
-	HIGHSCORES_SObjType_EnterNameGlow
-};
-
 
 #define kHSTableYStart		(-140)
 #define kHSTableScale		.7f
@@ -83,7 +68,7 @@ static void UpdateNewNameMesh(void)
 	GAME_ASSERT(gNewScoreNameMesh);
 	DeleteObject(gNewScoreNameMesh);
 
-	memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
+	SDL_memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
 	gNewObjectDefinition.slot		= SLOT_OF_DUMB+100;
 	gNewObjectDefinition.moveCall	= nil;
 	gNewObjectDefinition.flags		= 0;
@@ -307,6 +292,7 @@ void NewScore(void)
 		return;
 
 	gAllowAudioKeys = false;					// dont interfere with name editing
+	SDL_StartTextInput(gSDLWindow);
 
 			/* INIT */
 
@@ -336,7 +322,7 @@ void NewScore(void)
 		CalcFramesPerSecond();
 		UpdateInput();
 		MoveObjects();
-		OGL_DrawScene(gGameViewInfoPtr, DrawHighScoresCallback);
+		OGL_DrawScene(DrawObjects);
 
 				/*****************************/
 				/* SEE IF USER ENTERING NAME */
@@ -354,12 +340,13 @@ void NewScore(void)
 	if (gNewScoreSlot != -1)						// if a new score was added then update the high scores file
 		SaveHighScores();
 
-	GammaFadeOut();
+	OGL_FadeOutScene(DrawObjects, NULL);
 
 	FreeScoreScreen();
 
 
 	gAllowAudioKeys = true;
+	SDL_StopTextInput(gSDLWindow);
 }
 
 
@@ -424,7 +411,6 @@ static void SetupScoreScreen(void)
 {
 FSSpec				spec;
 OGLSetupInputType	viewDef;
-ObjNode				*newObj;
 Str255				scoreString;
 
 	PlaySong(SONG_HIGHSCORE, 0);
@@ -473,9 +459,9 @@ Str255				scoreString;
 			/* SET ANAGLYPH INFO */
 			/*********************/
 
-	if (gGamePrefs.anaglyph)
+	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-		if (!gGamePrefs.anaglyphColor)
+		if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		{
 			viewDef.lights.ambientColor.r 		+= .1f;					// make a little brighter
 			viewDef.lights.ambientColor.g 		+= .1f;
@@ -486,52 +472,47 @@ Str255				scoreString;
 		gAnaglyphEyeSeparation 	= 10.0f;
 	}
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
 
 				/************/
 				/* LOAD ART */
 				/************/
 
-	InitSparkles();
+	InitEffects();
 
 			/* LOAD MODELS */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:highscores.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_HIGHSCORES, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_HIGHSCORES);
 
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_OTTO, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_OTTO);
 
 
 			/* LOAD SPRITES */
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:particle.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_PARTICLES, gGameViewInfoPtr);
+//	LoadSpriteGroup(SPRITE_GROUP_PARTICLES, PARTICLE_SObjType_COUNT, "particle");
+	LoadSpriteGroup(SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_COUNT, "highscores");
 	BlendAllSpritesInGroup(SPRITE_GROUP_PARTICLES);
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:highscores.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_HIGHSCORES, gGameViewInfoPtr);
 
-
-
-			/************/
 			/* MAKE CYC */
-			/************/
 
 	gNewObjectDefinition.group 		= MODEL_GROUP_HIGHSCORES;
-	gNewObjectDefinition.type 		= HIGHSCORES_SObjType_Cyc;
+	gNewObjectDefinition.type 		= HIGHSCORES_ObjType_Cyc;
 	gNewObjectDefinition.coord		= viewDef.camera.from;
 	gNewObjectDefinition.flags 		= STATUS_BIT_DONTCULL|STATUS_BIT_NOLIGHTING|STATUS_BIT_NOFOG;
 	gNewObjectDefinition.slot 		= 10;
 	gNewObjectDefinition.moveCall 	= MoveHighScoresCyc;
 	gNewObjectDefinition.rot 		= 0;
 	gNewObjectDefinition.scale 		= 2;
-	newObj = MakeNewDisplayGroupObject(&gNewObjectDefinition);
+	MakeNewDisplayGroupObject(&gNewObjectDefinition);
 
 
+			/* SCORE STRING */
 
 	NumToStringC(gScore, scoreString);
 	gNewObjectDefinition.flags		= 0;
@@ -541,6 +522,19 @@ Str255				scoreString;
 	gNewObjectDefinition.coord.z	= 0;
 	gNewObjectDefinition.moveCall	= MoveScoreVerbageTally;
 	TextMesh_New(scoreString, 1, &gNewObjectDefinition);
+
+
+			/* SPRITES DRIVER */
+
+	NewObjectDefinitionType spritesDriverDef =
+	{
+		.genre = CUSTOM_GENRE,
+		.slot = DRAWEXTRA_SLOT,
+		.scale = 1,
+		.flags = STATUS_BIT_DONTCULL,
+		.drawCall = DrawHighScoresSprites,
+	};
+	MakeNewObject(&spritesDriverDef);
 }
 
 
@@ -555,32 +549,29 @@ static void FreeScoreScreen(void)
 	gNewScoreNameMesh = nil;
 	gCursorMesh = nil;
 	FreeAllSkeletonFiles(-1);
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeAllBG3DContainers();
 	DisposeSoundBank(SOUNDBANK_BONUS);
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);
+	OGL_DisposeWindowSetup();
 }
 
 
 
-/***************** DRAW HIGHSCORES CALLBACK *******************/
+/***************** DRAW HIGHSCORES SPRITES *******************/
 
-static void DrawHighScoresCallback(OGLSetupOutputType *info)
+static void DrawHighScoresSprites(ObjNode* theNode)
 {
-	DrawObjects(info);
-	DrawSparkles(info);											// draw light sparkles
-
-
-			/* DRAW SPRITES */
+	(void) theNode;
 
 	OGL_PushState();
 
 	SetHighScoresSpriteState();
 
 	if (gDrawScoreVerbage)
-		DrawScoreVerbage(info);
+		DrawScoreVerbage();
 	else
-		DrawHighScoresAndCursor(info);
+		DrawHighScoresAndCursor();
 
 
 	OGL_PopState();
@@ -611,7 +602,7 @@ static void SetHighScoresSpriteState(void)
 
 /********************* DRAW SCORE VERBAGE ****************************/
 
-static void DrawScoreVerbage(OGLSetupOutputType *info)
+static void DrawScoreVerbage(void)
 {
 				/* SEE IF DONE */
 
@@ -641,13 +632,13 @@ static void DrawScoreVerbage(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gFinalScoreAlpha;
-	DrawInfobarSprite2(-150, -70, 300, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_ScoreTextGlow, info);
+	DrawInfobarSprite2(-150, -70, 300, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_ScoreTextGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gFinalScoreAlpha;
-	DrawInfobarSprite2(-150, -70, 300, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_ScoreText, info);
+	DrawInfobarSprite2(-150, -70, 300, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_ScoreText);
 
 			/* RESTORE GLOBAL TRANSPARENCY */
 
@@ -657,7 +648,7 @@ static void DrawScoreVerbage(OGLSetupOutputType *info)
 
 /****************** DRAW HIGH SCORES AND CURSOR ***********************/
 
-static void DrawHighScoresAndCursor(OGLSetupOutputType *info)
+static void DrawHighScoresAndCursor(void)
 {
 	gFinalScoreAlpha += gFramesPerSecondFrac;						// fade in
 	if (gFinalScoreAlpha > .99f)
@@ -675,13 +666,13 @@ static void DrawHighScoresAndCursor(OGLSetupOutputType *info)
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	gGlobalTransparency = (.7f + RandomFloat()*.1f) * gFinalScoreAlpha;
-	DrawInfobarSprite2(-250, -240+10, 500, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_EnterNameGlow, info);
+	DrawInfobarSprite2(-250, -240+10, 500, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_EnterNameGlow);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			/* DRAW TEXT */
 
 	gGlobalTransparency = gFinalScoreAlpha;
-	DrawInfobarSprite2(-250, -240+10, 500, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_EnterNameText, info);
+	DrawInfobarSprite2(-250, -240+10, 500, SPRITE_GROUP_HIGHSCORES, HIGHSCORES_SObjType_EnterNameText);
 
 
 		/*******************/
@@ -721,7 +712,7 @@ static void StartEnterName(void)
 	gNewScoreNameMesh = SetupHighScoreTableObjNodes(nil, gNewScoreSlot);
 
 
-	memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
+	SDL_memset(&gNewObjectDefinition, 0, sizeof(gNewObjectDefinition));
 	gNewObjectDefinition.slot		= SLOT_OF_DUMB+100;
 	gNewObjectDefinition.moveCall	= nil;
 	gNewObjectDefinition.flags		= 0;
@@ -844,7 +835,7 @@ err:
 
 void ClearHighScores(void)
 {
-	memset(gHighScores, 0, sizeof(gHighScores));
+	SDL_memset(gHighScores, 0, sizeof(gHighScores));
 
 	SaveHighScores();
 }
@@ -875,7 +866,7 @@ got_slot:
 	for (i = NUM_SCORES-1; i > slot; i--)						// make hole
 		gHighScores[i] = gHighScores[i-1];
 	gHighScores[slot].score = newScore;							// set score in structure
-	memset(gHighScores[slot].name, 0, sizeof(gHighScores[slot].name));
+	SDL_memset(gHighScores[slot].name, 0, sizeof(gHighScores[slot].name));
 	return(slot);
 }
 

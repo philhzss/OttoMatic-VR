@@ -46,7 +46,7 @@ static	OGLVector3D			gTransformedNormals[MAX_DECOMPOSED_NORMALS];	// temporary b
 // INPUT: inSpec = spec of 3dmf file to load or nil to StdDialog it.
 //
 
-void LoadBonesReferenceModel(FSSpec	*inSpec, SkeletonDefType *skeleton, int skeletonType, OGLSetupOutputType *setupInfo)
+void LoadBonesReferenceModel(FSSpec	*inSpec, SkeletonDefType *skeleton, int skeletonType)
 {
 int				g;
 MetaObjectPtr	model;
@@ -54,7 +54,7 @@ MetaObjectPtr	model;
 	gCurrentSkeleton = skeleton;
 
 	g = MODEL_GROUP_SKELETONBASE+skeletonType;						// calc group # to store model into
-	ImportBG3D(inSpec, g, setupInfo);								// load skeleton model into group
+	ImportBG3D(inSpec, g);								// load skeleton model into group
 
 	model = gBG3DContainerList[g]->root;							// point to base group
 
@@ -307,7 +307,6 @@ OGLMatrix4x4			oldM;
 OGLVector3D				*normalAttribs;
 BoneDefinitionType		*bonePtr;
 float					minX,maxX,maxY,minY,maxZ,minZ;
-long					numDecomposedPoints,numDecomposedNormals;
 float					m00,m01,m02,m10,m11,m12,m20,m21,m22,m30,m31,m32;
 float					newX,newY,newZ;
 const SkeletonObjDataType		*currentSkelObjData = gCurrentSkelObjData;
@@ -323,9 +322,6 @@ const MOVertexArrayData		*localTriMeshes = &gLocalTriMeshesOfSkelType[skelType][
 	maxX = gBBox->max.x;
 	maxY = gBBox->max.y;
 	maxZ = gBBox->max.z;
-
-	numDecomposedPoints = currentSkeleton->numDecomposedPoints;
-	numDecomposedNormals = currentSkeleton->numDecomposedNormals;
 
 				/*********************************/
 				/* FACTOR IN THIS JOINT'S MATRIX */

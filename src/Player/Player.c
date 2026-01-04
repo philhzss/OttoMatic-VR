@@ -1,7 +1,8 @@
 /****************************/
 /*   	PLAYER.C   			*/
-/* (c)2001 Pangea Software  */
 /* By Brian Greenstone      */
+/* (c)2001 Pangea Software  */
+/* (c)2023 Iliyas Jorio     */
 /****************************/
 
 
@@ -21,6 +22,7 @@ static void MoveRocketShip_Landing(ObjNode *rocket);
 static void MoveRocketShip_Leave(ObjNode *rocket);
 static void MoveRocketShip_OpenDoor(ObjNode *rocket);
 static void MoveRocketShip_Deplane(ObjNode *rocket);
+static void MoveRocketShip_PreEnter(ObjNode *rocket);
 static void MoveRocketShip_Enter(ObjNode *rocket);
 static void MoveRocketShip_CloseDoor(ObjNode *rocket);
 static void MoveRocketShip_Waiting(ObjNode *rocket);
@@ -46,6 +48,16 @@ static void AlignRocketDoor(ObjNode *rocket);
 #define	PLAYER_OFF_Y	(445.8f * ROCKET_SCALE)
 #define PLAYER_OFF_Z	(9.3f * ROCKET_SCALE)
 
+static const OGLPoint2D kRocketShipHotZoneTemplate[4] =
+{
+	{-40, ROCKET_SCALE * 370.0f},
+	{40, ROCKET_SCALE * 370.0f},
+	{50, ROCKET_SCALE * 490.0f},
+	{-50, ROCKET_SCALE * 490.0f},
+};
+
+static const OGLPoint2D kRocketShipRampEntryPoint = {0, ROCKET_SCALE*400.0f};
+
 
 /*********************/
 /*    VARIABLES      */
@@ -67,6 +79,7 @@ ObjNode	*gExitRocket;
 Boolean	gPlayerFellIntoBottomlessPit;
 
 float	gRocketScaleAdjust;
+OGLPoint2D	gRocketShipHotZone[4];
 
 
 /******************** INIT PLAYER INFO ***************************/
@@ -98,6 +111,7 @@ void InitPlayerInfo_Game(void)
 	gPlayerInfo.coord.y 		= 0;
 	gPlayerInfo.coord.z 		= 0;
 
+	gPlayerInfo.didCheat		= false;
 }
 
 
@@ -191,14 +205,15 @@ void InitPlayersAtStartOfLevel(void)
 //
 // Normally damage comes from byWhat, but if byWhat = nil, then use altDamage
 //
+// Returns true if player did take damage; false if player was invincible.
+//
 
-void PlayerGotHit(ObjNode *byWhat, float altDamage)
+Boolean PlayerGotHit(ObjNode *byWhat, float altDamage)
 {
-float	r;
 ObjNode	*player = gPlayerInfo.objNode;
 
 	if (gPlayerInfo.invincibilityTimer > 0.0f)							// cant get hit if invincible
-		return;
+		return false;
 
 	if (player->Skeleton == nil)									// make sure there's a skeleton
 		DoFatalAlert("PlayerGotHit: no skeleton on player");
@@ -236,6 +251,7 @@ ObjNode	*player = gPlayerInfo.objNode;
 					MorphToSkeletonAnim(player->Skeleton, PLAYER_ANIM_GOTHIT, 7);
 		}
 
+		float r;
 		if (byWhat)
 		{
 			r = byWhat->Rot.y;
@@ -261,6 +277,8 @@ ObjNode	*player = gPlayerInfo.objNode;
 	}
 
 	gPlayerInfo.invincibilityTimer = 2.5;
+
+	return true;
 }
 
 
@@ -346,13 +364,30 @@ ObjNode	*player = gPlayerInfo.objNode;
 
 
 		case	PLAYER_DEATH_TYPE_FALL:
+		{
+				gPlayerInfo.fellThroughTrapDoor = NULL;
 				if (player->Skeleton->AnimNum != PLAYER_ANIM_FALL)
 					MorphToSkeletonAnim(player->Skeleton, PLAYER_ANIM_FALL, 5);
 				gPlayerInfo.invincibilityTimer = 2.0f;
 				gDeathTimer = 2.0;
 				gPlayerFellIntoBottomlessPit = true;
 				PlayEffect_Parms3D(EFFECT_FALLYAA, &player->Coord, NORMAL_CHANNEL_RATE, 1.5);
+
+				float bestTrapDoorDistance = 1.5f * TERRAIN_POLYGON_SIZE;
+				for (ObjNode* trapDoorCandidate = gFirstNodePtr; trapDoorCandidate; trapDoorCandidate = trapDoorCandidate->NextNode)
+				{
+					if (trapDoorCandidate->TerrainItemPtr && trapDoorCandidate->TerrainItemPtr->type == 84)
+					{
+						float candidateDistance = CalcQuickDistance(player->Coord.x, player->Coord.z, trapDoorCandidate->Coord.x, trapDoorCandidate->Coord.z);
+						if (candidateDistance < bestTrapDoorDistance)
+						{
+							gPlayerInfo.fellThroughTrapDoor = trapDoorCandidate;
+							bestTrapDoorDistance = candidateDistance;
+						}
+					}
+				}
 				break;
+		}
 
 		case	PLAYER_DEATH_TYPE_SAUCERBOOM:
 				BlowUpSaucer(player);
@@ -619,15 +654,18 @@ int		i;
 
 				/* MAKE FLAME OBJECT */
 
-	gNewObjectDefinition.genre		= CUSTOM_GENRE;
-	gNewObjectDefinition.coord 		= rocket->Coord;
-	gNewObjectDefinition.flags 		= STATUS_BIT_NOZWRITES|STATUS_BIT_NOTEXTUREWRAP|STATUS_BIT_NOLIGHTING|STATUS_BIT_NOFOG|STATUS_BIT_GLOW|STATUS_BIT_KEEPBACKFACES;
-	gNewObjectDefinition.slot 		= PARTICLE_SLOT+1;
-	gNewObjectDefinition.moveCall 	= nil;
-	gNewObjectDefinition.rot 		= 0;
-	gNewObjectDefinition.scale 		= 1;
+	NewObjectDefinitionType def =
+	{
+		.genre		= CUSTOM_GENRE,
+		.coord 		= rocket->Coord,
+		.flags		= STATUS_BIT_NOZWRITES | STATUS_BIT_NOTEXTUREWRAP | STATUS_BIT_NOLIGHTING | STATUS_BIT_NOFOG | STATUS_BIT_GLOW,
+		.slot 		= PARTICLE_SLOT+1,
+		.moveCall 	= nil,
+		.rot 		= 0,
+		.scale 		= 1,
+	};
 
-	newObj = MakeNewObject(&gNewObjectDefinition);
+	newObj = MakeNewObject(&def);
 
 	newObj->CustomDrawFunction = DrawRocketFlame;
 
@@ -664,30 +702,84 @@ int		i;
 }
 
 
+/******************* GENERATE ROCKET FLAME MESH ************************/
+
+#define ROCKETFLAME_SEGMENTS	5		// amount of trapezoids making up the flame
+#define ROCKETFLAME_HDIV		8		// how much to tesselate each trapezoid horizontally (more => mitigate texture distortion)
+
+static MOVertexArrayData* GenerateRocketFlameMesh(void)
+{
+	static const float flameWidth = 100;
+	static const float flameHeight = 800;
+	static const float segmentThickness[ROCKETFLAME_SEGMENTS]	= { .51, .70, .85,   1, 1 };
+	static const float segmentBottomYFrac[ROCKETFLAME_SEGMENTS]	= { .03, .07, .15, .30, 1 };
+
+	static OGLPoint3D			pts[ROCKETFLAME_SEGMENTS * ROCKETFLAME_HDIV * 4];
+	static OGLTextureCoord		uvs[ROCKETFLAME_SEGMENTS * ROCKETFLAME_HDIV * 4];
+	static MOTriangleIndecies	tris[ROCKETFLAME_SEGMENTS * ROCKETFLAME_HDIV * 2];
+	static MOVertexArrayData	mesh;
+
+	int v = 0;		// vertex index
+	int t = 0;		// triangle index
+	for (int i = 0; i < ROCKETFLAME_SEGMENTS; i++)
+	{
+		float x1 = flameWidth * segmentThickness[i];											// top thickness
+		float x2 = flameWidth * segmentThickness[MinInt(i + 1, ROCKETFLAME_SEGMENTS - 1)];		// bottom thickness
+
+		float yfrac1 = i<=0 ? 0 : segmentBottomYFrac[i - 1];
+		float yfrac2 = segmentBottomYFrac[i];
+
+		float y1 = -flameHeight * yfrac1;
+		float y2 = -flameHeight * yfrac2;
+
+		for (int j = 0; j < ROCKETFLAME_HDIV; j++) 		// tesselate the trapezoid horizontally to mitigate texture distortion
+		{
+			float xfrac1 = (float)(j + 0) / ROCKETFLAME_HDIV;
+			float xfrac2 = (float)(j + 1) / ROCKETFLAME_HDIV;
+			
+			pts[v+0] = (OGLPoint3D){ LerpFloat(-x1, x1, xfrac1), y1, 0 };
+			pts[v+1] = (OGLPoint3D){ LerpFloat(-x1, x1, xfrac2), y1, 0 };
+			pts[v+2] = (OGLPoint3D){ LerpFloat(-x2, x2, xfrac2), y2, 0 };
+			pts[v+3] = (OGLPoint3D){ LerpFloat(-x2, x2, xfrac1), y2, 0 };
+
+			uvs[v+0] = (OGLTextureCoord){ xfrac1, yfrac1 };
+			uvs[v+1] = (OGLTextureCoord){ xfrac2, yfrac1 };
+			uvs[v+2] = (OGLTextureCoord){ xfrac2, yfrac2 };
+			uvs[v+3] = (OGLTextureCoord){ xfrac1, yfrac2 };
+
+			tris[t+0] = (MOTriangleIndecies){ {v+0, v+1, v+3} };
+			tris[t+1] = (MOTriangleIndecies){ {v+1, v+2, v+3} };
+
+			v += 4;
+			t += 2;
+		}
+	}
+
+	mesh = (MOVertexArrayData)
+	{
+		.triangles		= tris,
+		.uvs[0]			= uvs,
+		.points			= pts,
+		.numPoints		= ROCKETFLAME_SEGMENTS * ROCKETFLAME_HDIV * 4,
+		.numTriangles	= ROCKETFLAME_SEGMENTS * ROCKETFLAME_HDIV * 2,
+		.numMaterials	= 0,		// set in draw call
+	};
+
+	return &mesh;
+}
+
+
 /******************* DRAW ROCKET FLAME ************************/
 
-void DrawRocketFlame(ObjNode *theNode, const OGLSetupOutputType *setupInfo)
+void DrawRocketFlame(ObjNode *theNode)
 {
 float		x,y,z,r,s;
-OGLMatrix4x4	m;
-static const OGLPoint3D vOff[4] =
-{
-	{-100, -800, 0},
-	{100, -800, 0},
-	{100, 0, 0},
-	{-100, 0, 0},
-};
-OGLPoint3D		verts[4];
+OGLMatrix4x4	m1, m2;
 ObjNode			*rocket;
 
 	rocket = theNode->ChainHead->ChainHead;					// assume landing mode
 	if (rocket == nil)										// nope, must be bonus screen
 		rocket = theNode->ChainHead;
-
-
-			/* SUBMIT FLAME TEXTURE */
-
-	MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_PARTICLES][PARTICLE_SObjType_RocketFlame0+theNode->Special[0]].materialObject, setupInfo);
 
 
 		/* CALC COORDS */
@@ -697,24 +789,31 @@ ObjNode			*rocket;
 	z = rocket->Coord.z;
 
 	r = theNode->Rot.y = CalcYAngleFromPointToPoint(theNode->Rot.y, x, z,
-												setupInfo->cameraPlacement.cameraLocation.x,
-												setupInfo->cameraPlacement.cameraLocation.z);
-	OGLMatrix4x4_SetRotate_Y(&m, r);
-
-	OGLPoint3D_TransformArray(vOff, &m, verts, 4);
-
+												gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+												gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
 
 	s = gRocketScaleAdjust;
 
+	OGLMatrix4x4_SetRotate_Y(&m1, r);
+	OGLMatrix4x4_SetScale(&m2, s, s, s);
+	OGLMatrix4x4_Multiply(&m1, &m2, &m1);
+	OGLMatrix4x4_SetTranslate(&m2, x, y, z);
+	OGLMatrix4x4_Multiply(&m1, &m2, &m1);
+
+	MOVertexArrayData* mesh = GenerateRocketFlameMesh();
+	OGLPoint3D_TransformArray(mesh->points, &m1, mesh->points, mesh->numPoints);
+
+		/* SET TEXTURE FOR CURRENT FRAME */
+
+	mesh->numMaterials = 1;
+	int frame = (int)(theNode->Special[0]);
+	mesh->materials[0] = gSpriteGroupList[SPRITE_GROUP_PARTICLES][PARTICLE_SObjType_RocketFlame0 + frame].materialObject;
 
 		/* DRAW IT */
 
-	glBegin(GL_QUADS);
-	glTexCoord2f(0,0);	glVertex3f(x+verts[0].x * s, y+verts[0].y * s, z+verts[0].z);
-	glTexCoord2f(1,0);	glVertex3f(x+verts[1].x * s, y+verts[1].y * s, z+verts[1].z);
-	glTexCoord2f(1,1);	glVertex3f(x+verts[2].x * s, y+verts[2].y * s, z+verts[2].z);
-	glTexCoord2f(0,1);	glVertex3f(x+verts[3].x * s, y+verts[3].y * s, z+verts[3].z);
-	glEnd();
+	MO_DrawGeometry_VertexArray(mesh);
+
+		/* ANIMATE */
 
 	theNode->SpecialF[0] -= gFramesPerSecondFrac;			// animate
 	if (theNode->SpecialF[0] <= 0.0f)
@@ -762,6 +861,10 @@ static void MoveRocketShip(ObjNode *rocket)
 
 		case	ROCKET_MODE_WAITING2:
 				MoveRocketShip_Waiting2(rocket);
+				break;
+
+		case	ROCKET_MODE_PREENTER:
+				MoveRocketShip_PreEnter(rocket);
 				break;
 
 		case	ROCKET_MODE_ENTER:
@@ -896,7 +999,7 @@ ObjNode	*door = rocket->ChainNode;
 
 	gCoord.y += gDelta.y * gFramesPerSecondFrac;
 
-	if (gCommandLine.skipFluff)
+	if (gSkipFluff)
 		gCoord.y -= gFramesPerSecondFrac * 50000;
 
 			/* MAKE SURE SOUND IS GOING */
@@ -970,7 +1073,7 @@ float	y;
 	if (gDelta.y < -2000.0f)
 		gDelta.y = -2000.0f;
 
-	if (gCommandLine.skipFluff)
+	if (gSkipFluff)
 		gDelta.y = 7500;
 
 
@@ -985,8 +1088,11 @@ float	y;
 			gLevelCompleted = true;
 			gLevelCompletedCoolDownTimer = 0;
 		}
+		else
+		{
+			DeleteObject(rocket);
+		}
 
-		DeleteObject(rocket);
 		return;
 	}
 
@@ -1031,7 +1137,7 @@ ObjNode *door = rocket->ChainNode;
 
 	door->Rot.x += gFramesPerSecondFrac * 1.9f;
 
-	if (gCommandLine.skipFluff)
+	if (gSkipFluff)
 		door->Rot.x += gFramesPerSecondFrac * 100;
 
 		/* SEE IF DONE OPENING */
@@ -1049,7 +1155,7 @@ ObjNode *door = rocket->ChainNode;
 			rocket->Mode = ROCKET_MODE_DEPLANE;
 			gDeplaneTimer = 2.5;
 
-			if (gCommandLine.skipFluff)
+			if (gSkipFluff)
 				gDeplaneTimer *= 0.1f;
 
 			MorphToSkeletonAnim(gPlayerInfo.objNode->Skeleton, PLAYER_ANIM_WALK, 8);	// start robot walking
@@ -1169,44 +1275,104 @@ ObjNode	*player = gPlayerInfo.objNode;
 }
 
 
-/****************** MOVE ROCKET SHIP: ENTER *******************/
+/****************** MOVE ROCKET SHIP: PRE-ENTER (MOVE OTTO TO RAMP ENTRY POINT) *******************/
+
+static void MoveRocketShip_PreEnter(ObjNode *rocket)
+{
+float	fps = gFramesPerSecondFrac;
+ObjNode	*player = gPlayerInfo.objNode;
+
+	DisableHelpType(HELP_MESSAGE_ENTERSHIP);				// player is going up, so we don't need this help anymore
+
+	gPlayerInfo.holdingGun = false;							// hide gun so it doesn't clip thru rocket once we're in
+	gPlayerInfo.invincibilityTimer = 1;						// don't want to get hit by crap while walking
+
+	GetObjectInfo(player);
+
+	OGLPoint2D rampEntryPoint = kRocketShipRampEntryPoint;
+	OGLMatrix3x3 m;
+	OGLMatrix3x3_SetRotate(&m, -rocket->Rot.y);
+	OGLPoint2D_Transform(&rampEntryPoint, &m, &rampEntryPoint);
+	rampEntryPoint.x += rocket->Coord.x;
+	rampEntryPoint.y += rocket->Coord.z;
+
+	float oldDist = CalcDistance(gCoord.x, gCoord.z, rampEntryPoint.x, rampEntryPoint.y);
+
+	if (oldDist < PLAYER_OFF_Z)								// close enough already, just skip to next state
+		goto forceEnter;
+
+	OGLVector2D direction =	{ rampEntryPoint.x - player->Coord.x, rampEntryPoint.y - player->Coord.z };
+	OGLVector2D_Normalize(&direction, &direction);
+
+	gDelta.x = direction.x * 250;
+	gDelta.z = direction.y * 250;
+	gDelta.y = -100;
+
+	gCoord.x += gDelta.x * fps;
+	gCoord.z += gDelta.z * fps;
+	gCoord.y = GetTerrainY2(gCoord.x, gCoord.z) - gPlayerInfo.objNode->BottomOff;
+
+	float dist = CalcDistance(gCoord.x, gCoord.z, rampEntryPoint.x, rampEntryPoint.y);
+
+	if (dist > 2000)
+	{
+#if _DEBUG
+		DoAlert("Enormous pre-enter distance! Fast-forwarding...");
+#endif
+		goto forceEnter;
+	}
+
+			/* SEE IF WE'RE IN FRONT OF THE RAMP */
+
+	if (dist < PLAYER_OFF_Z || dist > oldDist)
+	{
+forceEnter:
+			/* PIN TO RAMP ENTRY POINT */
+
+		gCoord.x = rampEntryPoint.x;
+		gCoord.z = rampEntryPoint.y;
+		gCoord.y = GetTerrainY2(gCoord.x, gCoord.z) - gPlayerInfo.objNode->BottomOff;
+
+		rocket->Mode = ROCKET_MODE_ENTER;
+		gPlayerHasLanded = false;
+	}
+
+	UpdatePlayer_Robot(player);
+}
+
+
+/****************** MOVE ROCKET SHIP: ENTER (WALK OTTO UP RAMP) *******************/
 
 static void MoveRocketShip_Enter(ObjNode *rocket)
 {
 float	fps = gFramesPerSecondFrac;
-float	 r,dist,oldDist;
 ObjNode	*player = gPlayerInfo.objNode;
-
 
 	DisableHelpType(HELP_MESSAGE_ENTERSHIP);				// player is going up, so we don't need this help anymore
 
-	r = rocket->Rot.y;
-
+	gPlayerInfo.holdingGun = false;							// hide gun so it doesn't clip thru rocket once we're in
+	gPlayerInfo.invincibilityTimer = 1;						// don't want to get hit by crap while walking
 
 	GetObjectInfo(player);
 
-	oldDist = CalcDistance(gCoord.x, gCoord.z, rocket->Coord.x, rocket->Coord.z);
+	float oldDist = CalcDistance(gCoord.x, gCoord.z, rocket->Coord.x, rocket->Coord.z);
 
-	gDelta.x = sin(r) * -250.0f;
-	gDelta.z = cos(r) * -250.0f;
+	gDelta.x = sin(rocket->Rot.y) * -250.0f;
+	gDelta.z = cos(rocket->Rot.y) * -250.0f;
 
 	gCoord.x += gDelta.x * fps;
 	gCoord.z += gDelta.z * fps;
 
+			/* GO UP RAMP */
 
-			/* SEE IF GO UP RAMP */
+	gCoord.y += 400.0f * fps;
 
-	dist = CalcDistance(gCoord.x, gCoord.z, rocket->Coord.x, rocket->Coord.z);
-	if (dist < (360.0f * ROCKET_SCALE))
-	{
-		gCoord.y += 400.0f * fps;
-
-		if ((gCoord.y + player->BottomOff) > (rocket->Coord.y + PLAYER_OFF_Y))		// dont go higher than where we want it
-			gCoord.y = rocket->Coord.y + PLAYER_OFF_Y - player->BottomOff;
-
-	}
+	gCoord.y = MinFloat(gCoord.y,
+						rocket->Coord.y + PLAYER_OFF_Y - player->BottomOff);	// don't go higher than where we want it
 
 			/* SEE IF DONE */
+
+	float dist = CalcDistance(gCoord.x, gCoord.z, rocket->Coord.x, rocket->Coord.z);
 
 	if ((dist <= PLAYER_OFF_Z) || (dist > oldDist))
 	{
@@ -1214,9 +1380,7 @@ ObjNode	*player = gPlayerInfo.objNode;
 		gPlayerHasLanded = false;
 		MorphToSkeletonAnim(player->Skeleton, PLAYER_ANIM_STAND, 6);
 		PlayEffect3D(EFFECT_HATCH, &rocket->Coord);
-
 	}
-
 
 	UpdatePlayer_Robot(player);
 }
@@ -1363,23 +1527,15 @@ ObjNode	*door = rocket->ChainNode;
 		{
 			float r = rocket->Rot.y;
 			OGLMatrix3x3	m;
-			static const OGLPoint2D inArea[4] =
-			{
-				{-40, ROCKET_SCALE * 370.0f},
-				{40, ROCKET_SCALE * 370.0f},
-				{50, ROCKET_SCALE * 490.0f},
-				{-50, ROCKET_SCALE * 490.0f},
-			};
-			OGLPoint2D	area[4];
-
 
 					/* CALC ZONE @ BASE OF RAMP */
 
 			OGLMatrix3x3_SetRotate(&m, -r);											// rotate the hot zone
-			OGLPoint2D_TransformArray(inArea, &m, area, 4);
+			m.value[N02] = rocket->Coord.x;											// translate the hot zone
+			m.value[N12] = rocket->Coord.z;
+			OGLPoint2D_TransformArray(kRocketShipHotZoneTemplate, &m, gRocketShipHotZone, 4);
 
-			if (IsPointInPoly2D(gPlayerInfo.coord.x - rocket->Coord.x,
-								gPlayerInfo.coord.z - rocket->Coord.z, 4, area))	// see if play in hot zone
+			if (IsPointInPoly2D(gPlayerInfo.coord.x, gPlayerInfo.coord.z, 4, gRocketShipHotZone))	// see if play in hot zone
 			{
 				player->CType = 0;
 
@@ -1389,7 +1545,7 @@ ObjNode	*door = rocket->ChainNode;
 				player->Rot.y = rocket->Rot.y;;										// aim directly at rocket
 				player->StatusBits |= STATUS_BIT_NOMOVE;							// rocket now controls player
 
-				rocket->Mode = ROCKET_MODE_ENTER;
+				rocket->Mode = ROCKET_MODE_PREENTER;
 				gPlayerHasLanded = false;
 
 				gFreezeCameraFromXZ = true;											// camera is frozen
@@ -1572,17 +1728,4 @@ float	y;
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

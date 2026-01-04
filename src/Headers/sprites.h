@@ -13,9 +13,9 @@ enum
 
 typedef struct
 {
-	long				width,height;
+	int				width,height;
 	float			aspectRatio;			// h/w
-	long			srcFormat, destFormat;
+	int				srcFormat, destFormat;
 	MetaObjectPtr	materialObject;
 }SpriteType;
 
@@ -23,9 +23,9 @@ typedef struct
 void InitSpriteManager(void);
 void DisposeAllSpriteGroups(void);
 void DisposeSpriteGroup(int groupNum);
-void LoadSpriteFile(FSSpec *spec, int groupNum, OGLSetupOutputType *setupInfo);
-ObjNode *MakeSpriteObject(NewObjectDefinitionType *newObjDef, OGLSetupOutputType *setupInfo);
+void LoadSpriteGroup(int groupNum, int numSprites, const char* basename);
+ObjNode *MakeSpriteObject(NewObjectDefinitionType *newObjDef);
 void BlendAllSpritesInGroup(short group);
-void ModifySpriteObjectFrame(ObjNode *theNode, short type, OGLSetupOutputType *setupInfo);
-void DrawSprite(int	group, int type, float x, float y, float scale, float rot, u_long flags, const OGLSetupOutputType *setupInfo);
+void ModifySpriteObjectFrame(ObjNode *theNode, short type);
+void DrawSprite(int	group, int type, float x, float y, float scale, float rot, uint32_t flags);
 void BlendASprite(int group, int type);

@@ -5,9 +5,6 @@ extern/openvr*
 # External library cache
 /cache
 
-# Automatically-generated headers
-src/Headers/version.h
-
 # Build directories
 /build*/
 /cmake-build*/

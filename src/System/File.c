@@ -1,7 +1,8 @@
 /****************************/
 /*      FILE ROUTINES       */
-/* (c)2001 Pangea Software  */
 /* By Brian Greenstone      */
+/* (c)2001 Pangea Software  */
+/* (c)2025 Iliyas Jorio     */
 /****************************/
 
 
@@ -17,8 +18,8 @@
 /*    PROTOTYPES            */
 /****************************/
 
-static void ReadDataFromSkeletonFile(SkeletonDefType *skeleton, FSSpec *fsSpec, int skeletonType, OGLSetupOutputType *setupInfo);
-static void ReadDataFromPlayfieldFile(FSSpec *specPtr, OGLSetupOutputType *setupInfo);
+static void ReadDataFromSkeletonFile(SkeletonDefType *skeleton, FSSpec *fsSpec, int skeletonType);
+static void ReadDataFromPlayfieldFile(FSSpec *specPtr);
 static void	ConvertTexture16To16(uint16_t *textureBuffer, int width, int height);
 static inline void Blit16(
 		const char*			src,
@@ -46,7 +47,7 @@ static inline void Blit16(
 
 #define PREFS_HEADER_LENGTH 16
 #define PREFS_FILE_NAME ":OttoMatic:Preferences6"
-const char PREFS_HEADER_STRING[PREFS_HEADER_LENGTH+1] = "OttoMaticPrefs06";		// Bump this every time prefs struct changes -- note: this will reset user prefs
+const char PREFS_HEADER_STRING[PREFS_HEADER_LENGTH+1] = "OttoMaticPrefs07";		// Bump this every time prefs struct changes -- note: this will reset user prefs
 
 
 		/* PLAYFIELD HEADER */
@@ -110,9 +111,9 @@ float	g3DTileSize, g3DMinY, g3DMaxY;
 // OUTPUT:	Ptr to skeleton data
 //
 
-SkeletonDefType *LoadSkeletonFile(short skeletonType, OGLSetupOutputType *setupInfo)
+SkeletonDefType *LoadSkeletonFile(short skeletonType)
 {
-QDErr		iErr;
+//QDErr		iErr;
 short		fRefNum;
 FSSpec		fsSpec;
 SkeletonDefType	*skeleton;
@@ -158,9 +159,8 @@ const char *fileNames[MAX_SKELETON_TYPES] =
 	fRefNum = FSpOpenResFile(&fsSpec,fsRdPerm);
 	if (fRefNum == -1)
 	{
-		iErr = ResError();
-		DoAlert("Error opening Skel Rez file");
-		ShowSystemErr(iErr);
+//		iErr = ResError();
+		DoFatalAlert("Error opening Skel Rez file");
 	}
 
 	UseResFile(fRefNum);
@@ -177,13 +177,12 @@ const char *fileNames[MAX_SKELETON_TYPES] =
 
 			/* READ SKELETON RESOURCES */
 
-	ReadDataFromSkeletonFile(skeleton,&fsSpec,skeletonType,setupInfo);
+	ReadDataFromSkeletonFile(skeleton,&fsSpec,skeletonType);
 	PrimeBoneData(skeleton);
 
 			/* CLOSE REZ FILE */
 
 	CloseResFile(fRefNum);
-	UseResFile(gMainAppRezFile);
 
 	return(skeleton);
 }
@@ -194,7 +193,7 @@ const char *fileNames[MAX_SKELETON_TYPES] =
 // Current rez file is set to the file.
 //
 
-static void ReadDataFromSkeletonFile(SkeletonDefType *skeleton, FSSpec *fsSpec, int skeletonType, OGLSetupOutputType *setupInfo)
+static void ReadDataFromSkeletonFile(SkeletonDefType *skeleton, FSSpec *fsSpec, int skeletonType)
 {
 Handle				hand;
 int					i,k,j;
@@ -248,7 +247,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 	{
 		iErr = ResolveAlias(fsSpec, alias, &target, &wasChanged);	// try to resolve alias
 		if (!iErr)
-			LoadBonesReferenceModel(&target,skeleton, skeletonType, setupInfo);
+			LoadBonesReferenceModel(&target,skeleton, skeletonType);
 		else
 			DoFatalAlert("ReadDataFromSkeletonFile: Cannot find Skeleton's 3DMF file!");
 		ReleaseResource((Handle)alias);
@@ -265,7 +264,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 	for (i=0; i < numJoints; i++)
 	{
 		File_BoneDefinitionType	*bonePtr;
-		u_short					*indexPtr;
+		uint16_t					*indexPtr;
 
 			/* READ BONE DATA */
 
@@ -287,11 +286,11 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 
 			/* ALLOC THE POINT & NORMALS SUB-ARRAYS */
 
-		skeleton->Bones[i].pointList = (u_short *)AllocPtr(sizeof(u_short) * (int)skeleton->Bones[i].numPointsAttachedToBone);
+		skeleton->Bones[i].pointList = (uint16_t *)AllocPtr(sizeof(uint16_t) * (int)skeleton->Bones[i].numPointsAttachedToBone);
 		if (skeleton->Bones[i].pointList == nil)
 			DoFatalAlert("ReadDataFromSkeletonFile: AllocPtr/pointList failed!");
 
-		skeleton->Bones[i].normalList = (u_short *)AllocPtr(sizeof(u_short) * (int)skeleton->Bones[i].numNormalsAttachedToBone);
+		skeleton->Bones[i].normalList = (uint16_t *)AllocPtr(sizeof(uint16_t) * (int)skeleton->Bones[i].numNormalsAttachedToBone);
 		if (skeleton->Bones[i].normalList == nil)
 			DoFatalAlert("ReadDataFromSkeletonFile: AllocPtr/normalList failed!");
 
@@ -301,7 +300,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 		if (hand == nil)
 			DoFatalAlert("Error reading BonP resource!");
 		HLock(hand);
-		indexPtr = (u_short *)(*hand);
+		indexPtr = (uint16_t *)(*hand);
 
 			/* COPY POINT INDEX ARRAY INTO BONE STRUCT */
 
@@ -316,7 +315,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 		if (hand == nil)
 			DoFatalAlert("Error reading BonN resource!");
 		HLock(hand);
-		indexPtr = (u_short *)(*hand);
+		indexPtr = (uint16_t *)(*hand);
 
 			/* COPY NORMAL INDEX ARRAY INTO BONE STRUCT */
 
@@ -341,7 +340,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 	HLock(hand);
 	pointPtr = (OGLPoint3D *)*hand;
 
-	i = GetHandleSize(hand) / sizeof(OGLPoint3D);
+	i = (int) (GetHandleSize(hand) / sizeof(OGLPoint3D));
 	if (i != skeleton->numDecomposedPoints)
 		DoFatalAlert("# of points in Reference Model has changed!");
 	else
@@ -451,7 +450,7 @@ SkeletonFile_AnimHeader_Type	*animHeaderPtr;
 // Load in standard preferences
 //
 
-OSErr LoadPrefs(PrefsType *prefBlock)
+OSErr LoadPrefs(void)
 {
 OSErr		iErr;
 short		refNum;
@@ -469,7 +468,10 @@ PrefsType	prefBuffer;
 	FSMakeFSSpec(gPrefsFolderVRefNum, gPrefsFolderDirID, PREFS_FILE_NAME, &file);
 	iErr = FSpOpenDF(&file, fsRdPerm, &refNum);
 	if (iErr)
+	{
+		InitDefaultPrefs();
 		return(iErr);
+	}
 
 				/* CHECK FILE LENGTH */
 
@@ -504,20 +506,14 @@ PrefsType	prefBuffer;
 
 	FSClose(refNum);
 
-			/* NUKE NON-REMAPPABLE KEYBINDINGS TO DEFAULTS */
-
-	for (int i = NUM_REMAPPABLE_NEEDS; i < NUM_CONTROL_NEEDS; i++)
-	{
-		prefBuffer.keys[i] = kDefaultKeyBindings[i];
-	}
-
 			/* PREFS ARE OK */
 
-	*prefBlock = prefBuffer;
+	gGamePrefs = prefBuffer;
 	return noErr;
 
 fileIsCorrupt:
-	printf("Prefs appear corrupt.\n");
+	InitDefaultPrefs();
+	SDL_Log("Prefs appear corrupt.");
 	FSClose(refNum);
 	return badFileFormat;
 }
@@ -570,7 +566,7 @@ long				count;
 
 /************************** LOAD LEVEL ART ***************************/
 
-void LoadLevelArt(OGLSetupOutputType *setupInfo)
+void LoadLevelArt(void)
 {
 FSSpec	spec;
 
@@ -602,18 +598,23 @@ const char*	levelModelFiles[NUM_LEVELS] =
 	":Models:level10_brainboss.bg3d",
 };
 
-const char*	levelSpriteFiles[NUM_LEVELS] =
+struct
 {
-	":Sprites:level1_farm.sprites",
-	":Sprites:level2_slime.sprites",
-	"",
-	":Sprites:level4_apocalypse.sprites",
-	":Sprites:level5_cloud.sprites",
-	":Sprites:level6_jungle.sprites",
-	":Sprites:level6_jungle.sprites",
-	":Sprites:level8_fireice.sprites",
-	"",
-	":Sprites:level10_brainboss.sprites",
+	const char* groupName;
+	int numSprites;
+}
+levelSpriteFiles[NUM_LEVELS] =
+{
+	{"farm", FARM_SObjType_COUNT},
+	{"slime", SLIME_SObjType_COUNT},
+	{NULL, 0},
+	{"apocalypse", APOCALYPSE_SObjType_COUNT},
+	{"cloud", CLOUD_SObjType_COUNT},
+	{"jungle", JUNGLE_SObjType_COUNT},
+	{"jungle", JUNGLE_SObjType_COUNT},
+	{"fireice", FIREICE_SObjType_COUNT},
+	{NULL, 0},
+	{"brainboss", BRAINBOSS_SObjType_COUNT},
 };
 
 
@@ -629,10 +630,10 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 			/* LOAD BG3D GEOMETRY */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:global.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_GLOBAL, setupInfo);
+	ImportBG3D(&spec, MODEL_GROUP_GLOBAL);
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, levelModelFiles[gLevelNum], &spec);
-	ImportBG3D(&spec, MODEL_GROUP_LEVELSPECIFIC, setupInfo);
+	ImportBG3D(&spec, MODEL_GROUP_LEVELSPECIFIC);
 
 	if (gG4)
 	{
@@ -644,11 +645,11 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_OTTO, setupInfo);
+	LoadASkeleton(SKELETON_TYPE_OTTO);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_OTTO,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-	LoadASkeleton(SKELETON_TYPE_BRAINALIEN, setupInfo);
+	LoadASkeleton(SKELETON_TYPE_BRAINALIEN);
 
 	if (gG4)
 	{
@@ -657,28 +658,28 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 	}
 
 
-	LoadASkeleton(SKELETON_TYPE_FARMER, setupInfo);
-	LoadASkeleton(SKELETON_TYPE_BEEWOMAN, setupInfo);
-	LoadASkeleton(SKELETON_TYPE_SCIENTIST, setupInfo);
-	LoadASkeleton(SKELETON_TYPE_SKIRTLADY, setupInfo);
+	LoadASkeleton(SKELETON_TYPE_FARMER);
+	LoadASkeleton(SKELETON_TYPE_BEEWOMAN);
+	LoadASkeleton(SKELETON_TYPE_SCIENTIST);
+	LoadASkeleton(SKELETON_TYPE_SKIRTLADY);
 
 			/* LOAD LEVEL-SPECIFIC SKELETONS & APPLY REFLECTION MAPS */
 
 	switch(gLevelNum)
 	{
 		case	LEVEL_NUM_FARM:
-				LoadASkeleton(SKELETON_TYPE_ONION, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_ONION);
 				if (gG4)
 					BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_ONION,
 												 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_Blue);
 
-				LoadASkeleton(SKELETON_TYPE_CORN, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_CORN);
 				if (gG4)
 					BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_CORN,
 												 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_Blue);
 
 
-				LoadASkeleton(SKELETON_TYPE_TOMATO, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_TOMATO);
 				if (gG4)
 					BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_TOMATO,
 												 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_Blue);
@@ -690,15 +691,15 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 				break;
 
 		case	LEVEL_NUM_BLOB:
-				LoadASkeleton(SKELETON_TYPE_BLOB, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_BLOB);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_BLOB,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-				LoadASkeleton(SKELETON_TYPE_SQUOOSHY, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_SQUOOSHY);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_SQUOOSHY,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
-				LoadASkeleton(SKELETON_TYPE_SLIMETREE, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_SLIMETREE);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_SLIMETREE,
 											 0, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 				BG3D_SetContainerMaterialFlags(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_SLIMETREE, 0, 1,			// no wrapping on the leaves
@@ -753,11 +754,11 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 				break;
 
 		case	LEVEL_NUM_APOCALYPSE:
-				LoadASkeleton(SKELETON_TYPE_PODWORM, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_PODWORM);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_PODWORM,
 											 0, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
-				LoadASkeleton(SKELETON_TYPE_MUTANT, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_MUTANTROBOT, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_MUTANT);
+				LoadASkeleton(SKELETON_TYPE_MUTANTROBOT);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_MUTANTROBOT,
 											 0, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_Blue);
 
@@ -769,9 +770,9 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 
 
 		case	LEVEL_NUM_CLOUD:
-				LoadASkeleton(SKELETON_TYPE_CLOWN, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_CLOWNFISH, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_STRONGMAN, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_CLOWN);
+				LoadASkeleton(SKELETON_TYPE_CLOWNFISH);
+				LoadASkeleton(SKELETON_TYPE_STRONGMAN);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_CLOWNFISH,
 											 0, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
@@ -792,22 +793,22 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 
 
 		case	LEVEL_NUM_JUNGLE:
-				LoadASkeleton(SKELETON_TYPE_GIANTLIZARD, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_FLYTRAP, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_MANTIS, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_GIANTLIZARD);
+				LoadASkeleton(SKELETON_TYPE_FLYTRAP);
+				LoadASkeleton(SKELETON_TYPE_MANTIS);
 				if (gG4)
 					BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_MANTIS,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
-				LoadASkeleton(SKELETON_TYPE_TURTLE, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_TURTLE);
 				if (gG4)
 					BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_TURTLE,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 				break;
 
 		case	LEVEL_NUM_JUNGLEBOSS:
-				LoadASkeleton(SKELETON_TYPE_TURTLE, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_FLYTRAP, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_PITCHERPLANT, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_TURTLE);
+				LoadASkeleton(SKELETON_TYPE_FLYTRAP);
+				LoadASkeleton(SKELETON_TYPE_PITCHERPLANT);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_PITCHERPLANT,
 											 0, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_GreenSheen);
 
@@ -835,11 +836,11 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 				break;
 
 		case	LEVEL_NUM_FIREICE:
-				LoadASkeleton(SKELETON_TYPE_FLAMESTER, setupInfo);
-				LoadASkeleton(SKELETON_TYPE_ICECUBE, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_FLAMESTER);
+				LoadASkeleton(SKELETON_TYPE_ICECUBE);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_ICECUBE,
 											 0, 0, MULTI_TEXTURE_COMBINE_MODULATE, SPHEREMAP_SObjType_Tundra);
-				LoadASkeleton(SKELETON_TYPE_SQUOOSHY, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_SQUOOSHY);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_SQUOOSHY,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
@@ -894,7 +895,7 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 				break;
 
 		case	LEVEL_NUM_BRAINBOSS:
-				LoadASkeleton(SKELETON_TYPE_ELITEBRAINALIEN, setupInfo);
+				LoadASkeleton(SKELETON_TYPE_ELITEBRAINALIEN);
 				BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_ELITEBRAINALIEN,
 											 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
@@ -916,23 +917,15 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 
 			/* LOAD SPRITES */
 
-	if (levelSpriteFiles[gLevelNum][0] > 0)
+	if (levelSpriteFiles[gLevelNum].numSprites != 0)
 	{
-		FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, levelSpriteFiles[gLevelNum], &spec);
-		LoadSpriteFile(&spec, SPRITE_GROUP_LEVELSPECIFIC, setupInfo);
+		LoadSpriteGroup(SPRITE_GROUP_LEVELSPECIFIC, levelSpriteFiles[gLevelNum].numSprites, levelSpriteFiles[gLevelNum].groupName);
 	}
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:infobar.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_INFOBAR, setupInfo);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:fence.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_FENCES, setupInfo);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:global.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_GLOBAL, setupInfo);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:spheremap.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_SPHEREMAPS, setupInfo);
+	LoadSpriteGroup(SPRITE_GROUP_INFOBAR, INFOBAR_SObjType_COUNT, "infobar");
+	LoadSpriteGroup(SPRITE_GROUP_FENCES, FENCE_TYPE_COUNT, "fence");
+	LoadSpriteGroup(SPRITE_GROUP_GLOBAL, GLOBAL_SObjType_COUNT, "global");
+	LoadSpriteGroup(SPRITE_GROUP_SPHEREMAPS, SPHEREMAP_SObjType_COUNT, "spheremap");
 
 
 			/* LOAD TERRAIN */
@@ -941,7 +934,7 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 			//
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, terrainFiles[gLevelNum], &spec);
-	LoadPlayfield(&spec, setupInfo);
+	LoadPlayfield(&spec);
 
 }
 
@@ -950,13 +943,13 @@ const char*	levelSpriteFiles[NUM_LEVELS] =
 
 /******************* LOAD PLAYFIELD *******************/
 
-void LoadPlayfield(FSSpec *specPtr, OGLSetupOutputType *setupInfo)
+void LoadPlayfield(FSSpec *specPtr)
 {
 
 
 			/* READ PLAYFIELD RESOURCES */
 
-	ReadDataFromPlayfieldFile(specPtr, setupInfo);
+	ReadDataFromPlayfieldFile(specPtr);
 
 
 
@@ -975,7 +968,7 @@ void LoadPlayfield(FSSpec *specPtr, OGLSetupOutputType *setupInfo)
 
 /********************** READ DATA FROM PLAYFIELD FILE ************************/
 
-static void ReadDataFromPlayfieldFile(FSSpec *specPtr, OGLSetupOutputType *setupInfo)
+static void ReadDataFromPlayfieldFile(FSSpec *specPtr)
 {
 Handle					hand;
 PlayfieldHeaderType		**header;
@@ -1080,16 +1073,16 @@ OSErr					iErr;
 			//
 
 	{
-		u_short	*src;
+		uint16_t	*src;
 
 		hand = GetResource('Layr',1000);
 		GAME_ASSERT_MESSAGE(hand, "Error reading map layer rez");
 		{
 			if (gTileGrid)														// free old array
 				Free_2d_array(gTileGrid);
-			Alloc_2d_array(u_short, gTileGrid, gTerrainTileDepth, gTerrainTileWidth);
+			Alloc_2d_array(uint16_t, gTileGrid, gTerrainTileDepth, gTerrainTileWidth);
 
-			src = (u_short *)*hand;
+			src = (uint16_t *)*hand;
 			for (int row = 0; row < gTerrainTileDepth; row++)
 			{
 				for (int col = 0; col < gTerrainTileWidth; col++)
@@ -1129,26 +1122,37 @@ OSErr					iErr;
 	hand = GetResource('Itms',1000);
 	GAME_ASSERT_MESSAGE(hand, "Error reading itemlist resource!");
 	{
-		TerrainItemEntryType   *rezItems;
-
 		DetachResource(hand);							// lets keep this data around
 		HLockHi(hand);									// LOCK this one because we have the lookup table into this
 		gMasterItemList = (TerrainItemEntryType **)hand;
-		rezItems = (TerrainItemEntryType *)*hand;
+
+		GAME_ASSERT(GetHandleSize(hand) == (Size)(gNumTerrainItems * sizeof(TerrainItemEntryType)));
 
 					/* CONVERT COORDINATES */
 
 		for (int i = 0; i < gNumTerrainItems; i++)
 		{
-			(*gMasterItemList)[i].x = SwizzleULong(&rezItems[i].x) * MAP2UNIT_VALUE;								// convert coordinates
-			(*gMasterItemList)[i].y = SwizzleULong(&rezItems[i].y) * MAP2UNIT_VALUE;
+			TerrainItemEntryType* item = &(*gMasterItemList)[i];
+			item->x = SwizzleULong(&item->x);
+			item->y = SwizzleULong(&item->y);
+			item->type = SwizzleUShort(&item->type);
+			item->flags = SwizzleUShort(&item->flags);
 
-			(*gMasterItemList)[i].type = SwizzleUShort(&rezItems[i].type);
-			(*gMasterItemList)[i].parm[0] = rezItems[i].parm[0];
-			(*gMasterItemList)[i].parm[1] = rezItems[i].parm[1];
-			(*gMasterItemList)[i].parm[2] = rezItems[i].parm[2];
-			(*gMasterItemList)[i].parm[3] = rezItems[i].parm[3];
-			(*gMasterItemList)[i].flags = SwizzleUShort(&rezItems[i].flags);
+#if 0
+			SDL_Log("Item#%d: %08x %08x %04x %02x%02x%02x%02x %04x",
+				i,
+				item->x,
+				item->y,
+				item->type,
+				item->parm[0],
+				item->parm[1],
+				item->parm[2],
+				item->parm[3],
+				item->flags);
+#endif
+
+			item->x *= MAP2UNIT_VALUE;
+			item->y *= MAP2UNIT_VALUE;
 		}
 	}
 
@@ -1188,17 +1192,35 @@ OSErr					iErr;
 	else
 		gNumSplines = 0;
 
-			/* READ SPLINE POINT LIST */
+			/* READ SPLINE NUB, POINT, AND ITEM LISTS */
 
 	for (int i = 0; i < gNumSplines; i++)
 	{
 		SplineDefType	*spline = &(*gSplineList)[i];									// point to Nth spline
 
-		// (Bugdom's) Level 2's spline #16 has 0 points. Skip the byteswapping, but do alloc an empty handle, which the game expects.
-		GAME_ASSERT(spline->numPoints != 0);
+		// make sure it's not an empty spline
+		GAME_ASSERT(spline->numNubs >= 2);
+		GAME_ASSERT(spline->numPoints >= 2);
+//		GAME_ASSERT(spline->numItems >= 1);
+
+		hand = GetResource('SpNb',1000+i);
+		GAME_ASSERT(hand);
+		{
+			SplinePointType	*nubList = (SplinePointType *)*hand;
+
+			DetachResource(hand);
+			HLockHi(hand);
+			(*gSplineList)[i].nubList = (SplinePointType **)hand;
+
+			for (int j = 0; j < spline->numNubs; j++)			// swizzle
+			{
+				(*spline->nubList)[j].x = SwizzleFloat(&nubList[j].x);
+				(*spline->nubList)[j].z = SwizzleFloat(&nubList[j].z);
+			}
+		}
 
 		hand = GetResource('SpPt',1000+i);
-		GAME_ASSERT_MESSAGE(hand, "can't get spline points rez");
+		GAME_ASSERT(hand);
 		{
 			SplinePointType	*ptList = (SplinePointType *)*hand;
 
@@ -1212,17 +1234,9 @@ OSErr					iErr;
 				(*spline->pointList)[j].z = SwizzleFloat(&ptList[j].z);
 			}
 		}
-	}
-
-
-			/* READ SPLINE ITEM LIST */
-
-	for (int i = 0; i < gNumSplines; i++)
-	{
-		SplineDefType	*spline = &(*gSplineList)[i];									// point to Nth spline
 
 		hand = GetResource('SpIt',1000+i);
-		GAME_ASSERT_MESSAGE(hand, "ReadDataFromPlayfieldFile: cant get spline items rez");
+		GAME_ASSERT(hand);
 		{
 			SplineItemType	*itemList = (SplineItemType *)*hand;
 
@@ -1237,6 +1251,11 @@ OSErr					iErr;
 				(*spline->itemList)[j].flags	= SwizzleUShort(&itemList[j].flags);
 			}
 		}
+
+
+				/* MAKE SPLINE LOOP SMOOTHLY */
+
+		PatchSplineLoop(spline);
 	}
 
 			/****************************/
@@ -1338,7 +1357,6 @@ OSErr					iErr;
 			/* CLOSE REZ FILE */
 
 	CloseResFile(fRefNum);
-	UseResFile(gMainAppRezFile);
 
 
 
@@ -1357,7 +1375,7 @@ OSErr					iErr;
 	Ptr allImages = AllocPtrClear(gNumUniqueSuperTiles * size);							// all supertile images from .ter data fork
 	Ptr canvas = AllocPtrClear(seamlessCanvasSize);										// we'll assemble the final supertile texture in there
 
-	memset(gSuperTileTextureObjects, 0, sizeof(gSuperTileTextureObjects));				// clear all supertile texture pointers
+	SDL_memset(gSuperTileTextureObjects, 0, sizeof(gSuperTileTextureObjects));				// clear all supertile texture pointers
 
 
 				/* READ ALL SUPERTILE IMAGES FROM DATA FORK */
@@ -1409,7 +1427,7 @@ OSErr					iErr;
 		{
 			cw = SUPERTILE_TEXMAP_SIZE;
 			ch = SUPERTILE_TEXMAP_SIZE;
-			memcpy(canvas, TILEIMAGE(col, row), size);
+			SDL_memcpy(canvas, TILEIMAGE(col, row), size);
 		}
 		else		// Do seamless texturing
 		{
@@ -1419,7 +1437,7 @@ OSErr					iErr;
 			ch = th + 2;
 
 			// Clear canvas to black
-			memset(canvas, 0, seamlessCanvasSize);
+			SDL_memset(canvas, 0, seamlessCanvasSize);
 
 			// Blit supertile image to middle of canvas
 			Blit16(TILEIMAGE(col, row), tw, th, 0, 0, tw, th, canvas, cw, ch, 1, 1);
@@ -1459,7 +1477,7 @@ OSErr					iErr;
 
 			/* INIT NEW MATERIAL DATA */
 
-		matData.setupInfo				= setupInfo;								// remember which draw context this material is assigned to
+		matData.setupInfo				=	gGameViewInfoPtr;						// remember which draw context this material is assigned to
 		matData.flags 					= 	BG3D_MATERIALFLAG_CLAMP_U|
 											BG3D_MATERIALFLAG_CLAMP_V|
 											BG3D_MATERIALFLAG_TEXTURED;
@@ -1542,7 +1560,7 @@ static inline void Blit16(
 
 	for (int row = 0; row < srcRectHeight; row++)
 	{
-		memcpy(dst, src, bytesPerPixel * srcRectWidth);
+		SDL_memcpy(dst, src, bytesPerPixel * srcRectWidth);
 		src += bytesPerPixel * srcWidth;
 		dst += bytesPerPixel * dstWidth;
 	}
@@ -1594,7 +1612,7 @@ Str255			saveFilePath;
 		/* DO NAV SERVICES */
 		/*******************/
 
-	snprintf(saveFilePath, sizeof(saveFilePath), SAVE_PATH_FORMAT, saveSlot);
+	SDL_snprintf(saveFilePath, sizeof(saveFilePath), SAVE_PATH_FORMAT, saveSlot);
 
 	FSMakeFSSpec(gPrefsFolderVRefNum, gPrefsFolderDirID, saveFilePath, &spec);
 
@@ -1638,7 +1656,7 @@ Str255			saveFilePath;
 
 				/* GET FILE WITH NAVIGATION SERVICES */
 
-	snprintf(saveFilePath, sizeof(saveFilePath), SAVE_PATH_FORMAT, saveSlot);
+	SDL_snprintf(saveFilePath, sizeof(saveFilePath), SAVE_PATH_FORMAT, saveSlot);
 
 	FSMakeFSSpec(gPrefsFolderVRefNum, gPrefsFolderDirID, saveFilePath, &spec);
 	err = FSpOpenDF(&spec, fsRdPerm, &refNum);
@@ -1687,4 +1705,182 @@ SaveGameType	saveData;
 	gPlayerInfo.jumpJet	= saveData.jumpJet;
 
 	return true;
+}
+
+/*********************** LOAD DATA FILE INTO MEMORY ***********************************/
+//
+// Use SafeDisposePtr when done.
+//
+
+Ptr LoadDataFile(const char* path, long* outLength)
+{
+	FSSpec spec;
+	OSErr err;
+	short refNum;
+	long fileLength = 0;
+	long readBytes = 0;
+
+	err = FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, path, &spec);
+	if (err != noErr)
+		return NULL;
+
+	err = FSpOpenDF(&spec, fsRdPerm, &refNum);
+	GAME_ASSERT_MESSAGE(!err, path);
+
+	// Get number of bytes until EOF
+	GetEOF(refNum, &fileLength);
+
+	// Prep data buffer
+	// Alloc 1 extra byte so LoadTextFile can return a null-terminated C string!
+	Ptr data = AllocPtrClear(fileLength + 1);
+
+	// Read file into data buffer
+	readBytes = fileLength;
+	err = FSRead(refNum, &readBytes, (Ptr) data);
+	GAME_ASSERT_MESSAGE(err == noErr, path);
+	FSClose(refNum);
+
+	GAME_ASSERT_MESSAGE(fileLength == readBytes, path);
+
+	if (outLength)
+	{
+		*outLength = fileLength;
+	}
+
+	return data;
+}
+
+
+/*********************** PARSE CSV *****************************/
+//
+// Call this function repeatedly to iterate over cells in a CSV table.
+// THIS FUNCTION MODIFIES THE INPUT BUFFER!
+//
+// Sample usage:
+//
+//		char* csvText = LoadTextFile("hello.csv", NULL);
+//		char* csvReader = csvText;
+//		bool endOfLine = false;
+//
+//		while (csvReader != NULL)
+//		{
+//			char* column = CSVIterator(&csvReader, &endOfLine);
+//			puts(column);
+//		}
+//
+//		SafeDisposePtr(csvText);
+//
+
+char* CSVIterator(char** csvCursor, bool* eolOut)
+{
+	enum
+	{
+		kCSVState_Stop,
+		kCSVState_WithinQuotedString,
+		kCSVState_WithinUnquotedString,
+		kCSVState_AwaitingSeparator,
+	};
+
+	const char SEPARATOR = ',';
+	const char QUOTE_DELIMITER = '"';
+
+	GAME_ASSERT(csvCursor);
+	GAME_ASSERT(*csvCursor);
+
+	const char* reader = *csvCursor;
+	char* writer = *csvCursor;		// we'll write over the column as we read it
+	char* columnStart = writer;
+	bool eol = false;
+
+	if (reader[0] == '\0')
+	{
+		reader = NULL;			// signify the parser should stop
+		columnStart = NULL;		// signify nothing more to read
+		eol = true;
+	}
+	else
+	{
+		int state;
+
+		if (*reader == QUOTE_DELIMITER)
+		{
+			state = kCSVState_WithinQuotedString;
+			reader++;
+		}
+		else
+		{
+			state = kCSVState_WithinUnquotedString;
+		}
+
+		while (*reader && state != kCSVState_Stop)
+		{
+			if (reader[0] == '\r' && reader[1] == '\n')
+			{
+				// windows CRLF -- skip the \r; we'll look at the \n later
+				reader++;
+				continue;
+			}
+
+			switch (state)
+			{
+			case kCSVState_WithinQuotedString:
+				if (*reader == QUOTE_DELIMITER)
+				{
+					state = kCSVState_AwaitingSeparator;
+				}
+				else
+				{
+					*writer = *reader;
+					writer++;
+				}
+				break;
+
+			case kCSVState_WithinUnquotedString:
+				if (*reader == SEPARATOR)
+				{
+					state = kCSVState_Stop;
+				}
+				else if (*reader == '\n')
+				{
+					eol = true;
+					state = kCSVState_Stop;
+				}
+				else
+				{
+					*writer = *reader;
+					writer++;
+				}
+				break;
+
+			case kCSVState_AwaitingSeparator:
+				if (*reader == SEPARATOR)
+				{
+					state = kCSVState_Stop;
+				}
+				else if (*reader == '\n')
+				{
+					eol = true;
+					state = kCSVState_Stop;
+				}
+				else
+				{
+					GAME_ASSERT_MESSAGE(false, "unexpected token in CSV file");
+				}
+				break;
+			}
+
+			reader++;
+		}
+	}
+
+	*writer = '\0';	// terminate string
+
+	if (reader != NULL)
+	{
+		GAME_ASSERT_MESSAGE(reader >= writer, "writer went past reader!!!");
+	}
+
+	*csvCursor = (char*) reader;
+	*eolOut = eol;
+	return columnStart;
 }

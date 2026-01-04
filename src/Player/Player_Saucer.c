@@ -61,7 +61,7 @@ short	gBeamModeSelected,gBeamMode;
 
 int		gNumHumansInTransit;
 
-short	gNumHumansInSaucer;
+int		gNumHumansInSaucer;
 Byte	gHumansInSaucerList[MAX_HUMANS_IN_SAUCER];
 
 static	float	gBeamDownDelay;
@@ -588,6 +588,13 @@ static void CheckSaucerActionControls(ObjNode *theNode)
 float	fps = gFramesPerSecondFrac;
 OGLMatrix3x3		m;
 static OGLPoint2D origin = {0,0};
+
+				/* CHECK FOR CHEATS */
+
+	if (GetCheatKeyCombo())
+	{
+		gPlayerInfo.fuel = 1;
+	}
 
 				/*****************************/
 				/* CHECK USER MOTION CONTROL */

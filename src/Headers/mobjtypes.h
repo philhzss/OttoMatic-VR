@@ -2,9 +2,7 @@
 // mobjtypes.h
 //
 
-
-#ifndef MOBJ_H
-#define MOBJ_H
+#pragma once
 
 enum
 {
@@ -260,9 +258,9 @@ enum
 	APOCALYPSE_ObjType_LampPost,
 	APOCALYPSE_ObjType_LampPost_Broken,
 	APOCALYPSE_ObjType_LampPost_Ruined,
-	
-	APOCALYPSE_ObjType_DebrisGate_Intact,
-	APOCALYPSE_ObjType_DebrisGate_Ruined,
+
+	APOCALYPSE_ObjType_DebrisGate_Open,
+	APOCALYPSE_ObjType_DebrisGate_Blocked,
 	APOCALYPSE_ObjType_DebrisGate_Debris0,
 	APOCALYPSE_ObjType_DebrisGate_Debris1,
 	APOCALYPSE_ObjType_DebrisGate_Debris2,
@@ -500,8 +498,10 @@ enum
 	BRAINBOSS_ObjType_FencePost
 };
 
-#endif
+/******************* HIGH SCORES *************************/
 
-
-
+enum
+{
+	HIGHSCORES_ObjType_Cyc,
+};
 

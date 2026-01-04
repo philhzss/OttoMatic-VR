@@ -17,7 +17,7 @@
 
 static void FreeLoseScreen(void);
 static void SetupLoseScreen(void);
-static void DrawLoseCallback(OGLSetupOutputType *info);
+static void DrawGameOverLogo(ObjNode* theNode);
 static void UpdateConveyorBelt(void);
 static ObjNode *PutNewHumanOnBelt(float xoff);
 static void PrimeInitialHumansOnBelt(void);
@@ -108,7 +108,7 @@ float	timer = 43.0f;
 
 			/* DRAW */
 
-		OGL_DrawScene(gGameViewInfoPtr, DrawLoseCallback);
+		OGL_DrawScene(DrawObjects);
 
 		timer -= gFramesPerSecondFrac;
 		if (timer <= 0.0f)
@@ -119,7 +119,7 @@ float	timer = 43.0f;
 
 			/* CLEANUP */
 
-	GammaFadeOut();
+	OGL_FadeOutScene(DrawObjects, NULL);
 	FreeLoseScreen();
 }
 
@@ -177,9 +177,9 @@ static const OGLVector3D	fillDirection1 = { -1, -.2, -.6 };
 			/* SET ANAGLYPH INFO */
 			/*********************/
 
-	if (gGamePrefs.anaglyph)
+	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-		if (!gGamePrefs.anaglyphColor)
+		if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		{
 			viewDef.lights.ambientColor.r 		+= .1f;					// make a little brighter
 			viewDef.lights.ambientColor.g 		+= .1f;
@@ -190,14 +190,14 @@ static const OGLVector3D	fillDirection1 = { -1, -.2, -.6 };
 		gAnaglyphEyeSeparation 	= 25.0f;
 	}
 
-	OGL_SetupWindow(&viewDef, &gGameViewInfoPtr);
+	OGL_SetupWindow(&viewDef);
 
 
 				/************/
 				/* LOAD ART */
 				/************/
 
-	InitSparkles();
+	InitEffects();
 
 				/* LOAD AUDIO */
 
@@ -205,31 +205,25 @@ static const OGLVector3D	fillDirection1 = { -1, -.2, -.6 };
 
 			/* LOAD SPRITES */
 
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:particle.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_PARTICLES, gGameViewInfoPtr);
+//	LoadSpriteGroup(SPRITE_GROUP_PARTICLES, PARTICLE_SObjType_COUNT, "particle");
+	LoadSpriteGroup(SPRITE_GROUP_SPHEREMAPS, SPHEREMAP_SObjType_COUNT, "spheremap");
+	LoadSpriteGroup(SPRITE_GROUP_LOSE, GAMEOVER_SObjType_COUNT, "lose");
 	BlendAllSpritesInGroup(SPRITE_GROUP_PARTICLES);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:spheremap.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_SPHEREMAPS, gGameViewInfoPtr);
-
-	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Sprites:lose.sprites", &spec);
-	LoadSpriteFile(&spec, SPRITE_GROUP_LOSE, gGameViewInfoPtr);
-
 
 
 			/* LOAD MODELS */
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, ":Models:losescreen.bg3d", &spec);
-	ImportBG3D(&spec, MODEL_GROUP_LOSESCREEN, gGameViewInfoPtr);
+	ImportBG3D(&spec, MODEL_GROUP_LOSESCREEN);
 
 
 			/* LOAD SKELETONS */
 
-	LoadASkeleton(SKELETON_TYPE_FARMER, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_BEEWOMAN, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SCIENTIST, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_SKIRTLADY, gGameViewInfoPtr);
-	LoadASkeleton(SKELETON_TYPE_BRAINALIEN, gGameViewInfoPtr);
+	LoadASkeleton(SKELETON_TYPE_FARMER);
+	LoadASkeleton(SKELETON_TYPE_BEEWOMAN);
+	LoadASkeleton(SKELETON_TYPE_SCIENTIST);
+	LoadASkeleton(SKELETON_TYPE_SKIRTLADY);
+	LoadASkeleton(SKELETON_TYPE_BRAINALIEN);
 	BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_BRAINALIEN,
 								 0, -1, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);
 
@@ -288,6 +282,17 @@ static const OGLVector3D	fillDirection1 = { -1, -.2, -.6 };
 	PrimeInitialHumansOnBelt();
 
 
+			/* LOGO */
+
+	NewObjectDefinitionType gameOverLogoDef =
+	{
+		.genre = CUSTOM_GENRE,
+		.slot = DRAWEXTRA_SLOT,
+		.scale = 1,
+		.flags = STATUS_BIT_DONTCULL,
+		.drawCall = DrawGameOverLogo,
+	};
+	MakeNewObject(&gameOverLogoDef);
 }
 
 
@@ -299,24 +304,19 @@ static void FreeLoseScreen(void)
 	MyFlushEvents();
 	DeleteAllObjects();
 	FreeAllSkeletonFiles(-1);
+	DisposeEffects();
 	DisposeAllSpriteGroups();
 	DisposeAllBG3DContainers();
 	DisposeSoundBank(SOUNDBANK_LOSE);
-	OGL_DisposeWindowSetup(&gGameViewInfoPtr);
+	OGL_DisposeWindowSetup();
 	Pomme_FlushPtrTracking(true);
 }
 
-/***************** DRAW LOSE CALLBACK *******************/
+/***************** DRAW GAME OVER LOGO *******************/
 
-static void DrawLoseCallback(OGLSetupOutputType *info)
+static void DrawGameOverLogo(ObjNode* theNode)
 {
-	DrawObjects(info);
-	DrawSparkles(info);											// draw light sparkles
-
-
-			/****************/
-			/* DRAW SPRITES */
-			/****************/
+	(void) theNode;
 
 	OGL_PushState();
 
@@ -325,7 +325,7 @@ static void DrawLoseCallback(OGLSetupOutputType *info)
 				/* DRAW GAME OVER */
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	DrawInfobarSprite2(-200, -230, 400, SPRITE_GROUP_LOSE, LOSE_SObjType_GameOver, info);
+	DrawInfobarSprite2(-200, -230, 400, SPRITE_GROUP_LOSE, LOSE_SObjType_GameOver);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	OGL_PopState();

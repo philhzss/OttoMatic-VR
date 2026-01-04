@@ -2,24 +2,29 @@
 // Object.h
 //
 
-#ifndef OBJECTS_H
-#define OBJECTS_H
-
+#pragma once
 
 #include "ogl_support.h"
 
 #define INVALID_NODE_FLAG	0xdeadbeef			// put into CType when node is deleted
 
-#define	TERRAIN_SLOT	1
-#define	PLAYER_SLOT		200
-#define	ENEMY_SLOT		(PLAYER_SLOT+10)
-#define	SLOT_OF_DUMB	3000
-#define	SPRITE_SLOT		(SLOT_OF_DUMB+100)
-#define	FENCE_SLOT		4
-#define	PARTICLE_SLOT	(SPRITE_SLOT-2)
-#define	WATER_SLOT		(PARTICLE_SLOT - 1)
-#define	HUMAN_SLOT		(SLOT_OF_DUMB-50)
-#define	DEBUGOVERLAY_SLOT	(0x7FFF)
+enum
+{
+	TERRAIN_SLOT		=     1,
+	FENCE_SLOT			=     4,
+	PLAYER_SLOT			=   200,
+	ENEMY_SLOT			=   210,
+	HUMAN_SLOT			=  2950,
+	SLOT_OF_DUMB		=  3000,
+	WATER_SLOT			=  3097,
+	PARTICLE_SLOT		=  3098,
+	SPARKLE_SLOT		=  3099,
+	SPRITE_SLOT			=  3100,
+	DRAWEXTRA_SLOT		=  5000,
+	MENU_SLOT			=  5100,
+	FADEPANE_SLOT		=  5200,
+	DEBUGOVERLAY_SLOT	= 32767,
+};
 
 enum
 {
@@ -38,15 +43,12 @@ enum
 };
 
 
-#define	DEFAULT_GRAVITY		5000.0f
-
-
 //========================================================
 
-extern	void InitObjectManager(void);
-extern	ObjNode	*MakeNewObject(NewObjectDefinitionType *newObjDef);
-extern	void MoveObjects(void);
-void DrawObjects(OGLSetupOutputType *setupInfo);
+void InitObjectManager(void);
+ObjNode* MakeNewObject(NewObjectDefinitionType* newObjDef);
+void MoveObjects(void);
+void DrawObjects(void);
 
 extern	void DeleteAllObjects(void);
 extern	void DeleteObject(ObjNode	*theNode);
@@ -82,16 +84,9 @@ void CreateCollisionBoxFromBoundingBox(ObjNode *theNode, float tweakXZ, float tw
 void CreateCollisionBoxFromBoundingBox_Maximized(ObjNode *theNode);
 void CreateCollisionBoxFromBoundingBox_Rotated(ObjNode *theNode, float tweakXZ, float tweakY);
 void CreateCollisionBoxFromBoundingBox_Update(ObjNode *theNode, float tweakXZ, float tweakY);
-ObjNode *FindClosestCType(OGLPoint3D *pt, u_long ctype);
-ObjNode *FindClosestCType3D(OGLPoint3D *pt, u_long ctype);
+ObjNode* FindClosestCType(const OGLPoint3D* pt, uint32_t ctype);
+ObjNode* FindClosestCType3D(const OGLPoint3D* pt, uint32_t ctype);
 extern	void StopObjectStreamEffect(ObjNode *theNode);
 extern	void KeepOldCollisionBoxes(ObjNode *theNode);
 void AddCollisionBoxToObject(ObjNode *theNode, float top, float bottom, float left,
 							 float right, float front, float back);
-
-
-
-
-#endif
-
-

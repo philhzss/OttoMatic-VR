@@ -597,6 +597,9 @@ shim:
 	}
 
 
+	PlayEffect3D(EFFECT_METALGATECRASH, &theNode->Coord);		// play crash sound
+
+
 			/* DELETE THE GATE */
 
 	theNode->TerrainItemPtr = nil;								// never come back
@@ -605,13 +608,7 @@ shim:
 
 			/* STOP THE TRACTOR */
 
-	whoNode->Mode = TRACTOR_MODE_WAIT;
-	whoNode->TractorIsDone = true;
-	whoNode->Damage = 0;
-	whoNode->CType = CTYPE_MISC;
-
-	StopAChannelIfEffectNum(&whoNode->EffectChannel, EFFECT_TRACTOR);	// stop tractor loop
-	PlayEffect3D(EFFECT_METALGATECRASH, &theNode->Coord);		// play crash sound
+	StopTractor(whoNode);
 
 
 	return(true);
@@ -1076,7 +1073,7 @@ static Boolean DoTrig_BumperBubble(ObjNode *theNode, ObjNode *whoNode, Byte side
 Boolean AddFallingSlimePlatform(TerrainItemEntryType *itemPtr, long  x, long z)
 {
 ObjNode	*newObj;
-float	s,y;
+float	s;
 short	type = itemPtr->parm[0];
 int		i;
 
@@ -1096,7 +1093,7 @@ int		i;
 	}
 
 	gNewObjectDefinition.coord.x 	= x;
-	y = gNewObjectDefinition.coord.y += 200.0f;
+	gNewObjectDefinition.coord.y	+= 200.0f;
 	gNewObjectDefinition.coord.z 	= z;
 	gNewObjectDefinition.flags 		= gAutoFadeStatusBits;
 	gNewObjectDefinition.slot 		= TRIGGER_SLOT;

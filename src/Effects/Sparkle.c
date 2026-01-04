@@ -1,7 +1,8 @@
 /****************************/
 /*   	SPARKLE.C  			*/
-/* (c)2001 Pangea Software  */
 /* By Brian Greenstone      */
+/* (c)2001 Pangea Software  */
+/* (c)2023 Iliyas Jorio     */
 /****************************/
 
 
@@ -15,6 +16,7 @@
 /*    PROTOTYPES            */
 /****************************/
 
+static void DrawSparkles(ObjNode*);
 
 
 /****************************/
@@ -28,25 +30,36 @@
 /*********************/
 
 SparkleType	gSparkles[MAX_SPARKLES];
+Pool*		gSparklePool = NULL;
 
 static float	gPlayerSparkleColor = 0;
-
-int	gNumSparkles;
 
 /*************************** INIT SPARKLES **********************************/
 
 void InitSparkles(void)
 {
-int		i;
-
-	for (i = 0; i < MAX_SPARKLES; i++)
-	{
-		gSparkles[i].isActive = false;
-	}
+	GAME_ASSERT(!gSparklePool);
+	gSparklePool = Pool_New(MAX_SPARKLES);
 
 	gPlayerSparkleColor = 0;
 
-	gNumSparkles = 0;
+	NewObjectDefinitionType sparkleDrawerDef =
+	{
+		.genre = CUSTOM_GENRE,
+		.slot = SPARKLE_SLOT,
+		.scale = 1,
+		.flags = STATUS_BIT_DONTCULL,
+		.drawCall = DrawSparkles,
+	};
+	MakeNewObject(&sparkleDrawerDef);
+}
+
+/************************* DISPOSE SPARKLES ********************************/
+
+void DisposeSparkles(void)
+{
+	Pool_Free(gSparklePool);
+	gSparklePool = NULL;
 }
 
 
@@ -55,27 +68,18 @@ int		i;
 // OUTPUT:  -1 if none
 //
 
-short GetFreeSparkle(ObjNode *theNode)
+int GetFreeSparkle(ObjNode *theNode)
 {
-int		i;
-
 			/* FIND A FREE SLOT */
 
-	for (i = 0; i < MAX_SPARKLES; i++)
+	int i = Pool_AllocateIndex(gSparklePool);
+
+	if (i >= 0)
 	{
-		if (!gSparkles[i].isActive)
-			goto got_it;
-
+		gSparkles[i].owner = theNode;
 	}
-	return(-1);
 
-got_it:
-
-	gSparkles[i].isActive = true;
-	gSparkles[i].owner = theNode;
-	gNumSparkles++;
-
-	return(i);
+	return i;
 }
 
 
@@ -83,27 +87,23 @@ got_it:
 
 /***************** DELETE SPARKLE *********************/
 
-void DeleteSparkle(short i)
+void DeleteSparkle(int i)
 {
-	if (i == -1)
+	if (i < 0)
 		return;
 
-	if (gSparkles[i].isActive)
-	{
-		gSparkles[i].isActive = false;
-		gNumSparkles--;
-	}
-//	else
-//		DoAlert("DeleteSparkle: double delete sparkle");
+	GAME_ASSERT(Pool_IsUsed(gSparklePool, i));
+
+	gSparkles[i].owner = NULL;
+
+	Pool_ReleaseIndex(gSparklePool, i);
 }
 
 
 /*************************** DRAW SPARKLES ******************************/
 
-void DrawSparkles(OGLSetupOutputType *setupInfo)
+static void DrawSparkles(ObjNode* theNode)
 {
-u_long	flags;
-int		i;
 float	dot,separation;
 OGLMatrix4x4	m;
 OGLVector3D	v;
@@ -117,6 +117,11 @@ static OGLPoint3D		frame[4] =
 	{130,	-130,	0},
 	{-130,	-130,	0},
 };
+
+	(void) theNode;
+
+	if (!gSparklePool || Pool_Empty(gSparklePool))			// quick check if any sparkles at all
+		return;
 
 
 	OGL_PushState();
@@ -134,18 +139,15 @@ static OGLPoint3D		frame[4] =
 			/* DRAW EACH SPARKLE */
 			/*********************/
 
-	cameraLocation = &setupInfo->cameraPlacement.cameraLocation;		// point to camera coord
+	cameraLocation = &gGameViewInfoPtr->cameraPlacement.cameraLocation;		// point to camera coord
 
-	for (i = 0; i < MAX_SPARKLES; i++)
+	for (int i = Pool_First(gSparklePool); i >= 0; i = Pool_Next(gSparklePool, i))
 	{
-		ObjNode	*owner;
+		GAME_ASSERT(Pool_IsUsed(gSparklePool, i));			// must be active
 
-		if (!gSparkles[i].isActive)							// must be active
-			continue;
+		uint32_t flags = gSparkles[i].flags;				// get sparkle flags
 
-		flags = gSparkles[i].flags;							// get sparkle flags
-
-		owner = gSparkles[i].owner;
+		ObjNode* owner = gSparkles[i].owner;
 		if (owner != nil)									// if owner is culled then dont draw
 		{
 			if (owner->StatusBits & (STATUS_BIT_ISCULLED|STATUS_BIT_HIDDEN))
@@ -189,7 +191,7 @@ static OGLPoint3D		frame[4] =
 
 			/* CALC TRANSFORM MATRIX */
 
-		frame[0].x = -gSparkles[i].scale;								// set size of quad
+		frame[0].x = -gSparkles[i].scale;								// set allocated of quad
 		frame[0].y = gSparkles[i].scale;
 		frame[1].x = gSparkles[i].scale;
 		frame[1].y = gSparkles[i].scale;
@@ -205,7 +207,7 @@ static OGLPoint3D		frame[4] =
 
 			/* DRAW IT */
 
-		MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_PARTICLES][gSparkles[i].textureNum].materialObject, setupInfo);	// submit material
+		MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_PARTICLES][gSparkles[i].textureNum].materialObject);	// submit material
 
 		if (flags & SPARKLE_FLAG_FLICKER)								// set transparency
 		{
@@ -218,17 +220,17 @@ static OGLPoint3D		frame[4] =
 			if (c.a > 1.0f)
 				c.a = 1.0;
 
-			SetColor4fv((GLfloat *)&c);
+			SetColor4fv(&c.r);
 		}
 		else
-			SetColor4fv((GLfloat *)&gSparkles[i].color);
+			SetColor4fv(&gSparkles[i].color.r);
 
 
 		glBegin(GL_QUADS);
-		glTexCoord2f(0,0);	glVertex3fv((GLfloat *)&tc[0]);
-		glTexCoord2f(1,0);	glVertex3fv((GLfloat *)&tc[1]);
-		glTexCoord2f(1,1);	glVertex3fv((GLfloat *)&tc[2]);
-		glTexCoord2f(0,1);	glVertex3fv((GLfloat *)&tc[3]);
+		glTexCoord2f(0,1);	glVertex3fv(&tc[0].x);
+		glTexCoord2f(1,1);	glVertex3fv(&tc[1].x);
+		glTexCoord2f(1,0);	glVertex3fv(&tc[2].x);
+		glTexCoord2f(0,0);	glVertex3fv(&tc[3].x);
 		glEnd();
 	}
 
@@ -439,7 +441,7 @@ float			fps = gFramesPerSecondFrac;
 
 Boolean AddRunwayLights(TerrainItemEntryType *itemPtr, long  x, long z)
 {
-u_char	flicker = itemPtr->parm[3] & 1;						// see if flicker
+uint8_t	flicker = itemPtr->parm[3] & 1;						// see if flicker
 ObjNode	*newObj;
 short	i,numSparkles,j,t;
 float	r,dx,dz,x2,z2;
@@ -527,20 +529,4 @@ static const short textureTable[] =
 
 	return(true);													// item was added
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

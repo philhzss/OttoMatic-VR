@@ -5,8 +5,6 @@
 #include "terrain.h"
 #include "splineitems.h"
 
-extern	short		gMaxEnemies;
-
 #define	DEFAULT_ENEMY_COLLISION_CTYPES	(CTYPE_MISC|CTYPE_HURTENEMY|CTYPE_ENEMY|CTYPE_TRIGGER2|CTYPE_FENCE|CTYPE_PLAYER)
 #define	DEATH_ENEMY_COLLISION_CTYPES	(CTYPE_MISC|CTYPE_ENEMY|CTYPE_FENCE)
 
@@ -48,17 +46,6 @@ enum
 
 
 
-		/* TRACTOR MODES */
-		
-#define	TractorIsDone		Flag[0]
-		
-enum
-{
-	TRACTOR_MODE_WAIT,
-	TRACTOR_MODE_CHASE,
-	TRACTOR_MODE_RAM
-};
-
 
 		/* SAUCER INFO */
 		
@@ -80,7 +67,7 @@ enum
 			
 ObjNode *MakeEnemySkeleton(Byte skeletonType, float x, float z, float scale, float rot, void (*moveCall)(ObjNode*));
 extern	void DeleteEnemy(ObjNode *theEnemy);
-Boolean DoEnemyCollisionDetect(ObjNode *theEnemy, unsigned long ctype, Boolean useBBoxBottom);
+Boolean DoEnemyCollisionDetect(ObjNode *theEnemy, uint32_t ctype, Boolean useBBoxBottom);
 extern	void UpdateEnemy(ObjNode *theNode);
 extern	void InitEnemyManager(void);
 void MoveEnemy(ObjNode *theNode);
@@ -135,6 +122,7 @@ Boolean PrimeEnemy_Tomato(long splineNum, SplineItemType *itemPtr);
 		/* TRACTOR */
 		
 Boolean AddTractor(TerrainItemEntryType *itemPtr, long  x, long z);
+void StopTractor(ObjNode* theNode);
 
 
 		/* BLOB */

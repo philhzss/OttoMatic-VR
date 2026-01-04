@@ -13,12 +13,16 @@
 
 #define EPS .0001					// a very small number which is useful for FP compares close to 0
 #define	IS_ZERO(_x)  (fabs(_x) < EPS)
-
-#define GAME_CLAMP(x, lo, hi) ( (x) < (lo) ? (lo) : ( (x) > (hi) ? (hi) : (x) ) )
-#define GAME_MIN(a, b) ( (a) < (b) ? (a) : (b) )
-#define GAME_MAX(a, b) ( (a) > (b) ? (a) : (b) )
 #define	SQUARED(x)					((x)*(x))
 
+static inline int MinInt(int a, int b) { return a < b ? a : b; }
+static inline int MaxInt(int a, int b) { return a < b ? b : a; }
+static inline int ClampInt(int x, int lo, int hi) { return x < lo ? lo : x > hi ? hi : x; }
+
+static inline float MinFloat(float a, float b) { return a < b ? a : b; }
+static inline float MaxFloat(float a, float b) { return a < b ? b : a; }
+static inline float ClampFloat(float x, float lo, float hi) { return x < lo ? lo : x > hi ? hi : x; }
+static inline float LerpFloat(float from, float to, float t) { return from * (1.0f - t) + to * t; }
 
 
 		/* CLOSE ENOUGH TO ZERO */
@@ -55,10 +59,6 @@ int _i;																	\
 		array = nil;						\
 }
 
-typedef	unsigned char u_char;
-typedef	unsigned long u_long;
-typedef	unsigned short u_short;
-
 
 #define	PI					((float)3.1415926535898)
 #define PI2					(2.0f*PI)
@@ -75,6 +75,7 @@ typedef	unsigned short u_short;
 #define	SIDE_BITS_BACK		(1<<5)						// %100000
 #define	ALL_SOLID_SIDES		(SIDE_BITS_TOP|SIDE_BITS_BOTTOM|SIDE_BITS_LEFT|SIDE_BITS_RIGHT|\
 							SIDE_BITS_FRONT|SIDE_BITS_BACK)
+#define	SIDE_BITS_FENCE		(1<<6)						// not a real side, but returned by HandleCollision if a fence was hit
 
 
 							// CBITS (32 BIT VALUES)
@@ -102,7 +103,7 @@ enum
 {
 	CTYPE_PLAYER	=	1,			// Me
 	CTYPE_HUMAN		=	(1<<1),		// set if is a human
-	CTYPE_BLOCKRAYS	=	(1<<2),		// for objects we want to block certain ray-intersect checks
+	CTYPE_BLOCKRAYS	=	(1<<2),		// if should block certain ray-intersect checks (typically destructible gates)
 	CTYPE_TRIGGER2	=	(1<<3),		// Enemy Trigger
 	CTYPE_TRIGGER	=	(1<<4),		// Trigger
 	CTYPE_SKELETON	=	(1<<5),		// Skeleton
@@ -125,7 +126,8 @@ enum
 	CTYPE_IMPENETRABLE	= (1<<22),	// set if object must have high collision priority and cannot be pushed thru this
 	CTYPE_IMPENETRABLE2	= (1<<23),	// set with CTYPE_IMPENETRABLE if dont want player to do coord=oldCoord when touched
 	CTYPE_AUTOTARGETJUMP = (1<<24),	// if auto target when jumping
-	CTYPE_HEATSEEKATTACT = (1<<25)	// if can attract heat seeking weapons
+	CTYPE_HEATSEEKATTACT = (1<<25),	// if can attract heat seeking weapons
+	CTYPE_MPLATFORM_FREEJUMP = (1<<26),	// don't factor in platform deltas when jumping off of it
 };
 
 

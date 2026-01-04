@@ -38,10 +38,10 @@ enum
 
 struct MetaObjectHeader
 {
-	u_long		cookie;						// this value should always == MO_COOKIE
-	long		refCount;					// # times this is referenced
-	u_long		type;						// object type
-	u_long		subType;					// object sub-type
+	uint32_t	cookie;						// this value should always == MO_COOKIE
+	int			refCount;					// # times this is referenced
+	uint32_t	type;						// object type
+	uint32_t	subType;					// object sub-type
 	void		*data;						// pointer to meta object's specific data	
 	
 	struct MetaObjectHeader *parentGroup;			// illegal reference to parent group, or nil if no parent
@@ -81,14 +81,14 @@ typedef struct
 {
 	OGLSetupOutputType *setupInfo;					// materials are draw context relative, so remember which context we're using now
 	
-	u_long			flags;	
+	uint32_t		flags;
 	OGLColorRGBA	diffuseColor;					// rgba diffuse color
-	u_short			multiTextureMode;				// sphere map, etc.
-	u_short			multiTextureCombine;			// blend, replace, etc.
-	u_short			envMapNum;						// texture # in env map list to use
+	uint16_t		multiTextureMode;				// sphere map, etc.
+	uint16_t		multiTextureCombine;			// blend, replace, etc.
+	uint16_t		envMapNum;						// texture # in env map list to use
 	
-	u_long			numMipmaps;						// # texture mipmaps to use
-	u_long			width,height;					// dimensions of texture
+	int				numMipmaps;						// # texture mipmaps to use
+	int				width,height;					// dimensions of texture
 	GLint			pixelSrcFormat;					// OGL format (GL_RGBA, etc.) for src pixels (ignored if texturePixels == nil)
 	GLint			pixelDstFormat;					// OGL format (GL_RGBA, etc.) for VRAM (ignored if texturePixels == nil)
 	void			*texturePixels[MO_MAX_MIPMAPS]; // ptr to texture pixels for each mipmap (if nil, user code must preload GL texture)
@@ -158,23 +158,6 @@ typedef struct
 	OGLMatrix4x4		matrix;
 }MOMatrixObject;
 
-
-		/******************/
-		/* PICTURE OBJECT */
-		/******************/
-
-typedef struct
-{
-	int					fullWidth,fullHeight;
-	MOMaterialObject	*material;
-}MOPictureData;
-		
-typedef struct
-{
-	MetaObjectHeader	objectHeader;
-	MOPictureData		objectData;
-}MOPictureObject;
-
 	
 		/*****************/
 		/* SPRITE OBJECT */
@@ -202,11 +185,6 @@ typedef struct
 
 typedef struct
 {
-	Boolean	loadFile;				// true if want to create sprite from pict right now, otherwise use from gSpriteList
-
-	FSSpec	spec;					// picture file to load as sprite
-	GLint	pixelFormat;			// format to store loaded sprite as
-
 	short	group,type;				// group and type of gSpriteList sprite to use
 }MOSpriteSetupData;
 	
@@ -215,24 +193,22 @@ typedef struct
 //-----------------------------
 
 void MO_InitHandler(void);
-MetaObjectPtr MO_CreateNewObjectOfType(u_long type, u_long subType, void *data);
+MetaObjectPtr MO_CreateNewObjectOfType(uint32_t type, uint32_t subType, void *data);
 MetaObjectPtr MO_GetNewReference(MetaObjectPtr mo);
 void MO_AppendToGroup(MOGroupObject *group, MetaObjectPtr newObject);
 void MO_AttachToGroupStart(MOGroupObject *group, MetaObjectPtr newObject);
-void MO_DrawGeometry_VertexArray(const MOVertexArrayData *data, const OGLSetupOutputType *setupInfo);
-void MO_DrawGroup(const MOGroupObject *object, const OGLSetupOutputType *setupInfo);
-void MO_DrawObject(const MetaObjectPtr object, const OGLSetupOutputType *setupInfo);
-void MO_DrawMaterial(MOMaterialObject *matObj, const OGLSetupOutputType *setupInfo);
-void MO_DrawMatrix(const MOMatrixObject *matObj, const OGLSetupOutputType *setupInfo);
-void MO_DrawPicture(const MOPictureObject *picObj, const OGLSetupOutputType *setupInfo);
+void MO_DrawGeometry_VertexArray(const MOVertexArrayData *data);
+void MO_DrawGroup(const MOGroupObject *object);
+void MO_DrawObject(const MetaObjectPtr object);
+void MO_DrawMaterial(MOMaterialObject *matObj);
+void MO_DrawMatrix(const MOMatrixObject *matObj);
 void MO_DisposeObjectReference(MetaObjectPtr obj);
 void MO_DuplicateVertexArrayData(MOVertexArrayData *inData, MOVertexArrayData *outData);
 void MO_DeleteObjectInfo_Geometry_VertexArray(MOVertexArrayData *data);
 void MO_DisposeObject_Geometry_VertexArray(MOVertexArrayData *data);
 void MO_CalcBoundingBox(MetaObjectPtr object, OGLBoundingBox *bBox);
-void MO_SetPictureObjectCoordsToMouse(OGLSetupOutputType *info, MOPictureObject *obj);
 
-void MO_DrawSprite(const MOSpriteObject *spriteObj, const OGLSetupOutputType *setupInfo);
+void MO_DrawSprite(const MOSpriteObject *spriteObj);
 void MO_VertexArray_OffsetUVs(MetaObjectPtr object, float du, float dv);
 void MO_Object_OffsetUVs(MetaObjectPtr object, float du, float dv);
 void MO_Geometry_OffserUVs(short group, short type, short geometryNum, float du, float dv);
