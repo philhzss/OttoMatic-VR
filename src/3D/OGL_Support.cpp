@@ -53,8 +53,8 @@ static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short 
 /*    VARIABLES      */
 /*********************/
 
-float					gAnaglyphFocallength	= 150.0f;
-float					gAnaglyphEyeSeparation 	= 40.0f;
+float					gAnaglyphFocallength = 150.0f;
+float					gAnaglyphEyeSeparation = 40.0f;
 Byte					gAnaglyphPass;
 uint8_t					gAnaglyphGreyTable[255];
 
@@ -66,12 +66,12 @@ GLuint gEyeTextureSize = 0;
 extern vr::TrackedDevicePose_t trackedDevices[vr::k_unMaxTrackedDeviceCount];
 
 
-OGLMatrix4x4	gViewToFrustumMatrix,gWorldToViewMatrix,gWorldToFrustumMatrix;
-OGLMatrix4x4	gWorldToWindowMatrix,gFrustumToWindowMatrix;
+OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
+OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 float	gCurrentAspectRatio = 1;
-float	g2DLogicalWidth		= 640.0f;
-float	g2DLogicalHeight	= 480.0f;
+float	g2DLogicalWidth = 640.0f;
+float	g2DLogicalHeight = 480.0f;
 
 
 Boolean		gStateStack_Lighting[STATE_STACK_SIZE];
@@ -93,7 +93,7 @@ int			gVRAMUsedThisFrame = 0;
 
 Boolean		gMyState_Lighting;
 
-static ObjNode* gDebugText;
+static ObjNode *gDebugText;
 
 // Tmp log file
 std::ofstream gOGLLogFile;
@@ -105,7 +105,7 @@ std::ofstream gOGLLogFile;
 
 void OGL_Boot(void)
 {
-		/* GENERATE ANAGLYPH GREY CONVERSION TABLE */
+	/* GENERATE ANAGLYPH GREY CONVERSION TABLE */
 
 #if 1
 	// TODO: "< 255" instead of "<= 255" on purpose?
@@ -123,12 +123,12 @@ void OGL_Boot(void)
 	for (int i = 0; i < 255; i++)
 	{
 		gAnaglyphGreyTable[i] = sin(f) * 255.0f;
-		f += (PI/2.0) / 255.0f;
+		f += (PI / 2.0) / 255.0f;
 	}
 #endif
 
 
-		/* CREATE DRAW CONTEXT THAT WILL BE USED THROUGHOUT THE GAME */
+	/* CREATE DRAW CONTEXT THAT WILL BE USED THROUGHOUT THE GAME */
 
 	OGL_CreateDrawContext();
 }
@@ -149,49 +149,49 @@ void OGL_Shutdown(void)
 
 void OGL_NewViewDef(OGLSetupInputType *viewDef)
 {
-const OGLColorRGBA		clearColor = {0,0,0,1};
-const OGLPoint3D			cameraFrom = { 0, 0, 0.0 };
-const OGLPoint3D			cameraTo = { 0, 0, -1 };
-const OGLVector3D			cameraUp = { 0.0, 1.0, 0.0 };
-const OGLColorRGBA			ambientColor = { .3, .3, .3, 1 };
-const OGLColorRGBA			fillColor = { 1.0, 1.0, 1.0, 1 };
-static OGLVector3D			fillDirection1 = { 1, 0, -1 };
-static OGLVector3D			fillDirection2 = { -1, -.3, -.3 };
+	const OGLColorRGBA		clearColor = { 0,0,0,1 };
+	const OGLPoint3D			cameraFrom = { 0, 0, 0.0 };
+	const OGLPoint3D			cameraTo = { 0, 0, -1 };
+	const OGLVector3D			cameraUp = { 0.0, 1.0, 0.0 };
+	const OGLColorRGBA			ambientColor = { .3, .3, .3, 1 };
+	const OGLColorRGBA			fillColor = { 1.0, 1.0, 1.0, 1 };
+	static OGLVector3D			fillDirection1 = { 1, 0, -1 };
+	static OGLVector3D			fillDirection2 = { -1, -.3, -.3 };
 
 
 	OGLVector3D_Normalize(&fillDirection1, &fillDirection1);
 	OGLVector3D_Normalize(&fillDirection2, &fillDirection2);
 
-	viewDef->view.clearColor 		= clearColor;
-	viewDef->view.clip.left 	= 0;
-	viewDef->view.clip.right 	= 0;
-	viewDef->view.clip.top 		= 0;
-	viewDef->view.clip.bottom 	= 0;
+	viewDef->view.clearColor = clearColor;
+	viewDef->view.clip.left = 0;
+	viewDef->view.clip.right = 0;
+	viewDef->view.clip.top = 0;
+	viewDef->view.clip.bottom = 0;
 	viewDef->view.clearBackBuffer = true;
 
-	viewDef->camera.from			= cameraFrom;
-	viewDef->camera.to 				= cameraTo;
-	viewDef->camera.up 				= cameraUp;
-	viewDef->camera.hither 			= 10;
-	viewDef->camera.yon 			= 4000;
-	viewDef->camera.fov 			= 1.1;
+	viewDef->camera.from = cameraFrom;
+	viewDef->camera.to = cameraTo;
+	viewDef->camera.up = cameraUp;
+	viewDef->camera.hither = 10;
+	viewDef->camera.yon = 4000;
+	viewDef->camera.fov = 1.1;
 
-	viewDef->styles.usePhong 		= false;
+	viewDef->styles.usePhong = false;
 
-	viewDef->styles.useFog			= false;
-	viewDef->styles.fogStart		= viewDef->camera.yon * .5f;
-	viewDef->styles.fogEnd			= viewDef->camera.yon;
-	viewDef->styles.fogDensity		= 1.0;
-	viewDef->styles.fogMode			= GL_LINEAR;
+	viewDef->styles.useFog = false;
+	viewDef->styles.fogStart = viewDef->camera.yon * .5f;
+	viewDef->styles.fogEnd = viewDef->camera.yon;
+	viewDef->styles.fogDensity = 1.0;
+	viewDef->styles.fogMode = GL_LINEAR;
 
-	viewDef->styles.redFont			= false;
+	viewDef->styles.redFont = false;
 
-	viewDef->lights.ambientColor 	= ambientColor;
-	viewDef->lights.numFillLights 	= 1;
+	viewDef->lights.ambientColor = ambientColor;
+	viewDef->lights.numFillLights = 1;
 	viewDef->lights.fillDirection[0] = fillDirection1;
 	viewDef->lights.fillDirection[1] = fillDirection2;
-	viewDef->lights.fillColor[0] 	= fillColor;
-	viewDef->lights.fillColor[1] 	= fillColor;
+	viewDef->lights.fillColor[0] = fillColor;
+	viewDef->lights.fillColor[1] = fillColor;
 }
 #include <string>
 
@@ -203,14 +203,14 @@ void OGL_SetupWindow(OGLSetupInputType *setupDefPtr)
 
 	SDL_HideCursor();	// safety precaution to make sure no cursor lingering around
 
-			/* ALLOC MEMORY FOR OUTPUT DATA */
+	/* ALLOC MEMORY FOR OUTPUT DATA */
 
-	gGameViewInfoPtr = (OGLSetupOutputType *) AllocPtr(sizeof(OGLSetupOutputType));
+	gGameViewInfoPtr = (OGLSetupOutputType *)AllocPtr(sizeof(OGLSetupOutputType));
 	if (gGameViewInfoPtr == nil)
 		DoFatalAlert("OGL_SetupWindow: AllocPtr failed");
 
 
-				/* SETUP */
+	/* SETUP */
 
 	OGL_InitDrawContext(&setupDefPtr->view);
 	OGL_CheckError();
@@ -221,18 +221,18 @@ void OGL_SetupWindow(OGLSetupInputType *setupDefPtr)
 	OGL_CreateLights(&setupDefPtr->lights);
 	OGL_CheckError();
 
-	SDL_GL_SetSwapInterval((signed char) gGamePrefs.vsync);
+	SDL_GL_SetSwapInterval((signed char)gGamePrefs.vsync);
 
 
 
-				/* PASS BACK INFO */
+	/* PASS BACK INFO */
 
 //	gGameViewInfoPtr->drawContext 		= gAGLContext;
-	gGameViewInfoPtr->clip 				= setupDefPtr->view.clip;
-	gGameViewInfoPtr->hither 			= setupDefPtr->camera.hither;			// remember hither/yon
-	gGameViewInfoPtr->yon 				= setupDefPtr->camera.yon;
-	gGameViewInfoPtr->useFog 			= setupDefPtr->styles.useFog;
-	gGameViewInfoPtr->clearBackBuffer 	= setupDefPtr->view.clearBackBuffer;
+	gGameViewInfoPtr->clip = setupDefPtr->view.clip;
+	gGameViewInfoPtr->hither = setupDefPtr->camera.hither;			// remember hither/yon
+	gGameViewInfoPtr->yon = setupDefPtr->camera.yon;
+	gGameViewInfoPtr->useFog = setupDefPtr->styles.useFog;
+	gGameViewInfoPtr->clearBackBuffer = setupDefPtr->view.clearBackBuffer;
 
 	gGameViewInfoPtr->isActive = true;											// it's now an active structure
 
@@ -248,11 +248,11 @@ void OGL_SetupWindow(OGLSetupInputType *setupDefPtr)
 	// Find next power of 2 (cool math)
 	// https://stackoverflow.com/questions/466204/rounding-up-to-next-power-of-2
 	GLuint v = 0;
-	if(vrInfoHMD.gEyeTargetWidth > vrInfoHMD.gEyeTargetHeight)
+	if (vrInfoHMD.gEyeTargetWidth > vrInfoHMD.gEyeTargetHeight)
 		v = vrInfoHMD.gEyeTargetWidth;
 	else
 		v = vrInfoHMD.gEyeTargetHeight;
-	
+
 	v--;
 	v |= v >> 1;
 	v |= v >> 2;
@@ -274,14 +274,14 @@ void OGL_DisposeWindowSetup(void)
 {
 	GAME_ASSERT(gGameViewInfoPtr);						// see if this setup exists
 
-			/* KILL FONT MATERIAL */
+	/* KILL FONT MATERIAL */
 
 	TextMesh_DisposeMaterial();
 
-		/* FREE MEMORY & NIL POINTER */
+	/* FREE MEMORY & NIL POINTER */
 
 	gGameViewInfoPtr->isActive = false;						// now inactive
-	SafeDisposePtr((Ptr) gGameViewInfoPtr);
+	SafeDisposePtr((Ptr)gGameViewInfoPtr);
 	gGameViewInfoPtr = nil;
 }
 
@@ -294,11 +294,11 @@ static void OGL_CreateDrawContext(void)
 	GAME_ASSERT_MESSAGE(!gAGLContext, "GL context already exists");
 	GAME_ASSERT_MESSAGE(gSDLWindow, "Window must be created before the DC!");
 
-			/* CREATE AGL CONTEXT & ATTACH TO WINDOW */
-			// Only generate one context, and reuse it.
-			// Multiple contexts causes pretty big issues with OpenVR.
+	/* CREATE AGL CONTEXT & ATTACH TO WINDOW */
+	// Only generate one context, and reuse it.
+	// Multiple contexts causes pretty big issues with OpenVR.
 
-	if(gAGLContext == nil)
+	if (gAGLContext == nil)
 	{
 		gAGLContext = SDL_GL_CreateContext(gSDLWindow);
 		GAME_ASSERT_MESSAGE(gAGLContext, SDL_GetError());
@@ -314,22 +314,22 @@ static void OGL_CreateDrawContext(void)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	}
 
-			/* ACTIVATE CONTEXT */
+	/* ACTIVATE CONTEXT */
 
 	bool didMakeCurrent = SDL_GL_MakeCurrent(gSDLWindow, gAGLContext);
 	GAME_ASSERT_MESSAGE(didMakeCurrent, SDL_GetError());
 
 
-			/* GET OPENGL EXTENSIONS */
-			//
-			// On Mac/Linux, we only need to do this once.
-			// But on Windows, we must do it whenever we create a draw context.
-			//
+	/* GET OPENGL EXTENSIONS */
+	//
+	// On Mac/Linux, we only need to do this once.
+	// But on Windows, we must do it whenever we create a draw context.
+	//
 
 	OGL_InitFunctions();
 
 
-			/* SEE IF SUPPORT 1024x1024 TEXTURES */
+	/* SEE IF SUPPORT 1024x1024 TEXTURES */
 
 	GLint maxTexSize = 0;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTexSize);
@@ -359,16 +359,16 @@ static void OGL_DisposeDrawContext(void)
 
 /**************** OGL: INIT DRAW CONTEXT *********************/
 
-static void OGL_InitDrawContext(OGLViewDefType* viewDefPtr)
+static void OGL_InitDrawContext(OGLViewDefType *viewDefPtr)
 {
-			/* FIX FOG FOR FOR B&W ANAGLYPH */
-			//
-			// The NTSC luminance standard where grayscale = .299r + .587g + .114b
-			//
+	/* FIX FOG FOR FOR B&W ANAGLYPH */
+	//
+	// The NTSC luminance standard where grayscale = .299r + .587g + .114b
+	//
 
 	if (gGamePrefs.anaglyphMode == ANAGLYPH_COLOR)
 	{
-		uint32_t	r,g,b;
+		uint32_t	r, g, b;
 
 		r = viewDefPtr->clearColor.r * 255.0f;
 		g = viewDefPtr->clearColor.g * 255.0f;
@@ -390,31 +390,31 @@ static void OGL_InitDrawContext(OGLViewDefType* viewDefPtr)
 		f += viewDefPtr->clearColor.b * .114;
 
 		viewDefPtr->clearColor.r =
-		viewDefPtr->clearColor.g =
-		viewDefPtr->clearColor.b = f;
+			viewDefPtr->clearColor.g =
+			viewDefPtr->clearColor.b = f;
 	}
 
 
-				/* SET VARIOUS STATE INFO */
+	/* SET VARIOUS STATE INFO */
 
 
 	glEnable(GL_DEPTH_TEST);								// use z-buffer
 
 	{
-		GLfloat	color[] = {1,1,1,1};									// set global material color to white
+		GLfloat	color[] = { 1,1,1,1 };									// set global material color to white
 		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, color);
 	}
 
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 
-  	glEnable(GL_NORMALIZE);
+	glEnable(GL_NORMALIZE);
 
 
 
-				/* CLEAR BACK BUFFER ENTIRELY */
+	/* CLEAR BACK BUFFER ENTIRELY */
 
-	glClearColor(0,0,0, 1.0);
+	glClearColor(0, 0, 0, 1.0);
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapWindow(gSDLWindow);
@@ -428,31 +428,31 @@ static void OGL_InitDrawContext(OGLViewDefType* viewDefPtr)
 
 static void OGL_SetStyles(OGLSetupInputType *setupDefPtr)
 {
-OGLStyleDefType *styleDefPtr = &setupDefPtr->styles;
+	OGLStyleDefType *styleDefPtr = &setupDefPtr->styles;
 
 
 	glEnable(GL_CULL_FACE);									// activate culling
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);									// CCW is front face
 
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);		// set default blend func
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);		// set default blend func
 	glDisable(GL_BLEND);									// but turn it off by default
 
-//	glHint(GL_TRANSFORM_HINT_APPLE, GL_FASTEST);	// srcport rm
+	//	glHint(GL_TRANSFORM_HINT_APPLE, GL_FASTEST);	// srcport rm
 
 	glDisable(GL_RESCALE_NORMAL);
 
-    glHint(GL_FOG_HINT, GL_NICEST);		// pixel accurate fog?
+	glHint(GL_FOG_HINT, GL_NICEST);		// pixel accurate fog?
 
 	OGL_CheckError();
 
-			/* ENABLE ALPHA CHANNELS */
+	/* ENABLE ALPHA CHANNELS */
 
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc(GL_NOTEQUAL, 0);	// draw any pixel who's Alpha != 0
 
 
-		/* SET FOG */
+	/* SET FOG */
 
 	glHint(GL_FOG_HINT, GL_FASTEST);
 
@@ -481,14 +481,14 @@ OGLStyleDefType *styleDefPtr = &setupDefPtr->styles;
 
 static void OGL_CreateLights(OGLLightDefType *lightDefPtr)
 {
-GLfloat	ambient[4];
+	GLfloat	ambient[4];
 
 	OGL_EnableLighting();
 
 
-			/************************/
-			/* CREATE AMBIENT LIGHT */
-			/************************/
+	/************************/
+	/* CREATE AMBIENT LIGHT */
+	/************************/
 
 	ambient[0] = lightDefPtr->ambientColor.r;
 	ambient[1] = lightDefPtr->ambientColor.g;
@@ -497,9 +497,9 @@ GLfloat	ambient[4];
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);			// set scene ambient light
 
 
-			/**********************/
-			/* CREATE FILL LIGHTS */
-			/**********************/
+	/**********************/
+	/* CREATE FILL LIGHTS */
+	/**********************/
 
 	for (int i = 0; i < lightDefPtr->numFillLights; i++)
 	{
@@ -507,35 +507,35 @@ GLfloat	ambient[4];
 		GLfloat lightVec[4];
 		GLfloat	diffuse[4];
 
-					/* SET FILL DIRECTION */
+		/* SET FILL DIRECTION */
 
 		OGLVector3D_Normalize(&lightDefPtr->fillDirection[i], &lightDefPtr->fillDirection[i]);
 		lightVec[0] = -lightDefPtr->fillDirection[i].x;		// negate vector because OGL is stupid
 		lightVec[1] = -lightDefPtr->fillDirection[i].y;
 		lightVec[2] = -lightDefPtr->fillDirection[i].z;
 		lightVec[3] = 0;									// when w==0, this is a directional light, if 1 then point light
-		glLightfv(GL_LIGHT0+i, GL_POSITION, lightVec);
+		glLightfv(GL_LIGHT0 + i, GL_POSITION, lightVec);
 
 
-					/* SET COLOR */
+		/* SET COLOR */
 
-		glLightfv(GL_LIGHT0+i, GL_AMBIENT, lightamb);
+		glLightfv(GL_LIGHT0 + i, GL_AMBIENT, lightamb);
 
 		diffuse[0] = lightDefPtr->fillColor[i].r;
 		diffuse[1] = lightDefPtr->fillColor[i].g;
 		diffuse[2] = lightDefPtr->fillColor[i].b;
 		diffuse[3] = 1;
 
-		glLightfv(GL_LIGHT0+i, GL_DIFFUSE, diffuse);
+		glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, diffuse);
 
 
-		glEnable(GL_LIGHT0+i);								// enable the light
+		glEnable(GL_LIGHT0 + i);								// enable the light
 	}
 
 
 
 
-			/* KILL OTHER LIGHTS THAT MIGHT STILL BE ACTIVE FROM PREVIOUS SCENE */
+	/* KILL OTHER LIGHTS THAT MIGHT STILL BE ACTIVE FROM PREVIOUS SCENE */
 
 	for (int i = lightDefPtr->numFillLights; i < MAX_FILL_LIGHTS; i++)
 	{
@@ -559,7 +559,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
 
 	vrcpp_updateTrackedDevices();
-		
+
 	// LEFT EYE
 	glPushMatrix();
 	glMatrixMode(GL_PROJECTION);
@@ -569,6 +569,9 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
+
+	// 2) APPLY GAME YAW (thumbstick turning)
+	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
 
 	// Add camera position translation
 	glTranslatef(
@@ -588,11 +591,14 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glLoadMatrixf(&vrInfoHMD.HMDrightProj.value[M00]);
-	
+
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
+
+	// 2) APPLY GAME YAW (thumbstick turning)
+	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
 
 	// Add camera position translation
 	glTranslatef(
@@ -612,12 +618,12 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 
 
 
-	if(glGetError() != GL_NO_ERROR)
+	if (glGetError() != GL_NO_ERROR)
 		throw std::runtime_error("GL ERROR AFTER CALLLL");
 
-	if(gIVRSystem)
+	if (gIVRSystem)
 	{
-		vr::VRTextureBounds_t bounds = { 
+		vr::VRTextureBounds_t bounds = {
 			0.0f, // left
 			0.0f, // top
 			static_cast<float>(vrInfoHMD.gEyeTargetWidth) / gEyeTextureSize, // right
@@ -639,11 +645,11 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 // If leftEye is false, will draw right eye.
 void OGL_DrawEye(void (*drawRoutine)(void))
 {
-	if (gGameViewInfoPtr  == nil)										// make sure it's legit
+	if (gGameViewInfoPtr == nil)										// make sure it's legit
 		DoFatalAlert("OGL_DrawEye gGameViewInfoPtr == nil");
-	if (!gGameViewInfoPtr ->isActive)
+	if (!gGameViewInfoPtr->isActive)
 		DoFatalAlert("OGL_DrawEye isActive == false");
-	
+
 	bool didMakeCurrent = SDL_GL_MakeCurrent(gSDLWindow, gAGLContext);		// make context active
 	GAME_ASSERT_MESSAGE(didMakeCurrent, SDL_GetError());
 
@@ -657,21 +663,21 @@ void OGL_DrawEye(void (*drawRoutine)(void))
 	}
 
 
-			/* INIT SOME STUFF */
+	/* INIT SOME STUFF */
 
-	gPolysThisFrame 	= 0;										// init poly counter
+	gPolysThisFrame = 0;										// init poly counter
 	gMostRecentMaterial = nil;
 	gGlobalMaterialFlags = 0;
-	SetColor4f(1,1,1,1);
+	SetColor4f(1, 1, 1, 1);
 
-				/*****************/
-				/* CLEAR BUFFERS */
-				/*****************/
+	/*****************/
+	/* CLEAR BUFFERS */
+	/*****************/
 
-				/* MAKE SURE GREEN CHANNEL IS CLEAR */
-				//
-				// Bringing up dialogs can write into green channel, so always be sure it's clear
-				//
+	/* MAKE SURE GREEN CHANNEL IS CLEAR */
+	//
+	// Bringing up dialogs can write into green channel, so always be sure it's clear
+	//
 
 	if (gGameViewInfoPtr->clearBackBuffer || (gDebugMode == 3))
 	{
@@ -679,21 +685,21 @@ void OGL_DrawEye(void (*drawRoutine)(void))
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Green/Blue channels
 		else if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 			glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Blue channels
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 	else
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 
-			/*************************/
-			/* SEE IF DOING ANAGLYPH */
-			/*************************/
+	/*************************/
+	/* SEE IF DOING ANAGLYPH */
+	/*************************/
 
 do_anaglyph:
 
 	if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
 	{
-				/* SET COLOR MASK */
+		/* SET COLOR MASK */
 
 		if (gAnaglyphPass == 0)
 		{
@@ -715,179 +721,180 @@ do_anaglyph:
 		gAnaglyphPass = 0;
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// this lets us hot-switch between anaglyph and non-anaglyph in the settings
 
-				/* SET VIEWPORT */
+		/* SET VIEWPORT */
 
-	{
-		int x, y, w, h;
-		int windowWidth, windowHeight;
-		SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
-		glViewport(0, 0, windowWidth, windowHeight);
-		gCurrentAspectRatio = (float)vrInfoHMD.gEyeTargetWidth / (float) (vrInfoHMD.gEyeTargetHeight == 0? 1: vrInfoHMD.gEyeTargetHeight);
+		{
+			int x, y, w, h;
+			int windowWidth, windowHeight;
+			SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
+			glViewport(0, 0, windowWidth, windowHeight);
+			gCurrentAspectRatio = (float)vrInfoHMD.gEyeTargetWidth / (float)(vrInfoHMD.gEyeTargetHeight == 0 ? 1 : vrInfoHMD.gEyeTargetHeight);
 
-		// Compute logical width & height for 2D elements
-		g2DLogicalHeight = 480.0f;
-		if (gCurrentAspectRatio < 4.0f/3.0f)
-			g2DLogicalWidth = 640.0f;
-		else
-			g2DLogicalWidth = 480.0f * gCurrentAspectRatio;
-	}
-
-
-			/* GET UPDATED GLOBAL COPIES OF THE VARIOUS MATRICES */
-
-	// OGL_Camera_SetPlacementAndUpdateMatrices();
+			// Compute logical width & height for 2D elements
+			g2DLogicalHeight = 480.0f;
+			if (gCurrentAspectRatio < 4.0f / 3.0f)
+				g2DLogicalWidth = 640.0f;
+			else
+				g2DLogicalWidth = 480.0f * gCurrentAspectRatio;
+		}
 
 
-			/* CALL INPUT DRAW FUNCTION */
+		/* GET UPDATED GLOBAL COPIES OF THE VARIOUS MATRICES */
 
-	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-	glDepthMask(GL_TRUE);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+// OGL_Camera_SetPlacementAndUpdateMatrices();
 
-	if (drawRoutine != nil)
-		drawRoutine();
 
-	OGL_CheckError();
+		/* CALL INPUT DRAW FUNCTION */
+
+		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		if (drawRoutine != nil)
+			drawRoutine();
+
+		OGL_CheckError();
 
 		/********************************/
 		/* READ AND COPY RENDERED SCENE */
 		/********************************/
-	GLint oldTexture;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
+		GLint oldTexture;
+		glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
 
-	if(gGameViewInfoPtr->renderLeftEye)
-		glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
-	else
-		glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
+		if (gGameViewInfoPtr->renderLeftEye)
+			glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
+		else
+			glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	int windowWidth, windowHeight;
-	SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, windowWidth, windowHeight, 0);
-	glBindTexture(GL_TEXTURE_2D, oldTexture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		int windowWidth, windowHeight;
+		SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
+		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, windowWidth, windowHeight, 0);
+		glBindTexture(GL_TEXTURE_2D, oldTexture);
 
 
 		/**************************/
 		/* SEE IF SHOW DEBUG INFO */
 		/**************************/
-	
-	if (GetNewKeyState(SDL_SCANCODE_F8))
-	{
-		if (++gDebugMode > 3)
-			gDebugMode = 0;
 
-		if (gDebugMode == 3)								// see if show wireframe
-			glPolygonMode(GL_FRONT_AND_BACK ,GL_LINE);
+		if (GetNewKeyState(SDL_SCANCODE_F8))
+		{
+			if (++gDebugMode > 3)
+				gDebugMode = 0;
+
+			if (gDebugMode == 3)								// see if show wireframe
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+
+		/* SHOW BASIC DEBUG INFO */
+
+		if (!gDebugText)
+		{
+			// no-op
+		}
+		else if (gDebugMode == 1 || gDebugMode == 2)
+		{
+			char debugString[1024];
+			SDL_snprintf(
+				debugString,
+				sizeof(debugString),
+				"fps:\t\t%d\n"
+				"tris:\t\t%d\n"
+				"\n"
+				"input x:\t%.3f\n"
+				"input y:\t%.3f\n"
+				"input a:\t%.0f\xC2\xB0\n"
+				"\n"
+				"player x:\t%.3f\n"
+				"player z:\t%.3f\n"
+				"player y:\t%.3f\t%s%s\n"
+				"\n"
+				"nodes:\t%d\n"
+				"enemies:\t%d%s%s\n"
+#if 0
+				"t-defs:\t%d\n"
+				"h2o:\t\t%d\n"
+#endif
+				"shards:\t%d\n"
+				"sparkles:\t%d\n"
+				"pgroups:\t%d\n"
+				"\n"
+				"heap:\t\t%dK, %dp\n"
+				"vram:\t\t%dK\n"
+#if 0
+				"\n"
+				"time since last thrust:\t%.3f\n"
+				"force cam align?\t\t%c\n"
+				"auto rotate cam?\t\t%c\n"
+				"cam user rot:\t\t%.3f\n"
+				"cam ctrl dX:\t\t%.3f\n"
+#endif
+				"\n\n\n\n\n\n\n\nOtto Matic %s, SDL %s\n%s, OpenGL %s, %s"
+				,
+				(int)(gFramesPerSecond + .5f),
+				gPolysThisFrame,
+				gPlayerInfo.analogControlX,
+				gPlayerInfo.analogControlZ,
+				(180 / PI) * (atan2f(gPlayerInfo.analogControlZ, gPlayerInfo.analogControlX)),
+				gPlayerInfo.coord.x,
+				gPlayerInfo.coord.z,
+				gPlayerInfo.coord.y,
+				gPlayerInfo.objNode && (gPlayerInfo.objNode->StatusBits & STATUS_BIT_ONGROUND) ? "G" : "",
+				gPlayerInfo.objNode && (gPlayerInfo.objNode->MPlatform) ? "M" : "",
+				gNumObjectNodes,
+				gNumEnemies,
+				(gMaxEnemies > 0 && gNumEnemies >= gMaxEnemies) ? " (!!!)" : "",
+				gAlienSaucer ? " [+ saucer]" : "",
+#if 0
+				gNumTerrainDeformations,
+				gNumWaterDrawn,
+#endif
+				gShardPool ? Pool_Size(gShardPool) : 0,
+				gSparklePool ? Pool_Size(gSparklePool) : 0,
+				gParticleGroupPool ? Pool_Size(gParticleGroupPool) : 0,
+				//			gNumPointers,
+				(int)(Pomme_GetHeapSize() / 1024),
+				(int)Pomme_GetNumAllocs(),
+				gVRAMUsedThisFrame / 1024,
+#if 0
+				gTimeSinceLastThrust,
+				gForceCameraAlignment ? 'Y' : 'N',
+				gAutoRotateCamera ? 'Y' : 'N',
+				gCameraUserRotY,
+				gCameraControlDelta.x,
+#endif
+				GAME_VERSION,
+				SDL_GetRevision(),
+				(const char *)glGetString(GL_RENDERER),
+				(const char *)glGetString(GL_VERSION),
+				SDL_GetCurrentVideoDriver()
+			);
+			TextMesh_Update(debugString, 0, gDebugText);
+			gDebugText->StatusBits &= ~STATUS_BIT_HIDDEN;
+		}
 		else
-			glPolygonMode(GL_FRONT_AND_BACK ,GL_FILL);
+		{
+			gDebugText->StatusBits |= STATUS_BIT_HIDDEN;
+		}
+
+
+
+		/**************/
+		/* END RENDER */
+		/**************/
+
+/* SWAP THE BUFFS */
+
+//SDL_GL_SwapWindow(gSDLWindow);					// end render loop
+
+// if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
+// 	RestoreCamerasFromAnaglyph();
+
 	}
-
-				/* SHOW BASIC DEBUG INFO */
-
-	if (!gDebugText)
-	{
-		// no-op
-	}
-	else if (gDebugMode == 1 || gDebugMode == 2)
-	{
-		char debugString[1024];
-		SDL_snprintf(
-			debugString,
-			sizeof(debugString),
-			"fps:\t\t%d\n"
-			"tris:\t\t%d\n"
-			"\n"
-			"input x:\t%.3f\n"
-			"input y:\t%.3f\n"
-			"input a:\t%.0f\xC2\xB0\n"
-			"\n"
-			"player x:\t%.3f\n"
-			"player z:\t%.3f\n"
-			"player y:\t%.3f\t%s%s\n"
-			"\n"
-			"nodes:\t%d\n"
-			"enemies:\t%d%s%s\n"
-#if 0
-			"t-defs:\t%d\n"
-			"h2o:\t\t%d\n"
-#endif
-			"shards:\t%d\n"
-			"sparkles:\t%d\n"
-			"pgroups:\t%d\n"
-			"\n"
-			"heap:\t\t%dK, %dp\n"
-			"vram:\t\t%dK\n"
-#if 0
-			"\n"
-			"time since last thrust:\t%.3f\n"
-			"force cam align?\t\t%c\n"
-			"auto rotate cam?\t\t%c\n"
-			"cam user rot:\t\t%.3f\n"
-			"cam ctrl dX:\t\t%.3f\n"
-#endif
-			"\n\n\n\n\n\n\n\nOtto Matic %s, SDL %s\n%s, OpenGL %s, %s"
-			,
-			(int)(gFramesPerSecond+.5f),
-			gPolysThisFrame,
-			gPlayerInfo.analogControlX,
-			gPlayerInfo.analogControlZ,
-			(180/PI) * ( atan2f(gPlayerInfo.analogControlZ,gPlayerInfo.analogControlX) ),
-			gPlayerInfo.coord.x,
-			gPlayerInfo.coord.z,
-			gPlayerInfo.coord.y,
-			gPlayerInfo.objNode && (gPlayerInfo.objNode->StatusBits & STATUS_BIT_ONGROUND)? "G": "",
-			gPlayerInfo.objNode && (gPlayerInfo.objNode->MPlatform)? "M": "",
-			gNumObjectNodes,
-			gNumEnemies,
-			(gMaxEnemies > 0 && gNumEnemies >= gMaxEnemies) ? " (!!!)" : "",
-			gAlienSaucer ? " [+ saucer]" : "",
-#if 0
-			gNumTerrainDeformations,
-			gNumWaterDrawn,
-#endif
-			gShardPool? Pool_Size(gShardPool): 0,
-			gSparklePool? Pool_Size(gSparklePool): 0,
-			gParticleGroupPool? Pool_Size(gParticleGroupPool): 0,
-//			gNumPointers,
-			(int) (Pomme_GetHeapSize()/1024),
-			(int) Pomme_GetNumAllocs(),
-			gVRAMUsedThisFrame/1024,
-#if 0
-			gTimeSinceLastThrust,
-			gForceCameraAlignment? 'Y': 'N',
-			gAutoRotateCamera? 'Y': 'N',
-			gCameraUserRotY,
-			gCameraControlDelta.x,
-#endif
-			GAME_VERSION,
-			SDL_GetRevision(),
-			(const char*) glGetString(GL_RENDERER),
-			(const char*) glGetString(GL_VERSION),
-			SDL_GetCurrentVideoDriver()
-		);
-		TextMesh_Update(debugString, 0, gDebugText);
-		gDebugText->StatusBits &= ~STATUS_BIT_HIDDEN;
-	}
-	else
-	{
-		gDebugText->StatusBits |= STATUS_BIT_HIDDEN;
-	}
-
-
-
-            /**************/
-			/* END RENDER */
-			/**************/
-
-	/* SWAP THE BUFFS */
-
-	//SDL_GL_SwapWindow(gSDLWindow);					// end render loop
-
-	// if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
-	// 	RestoreCamerasFromAnaglyph();
-
-}}
+}
 
 /********************** OGL: GET CURRENT VIEWPORT ********************/
 //
@@ -897,7 +904,7 @@ do_anaglyph:
 
 void OGL_GetCurrentViewport(int *x, int *y, int *w, int *h)
 {
-int	t,b,l,r;
+	int	t, b, l, r;
 
 	SDL_GetWindowSizeInPixels(gSDLWindow, &gGameWindowWidth, &gGameWindowHeight);
 
@@ -924,9 +931,9 @@ int	t,b,l,r;
 /***************** OGL TEXTUREMAP LOAD **************************/
 
 GLuint OGL_TextureMap_Load(void *imageMemory, int width, int height,
-							GLint srcFormat,  GLint destFormat, GLint dataType)
+	GLint srcFormat, GLint destFormat, GLint dataType)
 {
-GLuint	textureName;
+	GLuint	textureName;
 
 
 	if (gGamePrefs.anaglyphMode == ANAGLYPH_COLOR)
@@ -934,7 +941,7 @@ GLuint	textureName;
 	else if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
 		ConvertTextureToGrey(imageMemory, width, height, srcFormat, dataType);
 
-			/* GET A UNIQUE TEXTURE NAME & INITIALIZE IT */
+	/* GET A UNIQUE TEXTURE NAME & INITIALIZE IT */
 
 	glGenTextures(1, &textureName);
 	if (OGL_CheckError())
@@ -948,22 +955,22 @@ GLuint	textureName;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glTexImage2D(GL_TEXTURE_2D,
-				0,										// mipmap level
-				destFormat,								// format in OpenGL
-				width,									// width in pixels
-				height,									// height in pixels
-				0,										// border
-				srcFormat,								// what my format is
-				dataType,								// size of each r,g,b
-				imageMemory);							// pointer to the actual texture pixels
+		0,										// mipmap level
+		destFormat,								// format in OpenGL
+		width,									// width in pixels
+		height,									// height in pixels
+		0,										// border
+		srcFormat,								// what my format is
+		dataType,								// size of each r,g,b
+		imageMemory);							// pointer to the actual texture pixels
 
-			/* SEE IF RAN OUT OF MEMORY WHILE COPYING TO OPENGL */
+	/* SEE IF RAN OUT OF MEMORY WHILE COPYING TO OPENGL */
 
 	if (OGL_CheckError())
 		DoFatalAlert("OGL_TextureMap_Load: glTexImage2D failed!");
 
 
-				/* SET THIS TEXTURE AS CURRENTLY ACTIVE FOR DRAWING */
+	/* SET THIS TEXTURE AS CURRENTLY ACTIVE FOR DRAWING */
 
 	OGL_Texture_SetOpenGLTexture(textureName);
 
@@ -972,16 +979,16 @@ GLuint	textureName;
 
 /***************** OGL TEXTUREMAP LOAD FROM TGA **********************/
 
-GLuint OGL_TextureMap_LoadTGA(const char* path, int flags, int* outWidth, int* outHeight)
+GLuint OGL_TextureMap_LoadTGA(const char *path, int flags, int *outWidth, int *outHeight)
 {
-FSSpec					spec;
-uint8_t*				pixelData = nil;
-TGAHeader				header;
-OSErr					err;
+	FSSpec					spec;
+	uint8_t *pixelData = nil;
+	TGAHeader				header;
+	OSErr					err;
 
 	FSMakeFSSpec(gDataSpec.vRefNum, gDataSpec.parID, path, &spec);
 
-			/* LOAD RAW RGBA DATA FROM TGA FILE */
+	/* LOAD RAW RGBA DATA FROM TGA FILE */
 
 	err = ReadTGA(&spec, &pixelData, &header, true);
 	GAME_ASSERT(err == noErr);
@@ -989,7 +996,7 @@ OSErr					err;
 	GAME_ASSERT(header.bpp == 32);
 	GAME_ASSERT(header.imageType == TGA_IMAGETYPE_CONVERTED_RGBA);
 
-			/* PRE-PROCESS IMAGE */
+	/* PRE-PROCESS IMAGE */
 
 	int internalFormat = GL_RGB;
 
@@ -998,10 +1005,10 @@ OSErr					err;
 		for (int p = 0; p < 4 * header.width * header.height; p += 4)
 		{
 			// put Blue into Alpha & leave map white
-			pixelData[p+0] = pixelData[p+3];	// put blue into alpha
-			pixelData[p+1] = 255;
-			pixelData[p+2] = 255;
-			pixelData[p+3] = 255;
+			pixelData[p + 0] = pixelData[p + 3];	// put blue into alpha
+			pixelData[p + 1] = 255;
+			pixelData[p + 2] = 255;
+			pixelData[p + 3] = 255;
 		}
 		internalFormat = GL_RGBA;
 	}
@@ -1014,19 +1021,19 @@ OSErr					err;
 		internalFormat = GL_RGB;
 	}
 
-			/* LOAD TEXTURE */
+	/* LOAD TEXTURE */
 
 	GLuint glTextureName = OGL_TextureMap_Load(
-			pixelData,
-			header.width,
-			header.height,
-			GL_RGBA,
-			internalFormat,
-			GL_UNSIGNED_BYTE);
+		pixelData,
+		header.width,
+		header.height,
+		GL_RGBA,
+		internalFormat,
+		GL_UNSIGNED_BYTE);
 
-			/* CLEAN UP */
+	/* CLEAN UP */
 
-	DisposePtr((Ptr) pixelData);
+	DisposePtr((Ptr)pixelData);
 
 	if (outWidth)
 		*outWidth = header.width;
@@ -1044,16 +1051,16 @@ OSErr					err;
 
 static void	ConvertTextureToGrey(void *imageMemory, short width, short height, GLint srcFormat, GLint dataType)
 {
-long	x,y;
-float	r,g,b;
-uint32_t	a,q,rq,bq;
-uint32_t   redCal = gGamePrefs.anaglyphCalibrationRed;
-uint32_t   blueCal =  gGamePrefs.anaglyphCalibrationBlue;
+	long	x, y;
+	float	r, g, b;
+	uint32_t	a, q, rq, bq;
+	uint32_t   redCal = gGamePrefs.anaglyphCalibrationRed;
+	uint32_t   blueCal = gGamePrefs.anaglyphCalibrationBlue;
 
 
 	if (dataType == GL_UNSIGNED_INT_8_8_8_8_REV)
 	{
-		uint32_t	*pix32 = (uint32_t *)imageMemory;
+		uint32_t *pix32 = (uint32_t *)imageMemory;
 		for (y = 0; y < height; y++)
 		{
 			for (x = 0; x < width; x++)
@@ -1082,76 +1089,76 @@ uint32_t   blueCal =  gGamePrefs.anaglyphCalibrationBlue;
 	}
 
 	else
-	if ((dataType == GL_UNSIGNED_BYTE) && (srcFormat == GL_RGBA))
-	{
-		uint32_t	*pix32 = (uint32_t *)imageMemory;
-		for (y = 0; y < height; y++)
+		if ((dataType == GL_UNSIGNED_BYTE) && (srcFormat == GL_RGBA))
 		{
-			for (x = 0; x < width; x++)
+			uint32_t *pix32 = (uint32_t *)imageMemory;
+			for (y = 0; y < height; y++)
 			{
-				uint32_t	pix = SwizzleULong(&pix32[x]);
+				for (x = 0; x < width; x++)
+				{
+					uint32_t	pix = SwizzleULong(&pix32[x]);
 
-				r = (float)((pix >> 24) & 0xff) / 255.0f * .299f;
-				g = (float)((pix >> 16) & 0xff) / 255.0f * .586f;
-				b = (float)((pix >> 8)  & 0xff) / 255.0f * .114f;
-				a = pix & 0xff;
+					r = (float)((pix >> 24) & 0xff) / 255.0f * .299f;
+					g = (float)((pix >> 16) & 0xff) / 255.0f * .586f;
+					b = (float)((pix >> 8) & 0xff) / 255.0f * .114f;
+					a = pix & 0xff;
 
-				q = (r + g + b) * 255.0f;									// pass thru the brightness curve
-				if (q > 0xff)
-					q = 0xff;
-				q = gAnaglyphGreyTable[q];
+					q = (r + g + b) * 255.0f;									// pass thru the brightness curve
+					if (q > 0xff)
+						q = 0xff;
+					q = gAnaglyphGreyTable[q];
 
-				rq = (q * redCal) / 0xff;									// balance the red & blue
-				bq = (q * blueCal) / 0xff;
+					rq = (q * redCal) / 0xff;									// balance the red & blue
+					bq = (q * blueCal) / 0xff;
 
-				pix = (rq << 24) | (q << 16) | (bq << 8) | a;
-				pix32[x] = SwizzleULong(&pix);
+					pix = (rq << 24) | (q << 16) | (bq << 8) | a;
+					pix32[x] = SwizzleULong(&pix);
 
+				}
+				pix32 += width;
 			}
-			pix32 += width;
 		}
-	}
-	else
-	if (dataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
-	{
-		uint16_t	*pix16 = (uint16_t *)imageMemory;
-		for (y = 0; y < height; y++)
-		{
-			for (x = 0; x < width; x++)
+		else
+			if (dataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
 			{
-				uint16_t	pix = pix16[x]; //SwizzleUShort(&pix16[x]);
+				uint16_t *pix16 = (uint16_t *)imageMemory;
+				for (y = 0; y < height; y++)
+				{
+					for (x = 0; x < width; x++)
+					{
+						uint16_t	pix = pix16[x]; //SwizzleUShort(&pix16[x]);
 
-				r = (float)((pix >> 10) & 0x1f) / 31.0f * .299f;
-				g = (float)((pix >> 5) & 0x1f) / 31.0f * .586f;
-				b = (float)(pix & 0x1f) / 31.0f * .114f;
-				a = pix & 0x8000;
+						r = (float)((pix >> 10) & 0x1f) / 31.0f * .299f;
+						g = (float)((pix >> 5) & 0x1f) / 31.0f * .586f;
+						b = (float)(pix & 0x1f) / 31.0f * .114f;
+						a = pix & 0x8000;
 
-				q = (r + g + b) * 255.0f;								// pass thru the brightness curve
-				if (q > 0xff)
-					q = 0xff;
-				q = gAnaglyphGreyTable[q];
+						q = (r + g + b) * 255.0f;								// pass thru the brightness curve
+						if (q > 0xff)
+							q = 0xff;
+						q = gAnaglyphGreyTable[q];
 
-				rq = (q * redCal) / 0xff;									// balance the red & blue
-				bq = (q * blueCal) / 0xff;
+						rq = (q * redCal) / 0xff;									// balance the red & blue
+						bq = (q * blueCal) / 0xff;
 
-				q = (float)q / 8.0f;
-				if (q > 0x1f)
-					q = 0x1f;
+						q = (float)q / 8.0f;
+						if (q > 0x1f)
+							q = 0x1f;
 
-				rq = (float)rq / 8.0f;
-				if (rq > 0x1f)
-					rq = 0x1f;
-				bq = (float)bq / 8.0f;
-				if (bq > 0x1f)
-					bq = 0x1f;
+						rq = (float)rq / 8.0f;
+						if (rq > 0x1f)
+							rq = 0x1f;
+						bq = (float)bq / 8.0f;
+						if (bq > 0x1f)
+							bq = 0x1f;
 
-				pix = a | (rq << 10) | (q << 5) | bq;
-				pix16[x] = pix; //SwizzleUShort(&pix);
+						pix = a | (rq << 10) | (q << 5) | bq;
+						pix16[x] = pix; //SwizzleUShort(&pix);
 
+					}
+					pix16 += width;
+				}
 			}
-			pix16 += width;
-		}
-	}
 }
 
 
@@ -1159,24 +1166,24 @@ uint32_t   blueCal =  gGamePrefs.anaglyphCalibrationBlue;
 
 void ColorBalanceRGBForAnaglyph(uint32_t *rr, uint32_t *gg, uint32_t *bb)
 {
-uint32_t	r,g,b;
-float	d;
-float   lumR, lumGB, ratio;
-const Boolean	allowChannelBalancing = true;
+	uint32_t	r, g, b;
+	float	d;
+	float   lumR, lumGB, ratio;
+	const Boolean	allowChannelBalancing = true;
 
 	r = *rr;
 	g = *gg;
 	b = *bb;
 
 
-				/* ADJUST FOR USER CALIBRATION */
+	/* ADJUST FOR USER CALIBRATION */
 
 	r = r * gGamePrefs.anaglyphCalibrationRed / 255;
 	b = b * gGamePrefs.anaglyphCalibrationBlue / 255;
 	g = g * gGamePrefs.anaglyphCalibrationGreen / 255;
 
 
-				/* DO LUMINOSITY CHANNEL BALANCING */
+	/* DO LUMINOSITY CHANNEL BALANCING */
 
 	if (allowChannelBalancing && gGamePrefs.doAnaglyphChannelBalancing)
 	{
@@ -1193,7 +1200,7 @@ const Boolean	allowChannelBalancing = true;
 		lumGB += 1.0f;
 
 
-			/* BALANCE BLUE */
+		/* BALANCE BLUE */
 
 		ratio = lumR / lumGB;
 		ratio *= 1.5f;
@@ -1205,7 +1212,7 @@ const Boolean	allowChannelBalancing = true;
 				b = 0xff;
 		}
 
-			/* SMALL BALANCE ON GREEN */
+		/* SMALL BALANCE ON GREEN */
 
 		ratio *= .8f;
 		d = fg * ratio;
@@ -1216,7 +1223,7 @@ const Boolean	allowChannelBalancing = true;
 				g = 0xff;
 		}
 
-			/* BALANCE RED */
+		/* BALANCE RED */
 
 		ratio = lumGB / lumR;
 		ratio *= .4f;
@@ -1245,13 +1252,13 @@ const Boolean	allowChannelBalancing = true;
 
 static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short height, GLint srcFormat, GLint dataType)
 {
-long	x,y;
-uint32_t	r,g,b;
-uint32_t	a;
+	long	x, y;
+	uint32_t	r, g, b;
+	uint32_t	a;
 
 	if (dataType == GL_UNSIGNED_INT_8_8_8_8_REV)
 	{
-		uint32_t	*pix32 = (uint32_t *)imageMemory;
+		uint32_t *pix32 = (uint32_t *)imageMemory;
 		for (y = 0; y < height; y++)
 		{
 			for (x = 0; x < width; x++)
@@ -1270,53 +1277,53 @@ uint32_t	a;
 		}
 	}
 	else
-	if ((dataType == GL_UNSIGNED_BYTE) && (srcFormat == GL_RGBA))
-	{
-		uint32_t	*pix32 = (uint32_t *)imageMemory;
-		for (y = 0; y < height; y++)
+		if ((dataType == GL_UNSIGNED_BYTE) && (srcFormat == GL_RGBA))
 		{
-			for (x = 0; x < width; x++)
+			uint32_t *pix32 = (uint32_t *)imageMemory;
+			for (y = 0; y < height; y++)
 			{
-				uint32_t	pix = SwizzleULong(&pix32[x]);
+				for (x = 0; x < width; x++)
+				{
+					uint32_t	pix = SwizzleULong(&pix32[x]);
 
-				a = ((pix >> 0) & 0xff);
-				r = ((pix >> 24) & 0xff);
-				g = ((pix >> 16) & 0xff);
-				b = ((pix >> 8) & 0xff);
+					a = ((pix >> 0) & 0xff);
+					r = ((pix >> 24) & 0xff);
+					g = ((pix >> 16) & 0xff);
+					b = ((pix >> 8) & 0xff);
 
-				ColorBalanceRGBForAnaglyph(&r, &g, &b);
+					ColorBalanceRGBForAnaglyph(&r, &g, &b);
 
-				pix = (r << 24) | (g << 16) | (b << 8) | a;
-				pix32[x] = SwizzleULong(&pix);
+					pix = (r << 24) | (g << 16) | (b << 8) | a;
+					pix32[x] = SwizzleULong(&pix);
+				}
+				pix32 += width;
 			}
-			pix32 += width;
 		}
-	}
-	else
-	if (dataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
-	{
-		uint16_t	*pix16 = (uint16_t *)imageMemory;
-		for (y = 0; y < height; y++)
-		{
-			for (x = 0; x < width; x++)
+		else
+			if (dataType == GL_UNSIGNED_SHORT_1_5_5_5_REV)
 			{
-				r = ((pix16[x] >> 10) & 0x1f) << 3;			// load 5 bits per channel & convert to 8 bits
-				g = ((pix16[x] >> 5) & 0x1f) << 3;
-				b = (pix16[x] & 0x1f) << 3;
-				a = pix16[x] & 0x8000;
+				uint16_t *pix16 = (uint16_t *)imageMemory;
+				for (y = 0; y < height; y++)
+				{
+					for (x = 0; x < width; x++)
+					{
+						r = ((pix16[x] >> 10) & 0x1f) << 3;			// load 5 bits per channel & convert to 8 bits
+						g = ((pix16[x] >> 5) & 0x1f) << 3;
+						b = (pix16[x] & 0x1f) << 3;
+						a = pix16[x] & 0x8000;
 
-				ColorBalanceRGBForAnaglyph(&r, &g, &b);
+						ColorBalanceRGBForAnaglyph(&r, &g, &b);
 
-				r >>= 3;
-				g >>= 3;
-				b >>= 3;
+						r >>= 3;
+						g >>= 3;
+						b >>= 3;
 
-				pix16[x] = a | (r << 10) | (g << 5) | b;
+						pix16[x] = a | (r << 10) | (g << 5) | b;
 
+					}
+					pix16 += width;
+				}
 			}
-			pix16 += width;
-		}
-	}
 
 }
 
@@ -1351,7 +1358,7 @@ void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 void OGL_MoveCameraFromTo(float fromDX, float fromDY, float fromDZ, float toDX, float toDY, float toDZ)
 {
 
-			/* SET CAMERA COORDS */
+	/* SET CAMERA COORDS */
 
 	gGameViewInfoPtr->cameraPlacement.cameraLocation.x += fromDX;
 	gGameViewInfoPtr->cameraPlacement.cameraLocation.y += fromDY;
@@ -1370,7 +1377,7 @@ void OGL_MoveCameraFromTo(float fromDX, float fromDY, float fromDZ, float toDX, 
 void OGL_MoveCameraFrom(float fromDX, float fromDY, float fromDZ)
 {
 
-			/* SET CAMERA COORDS */
+	/* SET CAMERA COORDS */
 
 	gGameViewInfoPtr->cameraPlacement.cameraLocation.x += fromDX;
 	gGameViewInfoPtr->cameraPlacement.cameraLocation.y += fromDY;
@@ -1385,11 +1392,11 @@ void OGL_MoveCameraFrom(float fromDX, float fromDY, float fromDZ)
 
 void OGL_UpdateCameraFromTo(const OGLPoint3D *from, const OGLPoint3D *to)
 {
-static const OGLVector3D up = {0,1,0};
+	static const OGLVector3D up = { 0,1,0 };
 
-	gGameViewInfoPtr->cameraPlacement.upVector			= up;
-	gGameViewInfoPtr->cameraPlacement.cameraLocation 	= *from;
-	gGameViewInfoPtr->cameraPlacement.pointOfInterest 	= *to;
+	gGameViewInfoPtr->cameraPlacement.upVector = up;
+	gGameViewInfoPtr->cameraPlacement.cameraLocation = *from;
+	gGameViewInfoPtr->cameraPlacement.pointOfInterest = *to;
 
 	UpdateListenerLocation();
 }
@@ -1398,9 +1405,9 @@ static const OGLVector3D up = {0,1,0};
 
 void OGL_UpdateCameraFromToUp(OGLPoint3D *from, OGLPoint3D *to, OGLVector3D *up)
 {
-	gGameViewInfoPtr->cameraPlacement.upVector			= *up;
-	gGameViewInfoPtr->cameraPlacement.cameraLocation	= *from;
-	gGameViewInfoPtr->cameraPlacement.pointOfInterest	= *to;
+	gGameViewInfoPtr->cameraPlacement.upVector = *up;
+	gGameViewInfoPtr->cameraPlacement.cameraLocation = *from;
+	gGameViewInfoPtr->cameraPlacement.pointOfInterest = *to;
 
 	UpdateListenerLocation();
 }
@@ -1417,71 +1424,71 @@ void OGL_Camera_SetPlacementAndUpdateMatrices(void)
 {
 	float	aspect;
 	int		temp, w, h, i;
-	OGLLightDefType	*lights;
+	OGLLightDefType *lights;
 
 	OGL_GetCurrentViewport(&temp, &temp, &w, &h);
-	aspect = (float)w/(float)h;
+	aspect = (float)w / (float)h;
 
-			/* INIT PROJECTION MATRIX */
+	/* INIT PROJECTION MATRIX */
 
-	//glMatrixMode(GL_PROJECTION);
+//glMatrixMode(GL_PROJECTION);
 
-			/* SETUP FOR ANAGLYPH STEREO 3D CAMERA */
+		/* SETUP FOR ANAGLYPH STEREO 3D CAMERA */
 
-	// if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
-	// {
-	// 	float	left, right;
-	// 	float	halfFOV = gGameViewInfoPtr->fov * .5f;
-	// 	float	znear 	= gGameViewInfoPtr->hither;
-	//    	float	wd2     = znear * tan(halfFOV);
-	// 	float	ndfl    = znear / gAnaglyphFocallength;
+// if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
+// {
+// 	float	left, right;
+// 	float	halfFOV = gGameViewInfoPtr->fov * .5f;
+// 	float	znear 	= gGameViewInfoPtr->hither;
+//    	float	wd2     = znear * tan(halfFOV);
+// 	float	ndfl    = znear / gAnaglyphFocallength;
 
-	// 	if (gAnaglyphPass == 0)
-	// 	{
-	// 		left  = - aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
-	// 		right =   aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
-	// 	}
-	// 	else
-	// 	{
-	// 		left  = - aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
-	// 		right =   aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
-	// 	}
+// 	if (gAnaglyphPass == 0)
+// 	{
+// 		left  = - aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
+// 		right =   aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
+// 	}
+// 	else
+// 	{
+// 		left  = - aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
+// 		right =   aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
+// 	}
 
-	// 	glLoadIdentity();
-	// 	glFrustum(left, right, -wd2, wd2, gGameViewInfoPtr->hither, gGameViewInfoPtr->yon);
-	// 	glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*) &gViewToFrustumMatrix.value[0]);
-	// }*/
+// 	glLoadIdentity();
+// 	glFrustum(left, right, -wd2, wd2, gGameViewInfoPtr->hither, gGameViewInfoPtr->yon);
+// 	glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*) &gViewToFrustumMatrix.value[0]);
+// }*/
 
-			/* SETUP STANDARD PERSPECTIVE CAMERA */
-	// else
-	// {
-	// 	OGL_SetGluPerspectiveMatrix(
-	// 			&gViewToFrustumMatrix,
-	// 			gGameViewInfoPtr->fov,
-	// 			aspect,
-	// 			gGameViewInfoPtr->hither,
-	// 			gGameViewInfoPtr->yon);
-	// 	glLoadMatrixf((const GLfloat*) &gViewToFrustumMatrix.value[0]);
-	// }
-
-
-
-	// 		/* INIT MODELVIEW MATRIX */
-
-	// glMatrixMode(GL_MODELVIEW);
-	// OGL_SetGluLookAtMatrix(
-	// 		&gWorldToViewMatrix,
-	// 		&gGameViewInfoPtr->cameraPlacement.cameraLocation,
-	// 		&gGameViewInfoPtr->cameraPlacement.pointOfInterest,
-	// 		&gGameViewInfoPtr->cameraPlacement.upVector);
-	// glLoadMatrixf((const GLfloat*) &gWorldToViewMatrix.value[0]);
+		/* SETUP STANDARD PERSPECTIVE CAMERA */
+// else
+// {
+// 	OGL_SetGluPerspectiveMatrix(
+// 			&gViewToFrustumMatrix,
+// 			gGameViewInfoPtr->fov,
+// 			aspect,
+// 			gGameViewInfoPtr->hither,
+// 			gGameViewInfoPtr->yon);
+// 	glLoadMatrixf((const GLfloat*) &gViewToFrustumMatrix.value[0]);
+// }
 
 
 
-		/* UPDATE LIGHT POSITIONS */
+// 		/* INIT MODELVIEW MATRIX */
 
-	lights =  &gGameViewInfoPtr->lightList;						// point to light list
-	for (i=0; i < lights->numFillLights; i++)
+// glMatrixMode(GL_MODELVIEW);
+// OGL_SetGluLookAtMatrix(
+// 		&gWorldToViewMatrix,
+// 		&gGameViewInfoPtr->cameraPlacement.cameraLocation,
+// 		&gGameViewInfoPtr->cameraPlacement.pointOfInterest,
+// 		&gGameViewInfoPtr->cameraPlacement.upVector);
+// glLoadMatrixf((const GLfloat*) &gWorldToViewMatrix.value[0]);
+
+
+
+	/* UPDATE LIGHT POSITIONS */
+
+	lights = &gGameViewInfoPtr->lightList;						// point to light list
+	for (i = 0; i < lights->numFillLights; i++)
 	{
 		GLfloat lightVec[4];
 
@@ -1489,16 +1496,16 @@ void OGL_Camera_SetPlacementAndUpdateMatrices(void)
 		lightVec[1] = -lights->fillDirection[i].y;
 		lightVec[2] = -lights->fillDirection[i].z;
 		lightVec[3] = 0;									// when w==0, this is a directional light, if 1 then point light
-		glLightfv(GL_LIGHT0+i, GL_POSITION, lightVec);
+		glLightfv(GL_LIGHT0 + i, GL_POSITION, lightVec);
 	}
 
 
-			/* GET VARIOUS CAMERA MATRICES */
+	/* GET VARIOUS CAMERA MATRICES */
 
-	// OGLMatrix4x4_Multiply(&gWorldToViewMatrix, &gViewToFrustumMatrix, &gWorldToFrustumMatrix);
+// OGLMatrix4x4_Multiply(&gWorldToViewMatrix, &gViewToFrustumMatrix, &gWorldToFrustumMatrix);
 
-	// OGLMatrix4x4_GetFrustumToWindow(&gFrustumToWindowMatrix);
-	// OGLMatrix4x4_Multiply(&gWorldToFrustumMatrix, &gFrustumToWindowMatrix, &gWorldToWindowMatrix);
+// OGLMatrix4x4_GetFrustumToWindow(&gFrustumToWindowMatrix);
+// OGLMatrix4x4_Multiply(&gWorldToFrustumMatrix, &gFrustumToWindowMatrix, &gWorldToWindowMatrix);
 
 	UpdateListenerLocation();
 }
@@ -1510,7 +1517,7 @@ void OGL_Camera_SetPlacementAndUpdateMatrices(void)
 
 /******************** OGL: CHECK ERROR ********************/
 
-GLenum _OGL_CheckError(const char* file, const int line)
+GLenum _OGL_CheckError(const char *file, const int line)
 {
 	GLenum error = glGetError();
 	if (error != 0)
@@ -1531,9 +1538,9 @@ GLenum _OGL_CheckError(const char* file, const int line)
 
 void OGL_PushState(void)
 {
-int	i;
+	int	i;
 
-		/* PUSH MATRIES WITH OPENGL */
+	/* PUSH MATRIES WITH OPENGL */
 
 	glMatrixMode(GL_MODELVIEW);
 	glPushMatrix();
@@ -1543,7 +1550,7 @@ int	i;
 	glMatrixMode(GL_MODELVIEW);										// in my code, I keep modelview matrix as the currently active one all the time.
 
 
-		/* SAVE OTHER INFO */
+	/* SAVE OTHER INFO */
 
 	i = gStateStackIndex++;											// get stack index and increment
 
@@ -1555,8 +1562,8 @@ int	i;
 	gStateStack_DepthTest[i] = glIsEnabled(GL_DEPTH_TEST);
 	gStateStack_Normalize[i] = glIsEnabled(GL_NORMALIZE);
 	gStateStack_Texture2D[i] = glIsEnabled(GL_TEXTURE_2D);
-	gStateStack_Fog[i] 		= glIsEnabled(GL_FOG);
-	gStateStack_Blend[i] 	= glIsEnabled(GL_BLEND);
+	gStateStack_Fog[i] = glIsEnabled(GL_FOG);
+	gStateStack_Blend[i] = glIsEnabled(GL_BLEND);
 
 	glGetFloatv(GL_CURRENT_COLOR, &gStateStack_Color[i][0]);
 
@@ -1570,16 +1577,16 @@ int	i;
 
 void OGL_PopState(void)
 {
-int		i;
+	int		i;
 
-		/* RETREIVE OPENGL MATRICES */
+	/* RETREIVE OPENGL MATRICES */
 
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 
-		/* GET OTHER INFO */
+	/* GET OTHER INFO */
 
 	i = --gStateStackIndex;												// dec stack index
 

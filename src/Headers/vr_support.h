@@ -79,6 +79,7 @@ typedef struct
 
 
 		// Rotation special
+	double camThumbstickAccum; // Track camera rotation for just the thumbstick, no HMD
 	double HMDYawCorrected; // Only useful for HMD, use to correct yaw from thumbstick rotation
 	double HMDgameYawIgnoringHMD; // Corrects for the gameYaw (worldspace), the X & Z directions change with thumbstick
 	OGLMatrix4x4 HMDgameYawCorrectionMatrix; // Apply this to tracked devices BEFORE anything else

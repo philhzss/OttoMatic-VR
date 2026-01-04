@@ -466,10 +466,10 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	}
 
 	// HMD rotation turns Otto:
-	vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
+	// vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
 
 	// HMD rotation turns Otto:
-	playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
+	// playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
 
 			/*************************************/
 			/* CALC FROM (camera location) POINT */

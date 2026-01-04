@@ -101,14 +101,15 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 	deviceToParse->transformationMatrix.value[M33] = 1;
 
 
-	// Update the HMD specific members
-	vrInfoHMD.HMDgameYawIgnoringHMD = vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw;
+	vrInfoHMD.HMDgameYawIgnoringHMD = vrInfoHMD.camThumbstickAccum;
 
+	
+		// Update the HMD specific members
 	vrInfoHMD.HMDgameYawCorrectionMatrix = { 0 };
-	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00] = cos(-vrInfoHMD.HMDgameYawIgnoringHMD);
-	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M02] = -sin(-vrInfoHMD.HMDgameYawIgnoringHMD);
-	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M20] = sin(-vrInfoHMD.HMDgameYawIgnoringHMD);
-	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M22] = cos(-vrInfoHMD.HMDgameYawIgnoringHMD);
+	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00] = cos(vrInfoHMD.HMDgameYawIgnoringHMD);
+	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M02] = -sin(vrInfoHMD.HMDgameYawIgnoringHMD);
+	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M20] = sin(vrInfoHMD.HMDgameYawIgnoringHMD);
+	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M22] = cos(vrInfoHMD.HMDgameYawIgnoringHMD);
 	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M11] = 1;
 	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M33] = 1;
 
@@ -295,17 +296,17 @@ extern "C" void vrcpp_updateTrackedDevices(void)
 	// FOR TESTING ONLY, DISABLE WHEN USING REAL CONTROLLERS!!!!!!!!!!!!!!!!!!!!!
 	// Spinning in front of you on the yaw axis while pointing forward
 	{
-	//vrInfoHMD.pos.x = 0;
-	//vrInfoHMD.pos.y = 1.5;
-	//vrInfoHMD.pos.z = 1;
+		//vrInfoHMD.pos.x = 0;
+		//vrInfoHMD.pos.y = 1.5;
+		//vrInfoHMD.pos.z = 1;
 
-	//vrInfoLeftHand.pos.x = 0;
-	//vrInfoLeftHand.pos.y = 2.5;
-	//vrInfoLeftHand.pos.z = 0;
+		//vrInfoLeftHand.pos.x = 0;
+		//vrInfoLeftHand.pos.y = 2.5;
+		//vrInfoLeftHand.pos.z = 0;
 
-	//vrInfoLeftHand.rot.pitch = PI / 2;
-	//vrInfoLeftHand.rot.yaw += 0.01;
-	//vrInfoLeftHand.rot.roll = 0;
+		//vrInfoLeftHand.rot.pitch = PI / 2;
+		//vrInfoLeftHand.rot.yaw += 0.01;
+		//vrInfoLeftHand.rot.roll = 0;
 	}
 
 	// Spinning in front of you on the roll axis while pointing forward
@@ -361,8 +362,8 @@ extern "C" void vrpp_updateGameSpacePositions() {
 	double LeftHandposGameAxesZSinceLastUpdate = vrInfoLeftHand.posGameAxes.z;
 	double RightHandposGameAxesXSinceLastUpdate = vrInfoRightHand.posGameAxes.x;
 	double RightHandposGameAxesZSinceLastUpdate = vrInfoRightHand.posGameAxes.z;
-	
-	
+
+
 	vrInfoHMD.posGameAxes.x =
 		vrInfoHMD.pos.x * cos(vrInfoHMD.HMDgameYawIgnoringHMD) + vrInfoHMD.pos.z * sin(vrInfoHMD.HMDgameYawIgnoringHMD);
 	vrInfoHMD.posGameAxes.z =

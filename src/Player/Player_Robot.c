@@ -92,11 +92,11 @@ static Boolean ShouldApplySlopesToPlayer(float newDistToFloor);
 
 #define DEBUG_PLAYER_VAPOR		0
 #if DEBUG_PLAYER_VAPOR
-	#define PLAYER_VAPOR_THRESHOLD	10.0f
-	#define PLAYER_VAPOR_ALPHA		1.0f
+#define PLAYER_VAPOR_THRESHOLD	10.0f
+#define PLAYER_VAPOR_ALPHA		1.0f
 #else
-	#define	PLAYER_VAPOR_THRESHOLD	700.0f
-	#define PLAYER_VAPOR_ALPHA		0.2f
+#define	PLAYER_VAPOR_THRESHOLD	700.0f
+#define PLAYER_VAPOR_ALPHA		0.2f
 #endif
 
 #define	JUMP_DELTA					1800.0f
@@ -135,8 +135,8 @@ uint16_t			gPlayerTileAttribs;
 
 OGLVector3D		gPreCollisionDelta;
 
-ObjNode 		*gTargetPickup = nil;
-ObjNode			*gCannon = nil;
+ObjNode *gTargetPickup = nil;
+ObjNode *gCannon = nil;
 
 float			gPlayerBottomOff = 0;
 
@@ -164,7 +164,7 @@ bool subtractTwiceDone = false;
 float	gTargetMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 float	gCurrentMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 
-OGLPoint3D gVrHMDPosMovedeltaWorldspace = {0,0};
+OGLPoint3D gVrHMDPosMovedeltaWorldspace = { 0,0 };
 
 
 /*************************** INIT PLAYER: ROBOT ****************************/
@@ -178,44 +178,44 @@ OGLPoint3D gVrHMDPosMovedeltaWorldspace = {0,0};
 
 void InitPlayer_Robot(OGLPoint3D *where, float rotY)
 {
-ObjNode	*newObj;
-float	y;
-int		i;
+	ObjNode *newObj;
+	float	y;
+	int		i;
 
-		/* FIND THE Y COORD TO START */
+	/* FIND THE Y COORD TO START */
 
-	y = FindHighestCollisionAtXZ(where->x,where->z, CTYPE_MISC|CTYPE_TERRAIN);
+	y = FindHighestCollisionAtXZ(where->x, where->z, CTYPE_MISC | CTYPE_TERRAIN);
 
 	if (gLevelNum == LEVEL_NUM_BLOBBOSS)
 		y += 5000.0f;				// blob boss, player falls from above
 	else
-		y += -gObjectGroupBBoxList[MODEL_GROUP_SKELETONBASE+SKELETON_TYPE_OTTO][0].min.y * PLAYER_DEFAULT_SCALE + 5.0f;	// offset y so foot is on ground
+		y += -gObjectGroupBBoxList[MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_OTTO][0].min.y * PLAYER_DEFAULT_SCALE + 5.0f;	// offset y so foot is on ground
 
 
-		/*****************************/
-		/* MAKE OTTO'S SKELETON BODY */
-		/*****************************/
+	/*****************************/
+	/* MAKE OTTO'S SKELETON BODY */
+	/*****************************/
 
-	gNewObjectDefinition.type 		= SKELETON_TYPE_OTTO;
-	gNewObjectDefinition.animNum	= 0;
-	gNewObjectDefinition.coord.x 	= where->x;
-	gNewObjectDefinition.coord.z 	= where->z;
-	gNewObjectDefinition.coord.y 	= y;
-	gNewObjectDefinition.flags 		= STATUS_BIT_NOFOG|STATUS_BIT_DONTCULL;
-	gNewObjectDefinition.slot 		= PLAYER_SLOT;
-	gNewObjectDefinition.moveCall	= MovePlayer_Robot;
-	gNewObjectDefinition.rot 		= 0;
-	gNewObjectDefinition.scale 		= PLAYER_DEFAULT_SCALE;
+	gNewObjectDefinition.type = SKELETON_TYPE_OTTO;
+	gNewObjectDefinition.animNum = 0;
+	gNewObjectDefinition.coord.x = where->x;
+	gNewObjectDefinition.coord.z = where->z;
+	gNewObjectDefinition.coord.y = y;
+	gNewObjectDefinition.flags = STATUS_BIT_NOFOG | STATUS_BIT_DONTCULL;
+	gNewObjectDefinition.slot = PLAYER_SLOT;
+	gNewObjectDefinition.moveCall = MovePlayer_Robot;
+	gNewObjectDefinition.rot = 0;
+	gNewObjectDefinition.scale = PLAYER_DEFAULT_SCALE;
 
 	newObj = MakeNewSkeletonObject(&gNewObjectDefinition);
 
-	gPlayerInfo.objNode 		= newObj;
-	gPlayerInfo.isTeleporting 	= false;
+	gPlayerInfo.objNode = newObj;
+	gPlayerInfo.isTeleporting = false;
 
 	newObj->Rot.y = rotY;
 
 
-				/* SET COLLISION INFO */
+	/* SET COLLISION INFO */
 
 	newObj->BoundingSphereRadius *= 2.0f;
 
@@ -225,46 +225,46 @@ int		i;
 	SetObjectCollisionBounds(newObj, newObj->BBox.max.y, gPlayerBottomOff = newObj->BBox.min.y, -40, 40, 40, -40);
 
 
-		/***********************/
-		/* CREATE HAND OBJECTS */
-		/***********************/
+	/***********************/
+	/* CREATE HAND OBJECTS */
+	/***********************/
 
-	for (i = 0; i < (GLOBAL_ObjType_FlameGunHand-GLOBAL_ObjType_OttoLeftHand+1); i++)
+	for (i = 0; i < (GLOBAL_ObjType_FlameGunHand - GLOBAL_ObjType_OttoLeftHand + 1); i++)
 	{
-		BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_GLOBAL, GLOBAL_ObjType_OttoLeftHand+i, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);	// set this model to be sphere mapped
+		BG3D_SphereMapGeomteryMaterial(MODEL_GROUP_GLOBAL, GLOBAL_ObjType_OttoLeftHand + i, 0, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_DarkDusk);	// set this model to be sphere mapped
 	}
 
 
-			/* LEFT HAND */
+	/* LEFT HAND */
 
-	gNewObjectDefinition.group 		= MODEL_GROUP_GLOBAL;
-	gNewObjectDefinition.type 		= GLOBAL_ObjType_OttoLeftHand;
-	gNewObjectDefinition.slot		= SLOT_OF_DUMB;
-	gNewObjectDefinition.moveCall 	= nil;
-	gPlayerInfo.leftHandObj 		= MakeNewDisplayGroupObject(&gNewObjectDefinition);
+	gNewObjectDefinition.group = MODEL_GROUP_GLOBAL;
+	gNewObjectDefinition.type = GLOBAL_ObjType_OttoLeftHand;
+	gNewObjectDefinition.slot = SLOT_OF_DUMB;
+	gNewObjectDefinition.moveCall = nil;
+	gPlayerInfo.leftHandObj = MakeNewDisplayGroupObject(&gNewObjectDefinition);
 
 
 
-			/* RIGHT HAND */
+	/* RIGHT HAND */
 
-	gNewObjectDefinition.type 	= GLOBAL_ObjType_OttoRightHand;
-	gPlayerInfo.rightHandObj 	= MakeNewDisplayGroupObject(&gNewObjectDefinition);
+	gNewObjectDefinition.type = GLOBAL_ObjType_OttoRightHand;
+	gPlayerInfo.rightHandObj = MakeNewDisplayGroupObject(&gNewObjectDefinition);
 
 	gPlayerInfo.rightHandObj->Kind = WEAPON_TYPE_FIST;			// set weapon type since this gets passed to weapon handlers
 
 	gPlayerInfo.rightHandObj->Damage = PUNCH_DAMAGE;
 
 
-		/*******************/
-		/* SET OTHER STUFF */
-		/*******************/
+	/*******************/
+	/* SET OTHER STUFF */
+	/*******************/
 
 	gTargetMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 	gCurrentMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 
 
 
-	AttachShadowToObject(newObj, 0, DEFAULT_PLAYER_SHADOW_SCALE,DEFAULT_PLAYER_SHADOW_SCALE * .8f, true);
+	AttachShadowToObject(newObj, 0, DEFAULT_PLAYER_SHADOW_SCALE, DEFAULT_PLAYER_SHADOW_SCALE * .8f, true);
 
 	CreatePlayerSparkles(newObj);
 
@@ -275,7 +275,8 @@ int		i;
 	gExplodePlayerAfterElectrocute = false;
 
 	// Make player invisible: 
-	newObj->StatusBits |= STATUS_BIT_HIDDEN;
+	// ! Temporarily disabled to see robot to test
+	// newObj->StatusBits |= STATUS_BIT_HIDDEN;
 }
 
 
@@ -330,28 +331,28 @@ void MovePlayer_Robot(ObjNode *theNode)
 		gTimeSinceLastShoot += gFramesPerSecondFrac;
 	}
 
-			/* FIRST SEE IF NEED TO UPDATE GROWTH */
+	/* FIRST SEE IF NEED TO UPDATE GROWTH */
 
 	UpdatePlayerGrowth(theNode);
 
 
-			/* JUMP TO HANDLER */
+	/* JUMP TO HANDLER */
 
 	myMoveTable[theNode->Skeleton->AnimNum](theNode);
 
 
-		/* SEE IF SHOULD FREEZE CAMERA */
+	/* SEE IF SHOULD FREEZE CAMERA */
 
-	if(theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMPJET)		// dont move camera from during jump-jet
+	if (theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMPJET)		// dont move camera from during jump-jet
 		gFreezeCameraFromXZ = false; // Do move it in VR
 	else
 		gFreezeCameraFromXZ = false;
 
 
-		printf("Player MOVED coord: %.2f, %.2f, %.2f\n",
-		gPlayerInfo.coord.x,
-		gPlayerInfo.coord.y,
-		gPlayerInfo.coord.z);
+	// printf("Player MOVED coord: %.2f, %.2f, %.2f\n",
+	// gPlayerInfo.coord.x,
+	// gPlayerInfo.coord.y,
+	// gPlayerInfo.coord.z);
 }
 
 
@@ -363,7 +364,7 @@ static void MovePlayerRobot_Stand(ObjNode *theNode)
 	theNode->Rot.x = 0;								// make sure this is correct
 	theNode->Rot.z = 0;								// make sure this is correct
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	UpdatePlayerAutoAim(theNode);
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -371,27 +372,27 @@ static void MovePlayerRobot_Stand(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF SHOULD WALK */
+	/* SEE IF SHOULD WALK */
 
 	if (IsPlayerDoingStandAnim(theNode))
 	{
-		float	animSpeed =  CalcWalkAnimSpeed(theNode);
+		float	animSpeed = CalcWalkAnimSpeed(theNode);
 
 		if ((animSpeed > WALK_STAND_THRESHOLD) && (gTimeSinceLastThrust < THRUST_TIMER))
 			SetPlayerWalkAnim(theNode);
 	}
 
-			/* DO CONTROL */
-			//
-			// do this last since we want any jump command to work smoothly
-			//
+	/* DO CONTROL */
+	//
+	// do this last since we want any jump command to work smoothly
+	//
 
 	CheckPlayerActionControls(theNode);
 
 
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -405,17 +406,17 @@ static void MovePlayerRobot_Walk(ObjNode *theNode)
 	theNode->Rot.x = 0;								// make sure this is correct
 	theNode->Rot.z = 0;								// make sure this is correct
 
-			/* DO CONTROL */
+	/* DO CONTROL */
 
 	CheckPlayerActionControls(theNode);
 
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	UpdatePlayerAutoAim(theNode);
 
 	if ((gPlayerInfo.analogControlX == 0.0f) &&			// if no user control, do heavy friction
-		 (gPlayerInfo.analogControlZ == 0.0f))
+		(gPlayerInfo.analogControlZ == 0.0f))
 	{
 		DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	}
@@ -428,11 +429,11 @@ static void MovePlayerRobot_Walk(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF SHOULD STAND */
+	/* SEE IF SHOULD STAND */
 
 	if (IsPlayerDoingWalkAnim(theNode))
 	{
-		float	animSpeed =  CalcWalkAnimSpeed(theNode);
+		float	animSpeed = CalcWalkAnimSpeed(theNode);
 
 		if ((animSpeed < WALK_STAND_THRESHOLD) || (gTimeSinceLastThrust > THRUST_TIMER))
 			SetPlayerStandAnim(theNode, 8);
@@ -442,7 +443,7 @@ static void MovePlayerRobot_Walk(ObjNode *theNode)
 
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -452,14 +453,14 @@ update:
 
 static float CalcWalkAnimSpeed(ObjNode *theNode)
 {
-float	animSpeed,accSpeed;
+	float	animSpeed, accSpeed;
 
 	accSpeed = sqrt(theNode->AccelVector.x * theNode->AccelVector.x + theNode->AccelVector.y * theNode->AccelVector.y);		// calc dist of accel vector
 	accSpeed *= 1000.0f;
 
 	animSpeed = theNode->Speed2D * (1.0f - gPlayerSlipperyFactor) + (accSpeed * gPlayerSlipperyFactor);							// calc weighted anim speed
 
-				/* NOW ACCOUNT FOR GIANT SCALE */
+	/* NOW ACCOUNT FOR GIANT SCALE */
 
 	if (theNode->Scale.x != PLAYER_DEFAULT_SCALE)
 	{
@@ -477,14 +478,14 @@ float	animSpeed,accSpeed;
 
 static void MovePlayerRobot_Jump(ObjNode *theNode)
 {
-Byte	aimMode;
+	Byte	aimMode;
 
-			/* DO CONTROL */
+	/* DO CONTROL */
 
 	CheckPlayerActionControls(theNode);
 
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	if (gTimeSinceLastThrust > .5f)			// only aim player if he's under user control
 		aimMode = AIM_MODE_NONE;
@@ -498,26 +499,26 @@ Byte	aimMode;
 
 	if (theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMP)		// only bother if still in Fall anim
 	{
-				/* SEE IF LANDED */
+		/* SEE IF LANDED */
 
 		if (theNode->StatusBits & STATUS_BIT_ONGROUND)
 		{
 			SetPlayerStandAnim(theNode, 8);
 		}
 
-				/* SEE IF FALLING */
+		/* SEE IF FALLING */
 		else
-		if (gDelta.y < 0.0f)
-		{
-			if (gDoJumpJetAtApex)							// see if we wanted to jet @ the apex
-				StartJumpJet(theNode);
-			else
-				MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FALL, 4.0);
-		}
+			if (gDelta.y < 0.0f)
+			{
+				if (gDoJumpJetAtApex)							// see if we wanted to jet @ the apex
+					StartJumpJet(theNode);
+				else
+					MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FALL, 4.0);
+			}
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -527,13 +528,13 @@ update:
 
 static void MovePlayerRobot_PickupAndDeposit(ObjNode *theNode)
 {
-OGLMatrix4x4	m,m2;
+	OGLMatrix4x4	m, m2;
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
 	VerifyTargetPickup();
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -541,15 +542,15 @@ OGLMatrix4x4	m,m2;
 		goto update;
 
 
-			/* KEEP AIMED AT TARGET */
+	/* KEEP AIMED AT TARGET */
 
 	if (gTargetPickup && (!theNode->IsHoldingPickup))
 	{
 		TurnObjectTowardTarget(theNode, &gCoord, gTargetPickup->Coord.x,
-								gTargetPickup->Coord.z, 9.0, false);
+			gTargetPickup->Coord.z, 9.0, false);
 	}
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimHasStopped)										// go to stand when done with anim
 		SetPlayerStandAnim(theNode, 2);
@@ -588,29 +589,29 @@ OGLMatrix4x4	m,m2;
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
 
 
 
-		/*********************/
-		/* UPDATE THE PICKUP */
-		/*********************/
+	/*********************/
+	/* UPDATE THE PICKUP */
+	/*********************/
 
 	if (gTargetPickup && theNode->IsHoldingPickup)
 	{
 		gTargetPickup->MoveCall = nil;										// make sure the pickup no longer has control if itself
 
-		OGLMatrix4x4_SetTranslate(&m,0,-20,0);								// set offset to palm of hand
+		OGLMatrix4x4_SetTranslate(&m, 0, -20, 0);								// set offset to palm of hand
 		m.value[M00] = gTargetPickup->Scale.x;								// insert scale values
 		m.value[M11] = gTargetPickup->Scale.y;
 		m.value[M22] = gTargetPickup->Scale.z;
 
 		FindJointFullMatrix(theNode, PLAYER_JOINT_RIGHTHAND, &m2);
 		OGLMatrix4x4_Multiply(&m, &m2, &m2);
-		OGLMatrix4x4_SetScale(&m, 1.0f/theNode->Scale.x,1.0f/theNode->Scale.x,1.0f/theNode->Scale.x);	// cancel out the player's scale thats in that matrix
+		OGLMatrix4x4_SetScale(&m, 1.0f / theNode->Scale.x, 1.0f / theNode->Scale.x, 1.0f / theNode->Scale.x);	// cancel out the player's scale thats in that matrix
 		OGLMatrix4x4_Multiply(&m, &m2, &gTargetPickup->BaseTransformMatrix);
 
 		SetObjectTransformMatrix(gTargetPickup);
@@ -633,10 +634,10 @@ static void MovePlayerRobot_PickupAndHoldGun(ObjNode *theNode)
 	if (gTargetPickup)														// if not holding it yet, then keep aimed at it
 	{
 		TurnObjectTowardTarget(theNode, &gCoord, gTargetPickup->Coord.x,
-								gTargetPickup->Coord.z, 9.0, false);
+			gTargetPickup->Coord.z, 9.0, false);
 	}
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -644,13 +645,13 @@ static void MovePlayerRobot_PickupAndHoldGun(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimHasStopped)
 		SetPlayerStandAnim(theNode, 4);
 
 
-			/* SEE IF GRAB IT NOW */
+	/* SEE IF GRAB IT NOW */
 
 	if (gTargetPickup)
 	{
@@ -674,7 +675,7 @@ static void MovePlayerRobot_PickupAndHoldGun(ObjNode *theNode)
 		}
 	}
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -690,22 +691,22 @@ static void MovePlayerRobot_PickupAndHoldMagnet(ObjNode *theNode)
 	VerifyTargetPickup();
 
 
-			/****************************/
-			/* MOVE DURING HOLDING PART */
-			/****************************/
+	/****************************/
+	/* MOVE DURING HOLDING PART */
+	/****************************/
 
 	if (theNode->IsHoldingPickup)
 	{
 		DoPlayerMagnetSkiing(theNode);
 	}
 
-			/***************************/
-			/* MOVE DURING PICKUP PART */
-			/***************************/
+	/***************************/
+	/* MOVE DURING PICKUP PART */
+	/***************************/
 	else
 	{
 
-				/* MOVE PLAYER */
+		/* MOVE PLAYER */
 
 		gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 		DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -713,16 +714,16 @@ static void MovePlayerRobot_PickupAndHoldMagnet(ObjNode *theNode)
 			goto update;
 
 
-				/* KEEP AIMED AT TARGET */
+		/* KEEP AIMED AT TARGET */
 
 		if (gTargetPickup && (!theNode->IsHoldingPickup))
 		{
 			TurnObjectTowardTarget(theNode, &gCoord, gTargetPickup->Coord.x,
-									gTargetPickup->Coord.z, 9.0, false);
+				gTargetPickup->Coord.z, 9.0, false);
 		}
 	}
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimNum != PLAYER_ANIM_PICKUPANDHOLDMAGNET)			// if anim has changed then finish things up with the pickup
 	{
@@ -730,26 +731,26 @@ static void MovePlayerRobot_PickupAndHoldMagnet(ObjNode *theNode)
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
 
 
 
-		/*********************/
-		/* UPDATE THE MAGNET */
-		/*********************/
+	/*********************/
+	/* UPDATE THE MAGNET */
+	/*********************/
 
 	if (gTargetPickup && theNode->IsHoldingPickup)
 	{
-		static const OGLPoint3D	off = {0,0,10};
-		OGLPoint3D	p1,p2;
+		static const OGLPoint3D	off = { 0,0,10 };
+		OGLPoint3D	p1, p2;
 
 		gTargetPickup->MoveCall = nil;										// make sure the pickup no longer has control if itself
 		gTargetPickup->CType = 0;											// no collision during this
 
-					/* CALC AVERGE BETWEEN 2 HANDS */
+		/* CALC AVERGE BETWEEN 2 HANDS */
 
 		FindCoordOnJoint(theNode, PLAYER_JOINT_RIGHTHAND, &off, &p1);
 		FindCoordOnJoint(theNode, PLAYER_JOINT_LEFTHAND, &off, &p2);
@@ -758,14 +759,14 @@ update:
 		gTargetPickup->Coord.z = (p1.z + p2.z) * .5f;
 
 		gTargetPickup->Rot.y = theNode->Rot.y;								// match y rot to player
-		gTargetPickup->Rot.x = -PI/2;										// flip to aim forward
+		gTargetPickup->Rot.x = -PI / 2;										// flip to aim forward
 
-					/* UPDATE NODE */
+		/* UPDATE NODE */
 
 		UpdateObjectTransforms(gTargetPickup);
 		UpdateShadow(gTargetPickup);
 
-		DisplayHelpMessage(HELP_MESSAGE_LETGOMAGNET,1.0, true);
+		DisplayHelpMessage(HELP_MESSAGE_LETGOMAGNET, 1.0, true);
 	}
 }
 
@@ -791,7 +792,7 @@ static void MovePlayerRobot_ChangeWeapon(ObjNode *theNode)
 {
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -799,7 +800,7 @@ static void MovePlayerRobot_ChangeWeapon(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimHasStopped)
 	{
@@ -807,11 +808,11 @@ static void MovePlayerRobot_ChangeWeapon(ObjNode *theNode)
 	}
 
 
-			/* FAST WEAPON SWITCHING */
-			//
-			// Player can keep cycling weapons until Otto has started
-			// pulling out a new gun (ChangeWeapon anim flag)
-			//
+	/* FAST WEAPON SWITCHING */
+	//
+	// Player can keep cycling weapons until Otto has started
+	// pulling out a new gun (ChangeWeapon anim flag)
+	//
 
 	if (theNode->Skeleton->AnimNum == PLAYER_ANIM_CHANGEWEAPON
 		&& !theNode->ChangeWeapon)
@@ -819,7 +820,7 @@ static void MovePlayerRobot_ChangeWeapon(ObjNode *theNode)
 		CheckWeaponChangeControls(theNode);
 	}
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -832,12 +833,12 @@ static void MovePlayerRobot_SuckedIntoWell(ObjNode *theNode)
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;				// no user control during this anim
 	gCoord.y = GetTerrainY(gCoord.x, gCoord.z) - theNode->BBox.min.y - 40.0f;	// just keep stuck to ground
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 	UpdatePlayer_Robot(theNode);
 
@@ -855,7 +856,7 @@ static void MovePlayerRobot_SuckedIntoWell(ObjNode *theNode)
 static void MovePlayerRobot_Punch(ObjNode *theNode)
 {
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	TurnPlayerTowardPunchable(theNode);										// aim at punchable
 
@@ -864,7 +865,7 @@ static void MovePlayerRobot_Punch(ObjNode *theNode)
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
 
-			/* SEE IF CHECK FOR PUNCH COLLISION */
+	/* SEE IF CHECK FOR PUNCH COLLISION */
 
 	if (theNode->PunchCanHurt)
 	{
@@ -873,7 +874,7 @@ static void MovePlayerRobot_Punch(ObjNode *theNode)
 	}
 
 
-			/* SEE IF SHOULD STAND */
+	/* SEE IF SHOULD STAND */
 
 	if (theNode->Skeleton->AnimHasStopped)
 	{
@@ -881,7 +882,7 @@ static void MovePlayerRobot_Punch(ObjNode *theNode)
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -893,14 +894,14 @@ update:
 static void MovePlayerRobot_Throw(ObjNode *theNode)
 {
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
 
-			/* SEE IF CHECK FOR RELEASE DART */
+	/* SEE IF CHECK FOR RELEASE DART */
 
 	if (theNode->ThrowDartNow)
 	{
@@ -909,7 +910,7 @@ static void MovePlayerRobot_Throw(ObjNode *theNode)
 	}
 
 
-			/* SEE IF SHOULD STAND */
+	/* SEE IF SHOULD STAND */
 
 	if (theNode->Skeleton->AnimHasStopped)
 	{
@@ -917,7 +918,7 @@ static void MovePlayerRobot_Throw(ObjNode *theNode)
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -929,15 +930,15 @@ update:
 
 static void TurnPlayerTowardPunchable(ObjNode *player)
 {
-ObjNode *thisNode,*nearest;
-float	bestDist,maxDist;
+	ObjNode *thisNode, *nearest;
+	float	bestDist, maxDist;
 
 	bestDist = 10000000;
 	nearest = nil;
 
 	maxDist = 220.0f * player->Scale.x;							// calc max dist to check for punchables
 
-			/* SCAN FOR NEAREST PUNCHABLE IN FRONT */
+	/* SCAN FOR NEAREST PUNCHABLE IN FRONT */
 
 	thisNode = gFirstNodePtr;									// start on 1st node
 
@@ -956,17 +957,17 @@ float	bestDist,maxDist;
 			nearest = thisNode;
 		}
 
-next:
+	next:
 		thisNode = thisNode->NextNode;							// next target node
-	}while(thisNode != nil);
+	} while (thisNode != nil);
 
 
-			/* THERE IS SOMETHING THERE */
+	/* THERE IS SOMETHING THERE */
 
 	if (nearest)
 	{
 		TurnObjectTowardTarget(player, &gCoord, nearest->Coord.x,
-								nearest->Coord.z, 6.0, false);
+			nearest->Coord.z, 6.0, false);
 	}
 
 
@@ -979,28 +980,28 @@ static void MovePlayerRobot_JumpJet(ObjNode *theNode)
 {
 
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	if (DoPlayerMovementAndCollision_JumpJet(theNode))
 		goto update;
 
 
-			/* SEE IF LANDED */
+	/* SEE IF LANDED */
 
 	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
 	{
 		SetPlayerStandAnim(theNode, 7);
 	}
-			/* SEE IF DONE WITH JUMP-JET ANIM */
+	/* SEE IF DONE WITH JUMP-JET ANIM */
 	else
-	if (theNode->Skeleton->AnimHasStopped || GetNewNeedState(kNeed_Jump))
-	{
-		MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FALL, 4.0);		// make fall anim
-	}
+		if (theNode->Skeleton->AnimHasStopped || GetNewNeedState(kNeed_Jump))
+		{
+			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FALL, 4.0);		// make fall anim
+		}
 
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 
@@ -1021,14 +1022,14 @@ update:
 
 static void MovePlayerRobot_Fall(ObjNode *theNode)
 {
-float	oldDY = gDelta.y;
-Byte	aimMode;
+	float	oldDY = gDelta.y;
+	Byte	aimMode;
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/********************************************/
-			/* SEE IF FALLING IN A BOTTOMLESS PIT DEATH */
-			/********************************************/
+	/********************************************/
+	/* SEE IF FALLING IN A BOTTOMLESS PIT DEATH */
+	/********************************************/
 
 	if (gPlayerFellIntoBottomlessPit)
 	{
@@ -1036,12 +1037,12 @@ Byte	aimMode;
 		return;
 	}
 
-				/* DO CONTROL */
+	/* DO CONTROL */
 
 	CheckPlayerActionControls(theNode);
 
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	if (gTimeSinceLastThrust > .5f)			// only aim player if he's under user control
 		aimMode = AIM_MODE_NONE;
@@ -1053,31 +1054,31 @@ Byte	aimMode;
 		goto update;
 
 
-			/*****************/
-			/* SEE IF LANDED */
-			/*****************/
+	/*****************/
+	/* SEE IF LANDED */
+	/*****************/
 
 	if (theNode->Skeleton->AnimNum == PLAYER_ANIM_FALL)						// only bother if still in Fall anim
 	{
 		if ((theNode->StatusBits & STATUS_BIT_ONGROUND) || (gPlayerInfo.distToFloor < 10.0f))
 		{
 
-					/* DO ANIM AFTER LANDED */
+			/* DO ANIM AFTER LANDED */
 
-			switch(theNode->Skeleton->AnimNum)
+			switch (theNode->Skeleton->AnimNum)
 			{
-				case	PLAYER_ANIM_BUMPERCAR:								// check if trigger put us in bumper car
-						break;
+			case	PLAYER_ANIM_BUMPERCAR:								// check if trigger put us in bumper car
+				break;
 
-				default:
-						SetPlayerStandAnim(theNode, 8);						// default to standing when landing
+			default:
+				SetPlayerStandAnim(theNode, 8);						// default to standing when landing
 			}
 
 			if (oldDY < -300.0f)											// if landing fast enough
 			{
 				PlayEffect3D(EFFECT_METALLAND, &gCoord);					// play hard land sound
 
-						/* MAKE DEFORMATION WAVE */
+				/* MAKE DEFORMATION WAVE */
 
 				if (gLevelNum == LEVEL_NUM_BLOB)
 				{
@@ -1085,18 +1086,18 @@ Byte	aimMode;
 					{
 						DeformationType		defData;
 
-						defData.type 				= DEFORMATION_TYPE_RADIALWAVE;
-						defData.amplitude 			= oldDY * -.08f * gPlayerInfo.scaleRatio;
+						defData.type = DEFORMATION_TYPE_RADIALWAVE;
+						defData.amplitude = oldDY * -.08f * gPlayerInfo.scaleRatio;
 						if (defData.amplitude > 1000.0f)
 							defData.amplitude = 1000.0f;
 
-						defData.radius 				= 0;
-						defData.speed 				= 4000;
-						defData.origin.x			= gCoord.x;
-						defData.origin.y			= gCoord.z;
-						defData.oneOverWaveLength 	= 1.0f / (400.0f * gPlayerInfo.scaleRatio);
-						defData.radialWidth			= 600.0f;
-						defData.decayRate			= 200.0f * gPlayerInfo.scaleRatio;
+						defData.radius = 0;
+						defData.speed = 4000;
+						defData.origin.x = gCoord.x;
+						defData.origin.y = gCoord.z;
+						defData.oneOverWaveLength = 1.0f / (400.0f * gPlayerInfo.scaleRatio);
+						defData.radialWidth = 600.0f;
+						defData.decayRate = 200.0f * gPlayerInfo.scaleRatio;
 						NewSuperTileDeformation(&defData);
 					}
 				}
@@ -1105,7 +1106,7 @@ Byte	aimMode;
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -1116,12 +1117,12 @@ update:
 
 static void MovePlayerRobot_Fall_BottomlessPit(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+	float	fps = gFramesPerSecondFrac;
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;
 	gDelta.x = gDelta.z = 0;
 
-			/* SEE IF TIME FOR DEATH EXIT TRANSITION */
+	/* SEE IF TIME FOR DEATH EXIT TRANSITION */
 
 	if (gDeathTimer > 0.0f)
 	{
@@ -1130,7 +1131,7 @@ float	fps = gFramesPerSecondFrac;
 			StartDeathExit(0);
 	}
 
-			/* DO MOVEMENT */
+	/* DO MOVEMENT */
 
 	DoRobotFrictionAndGravity(theNode, PLAYER_AIR_FRICTION);
 	gCoord.x += gDelta.x * fps;
@@ -1149,12 +1150,12 @@ float	fps = gFramesPerSecondFrac;
 
 static void MovePlayerRobot_Thrown(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+	float	fps = gFramesPerSecondFrac;
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
 
-			/* MOVE IT */
+	/* MOVE IT */
 
 	gDelta.y -= gGravity * fps * .7f;
 	gCoord.x += gDelta.x * fps;
@@ -1164,9 +1165,9 @@ float	fps = gFramesPerSecondFrac;
 	theNode->Rot.x += fps * 10.0f;
 
 
-			/* COLLISION */
+	/* COLLISION */
 
-	HandleCollisions(theNode, CTYPE_MISC|CTYPE_TERRAIN|CTYPE_FENCE, -.6);
+	HandleCollisions(theNode, CTYPE_MISC | CTYPE_TERRAIN | CTYPE_FENCE, -.6);
 	if (theNode->StatusBits & STATUS_BIT_ONGROUND)								// once on ground then stop
 	{
 		theNode->Rot.x = 0;
@@ -1180,7 +1181,7 @@ float	fps = gFramesPerSecondFrac;
 
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 	UpdatePlayer_Robot(theNode);
 }
@@ -1232,7 +1233,7 @@ static void MovePlayerRobot_Zapped(ObjNode *theNode)
 	theNode->ZappedTimer -= gFramesPerSecondFrac;					// dec timer
 	if (theNode->ZappedTimer <= 0.0f)
 	{
-			/* KILL THE PLAYER */
+		/* KILL THE PLAYER */
 
 		if (gExplodePlayerAfterElectrocute)
 			KillPlayer(PLAYER_DEATH_TYPE_EXPLODE);
@@ -1254,7 +1255,7 @@ static void MovePlayerRobot_Drowned(ObjNode *theNode)
 		gCoord.y = gWaterBBox[gPlayerInfo.waterPatch].max.y;
 
 
-			/* SEE IF END */
+	/* SEE IF END */
 
 	if (gDeathTimer > 0.0f)
 	{
@@ -1273,11 +1274,11 @@ static void MovePlayerRobot_Drowned(ObjNode *theNode)
 
 static void MovePlayerRobot_Flattened(ObjNode *theNode)
 {
-Boolean	wasOnGround = !!(theNode->StatusBits & STATUS_BIT_ONGROUND);
+	Boolean	wasOnGround = !!(theNode->StatusBits & STATUS_BIT_ONGROUND);
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
@@ -1285,12 +1286,12 @@ Boolean	wasOnGround = !!(theNode->StatusBits & STATUS_BIT_ONGROUND);
 		goto update;
 
 
-			/* PLAY BOUNCE SFX */
+	/* PLAY BOUNCE SFX */
 
 	if ((theNode->StatusBits & STATUS_BIT_ONGROUND) && (!wasOnGround))
 	{
-//		if (gDelta.y > 20.0f)
-			PlayEffect_Parms3D(EFFECT_PLAYERCLANG, &gCoord, NORMAL_CHANNEL_RATE, 0.8f);
+		//		if (gDelta.y > 20.0f)
+		PlayEffect_Parms3D(EFFECT_PLAYERCLANG, &gCoord, NORMAL_CHANNEL_RATE, 0.8f);
 	}
 
 
@@ -1313,7 +1314,7 @@ static void MovePlayerRobot_BellySlide(ObjNode *theNode)
 {
 	theNode->Rot.x = theNode->Rot.z = 0;
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
@@ -1340,7 +1341,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 {
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -1348,7 +1349,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF DISCHARGE SUPERNOVA */
+	/* SEE IF DISCHARGE SUPERNOVA */
 
 	if (gPlayerInfo.superNovaStatic)						// if this obj exists then we're still charging
 	{
@@ -1358,7 +1359,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 		}
 	}
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -1368,11 +1369,11 @@ update:
 
 static void MovePlayerRobot_GotHit(ObjNode *theNode)
 {
-float	f;
+	float	f;
 
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 
@@ -1385,7 +1386,7 @@ float	f;
 		goto update;
 
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimHasStopped)
 	{
@@ -1394,7 +1395,7 @@ float	f;
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -1407,12 +1408,12 @@ static void MovePlayerRobot_Accordian(ObjNode *theNode)
 {
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MATCH FEET TO GROUND */
+	/* MATCH FEET TO GROUND */
 
 	gCoord.y = GetTerrainY(gCoord.x, gCoord.z) + theNode->BBox.min.y;
 
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
@@ -1420,7 +1421,7 @@ static void MovePlayerRobot_Accordian(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	theNode->AccordianTimer -= gFramesPerSecondFrac;
 	if (theNode->AccordianTimer <= 0.0f)
@@ -1430,7 +1431,7 @@ static void MovePlayerRobot_Accordian(ObjNode *theNode)
 	}
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 update:
 	UpdatePlayer_Robot(theNode);
@@ -1441,9 +1442,9 @@ update:
 
 static void MovePlayerRobot_Bubble(ObjNode *theNode)
 {
-float	y;
+	float	y;
 
-			/* KEEP FLOATING ABOVE GROUND */
+	/* KEEP FLOATING ABOVE GROUND */
 
 	y = GetTerrainY(gCoord.x, gCoord.z) + 300.0f;
 	gDelta.y = y - gCoord.y;
@@ -1451,17 +1452,17 @@ float	y;
 		gDelta.y *= 2.0f;					// float up faster than float down
 
 
-			/* MOVE IT */
+	/* MOVE IT */
 
 	DoPlayerMovementAndCollision_Bubble(theNode);
 
 
-			/* UPDATE ME */
+	/* UPDATE ME */
 
 	UpdatePlayer_Robot(theNode);
 
 
-		/* UPDATE BUBBLE */
+	/* UPDATE BUBBLE */
 
 	if (gSoapBubble)
 	{
@@ -1478,7 +1479,7 @@ static void MovePlayerRobot_Drink(ObjNode *theNode)
 {
 	gTimeSinceLastThrust = 0;							// reset this so camera won't auto-adjust during this anim (a bit of a hack really)
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
@@ -1486,7 +1487,7 @@ static void MovePlayerRobot_Drink(ObjNode *theNode)
 		goto update;
 
 
-			/* SEE IF DONE */
+	/* SEE IF DONE */
 
 	if (theNode->Skeleton->AnimHasStopped)
 	{
@@ -1505,7 +1506,7 @@ update:
 
 static void MovePlayerRobot_RideZip(ObjNode *theNode)
 {
-float	r = theNode->Rot.y;
+	float	r = theNode->Rot.y;
 
 
 	gCoord = gCurrentZip->Coord;		// get pully coord
@@ -1525,7 +1526,7 @@ static void MovePlayerRobot_ClimbInto(ObjNode *theNode)
 {
 	theNode->Skeleton->AnimSpeed = 1.6;
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
 	gDelta.x = gDelta.y = gDelta.z = 0.0f;
@@ -1543,9 +1544,9 @@ update:
 
 static void MovePlayerRobot_ShotFromCannon(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+	float	fps = gFramesPerSecondFrac;
 
-			/* MOVE PLAYER */
+	/* MOVE PLAYER */
 
 	gDelta.y -= 500.0f * fps;
 
@@ -1553,9 +1554,9 @@ float	fps = gFramesPerSecondFrac;
 	gCoord.y += gDelta.y * fps;
 	gCoord.z += gDelta.z * fps;
 
-	theNode->Rot.x -= PI/7 * fps;
+	theNode->Rot.x -= PI / 7 * fps;
 
-			/* SEE IF HIT GROUND */
+	/* SEE IF HIT GROUND */
 
 	if ((gCoord.y + theNode->BBox.min.y) <= GetTerrainY(gCoord.x, gCoord.z))
 	{
@@ -1566,7 +1567,7 @@ float	fps = gFramesPerSecondFrac;
 
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 	UpdatePlayer_Robot(theNode);
 }
@@ -1579,7 +1580,7 @@ static void MovePlayerRobot_BumperCar(ObjNode *theNode)
 {
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 	AlignPlayerInBumperCar(theNode);
 	UpdatePlayer_Robot(theNode);
@@ -1591,7 +1592,7 @@ static void MovePlayerRobot_RocketSled(ObjNode *theNode)
 {
 
 
-			/* UPDATE IT */
+	/* UPDATE IT */
 
 	AlignPlayerInRocketSled(theNode);
 	UpdatePlayer_Robot(theNode);
@@ -1605,9 +1606,9 @@ static void MovePlayerRobot_RocketSled(ObjNode *theNode)
 
 void UpdatePlayer_Robot(ObjNode *theNode)
 {
-float fps = gFramesPerSecondFrac;
+	float fps = gFramesPerSecondFrac;
 
-			/* VERIFY BOTTOMLESS PIT */
+	/* VERIFY BOTTOMLESS PIT */
 
 	if (gLevelNum == LEVEL_NUM_CLOUD)
 	{
@@ -1619,68 +1620,68 @@ float fps = gFramesPerSecondFrac;
 	}
 
 
-		/* VERIFY ANIM INFO */
+	/* VERIFY ANIM INFO */
 
-	switch(theNode->Skeleton->AnimNum)
+	switch (theNode->Skeleton->AnimNum)
 	{
-		case	PLAYER_ANIM_STANDWITHGUN:
-				if (!gPlayerInfo.holdingGun)											// verify using correct stand anim
-					MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_STAND, 6.0);
-				break;
+	case	PLAYER_ANIM_STANDWITHGUN:
+		if (!gPlayerInfo.holdingGun)											// verify using correct stand anim
+			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_STAND, 6.0);
+		break;
 
-		case	PLAYER_ANIM_STAND:
-				if (gPlayerInfo.holdingGun)
-					MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_STANDWITHGUN, 6.0);
-				break;
+	case	PLAYER_ANIM_STAND:
+		if (gPlayerInfo.holdingGun)
+			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_STANDWITHGUN, 6.0);
+		break;
 
-		case	PLAYER_ANIM_WALKWITHGUN:
-				if (!gPlayerInfo.holdingGun)											// verify using correct walk anim
-					MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_WALK, 9.0);
-				break;
+	case	PLAYER_ANIM_WALKWITHGUN:
+		if (!gPlayerInfo.holdingGun)											// verify using correct walk anim
+			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_WALK, 9.0);
+		break;
 
-		case	PLAYER_ANIM_WALK:
-				if (gPlayerInfo.holdingGun)
-					MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_WALKWITHGUN, 9.0);
-				break;
+	case	PLAYER_ANIM_WALK:
+		if (gPlayerInfo.holdingGun)
+			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_WALKWITHGUN, 9.0);
+		break;
 
 	}
 
 
-		/* UPDATE SPECIAL COLLISION INFO */
+	/* UPDATE SPECIAL COLLISION INFO */
 
-	switch(theNode->Skeleton->AnimNum)
+	switch (theNode->Skeleton->AnimNum)
 	{
-		case	PLAYER_ANIM_ACCORDIAN:
-		case	PLAYER_ANIM_FLATTENED:
-		case	PLAYER_ANIM_DROWNED:
-		case	PLAYER_ANIM_GOTHIT:
-				theNode->TopOff = theNode->BBox.max.y * .7f;
-				break;
+	case	PLAYER_ANIM_ACCORDIAN:
+	case	PLAYER_ANIM_FLATTENED:
+	case	PLAYER_ANIM_DROWNED:
+	case	PLAYER_ANIM_GOTHIT:
+		theNode->TopOff = theNode->BBox.max.y * .7f;
+		break;
 
-		default:
-				theNode->TopOff = gObjectGroupBBoxList[MODEL_GROUP_SKELETONBASE+SKELETON_TYPE_OTTO][0].max.y * theNode->Scale.y * .7f;
-				break;
+	default:
+		theNode->TopOff = gObjectGroupBBoxList[MODEL_GROUP_SKELETONBASE + SKELETON_TYPE_OTTO][0].max.y * theNode->Scale.y * .7f;
+		break;
 	}
 
 
-		/* UPDATE OBJECT AS LONG AS NOT BEING MATRIX CONTROLLED */
+	/* UPDATE OBJECT AS LONG AS NOT BEING MATRIX CONTROLLED */
 
-	switch(theNode->Skeleton->AnimNum)
+	switch (theNode->Skeleton->AnimNum)
 	{
-		case	PLAYER_ANIM_GRABBED:
-		case	PLAYER_ANIM_GRABBED2:
-		case	PLAYER_ANIM_GRABBEDBYSTRONGMAN:
-		case	PLAYER_ANIM_ROCKETSLED:
-				break;
+	case	PLAYER_ANIM_GRABBED:
+	case	PLAYER_ANIM_GRABBED2:
+	case	PLAYER_ANIM_GRABBEDBYSTRONGMAN:
+	case	PLAYER_ANIM_ROCKETSLED:
+		break;
 
-		default:
-				UpdateObject(theNode);
+	default:
+		UpdateObject(theNode);
 	}
 
 	gPlayerInfo.coord = gCoord;				// update player coord
 
 
-			/* UPDATE FINAL SPEED VALUES */
+	/* UPDATE FINAL SPEED VALUES */
 
 	VectorLength2D(theNode->Speed2D, gDelta.x, gDelta.z);
 	theNode->Speed3D = CalcVectorLength(&gDelta);
@@ -1688,35 +1689,35 @@ float fps = gFramesPerSecondFrac;
 	if (theNode->Speed2D < gTargetMaxSpeed)					// if we're less than the target, then just reset current to target
 		gCurrentMaxSpeed = gTargetMaxSpeed;
 	else
-	if (gCurrentMaxSpeed > gTargetMaxSpeed)					// see if in overdrive, so readjust currnet
-	{
-		if (theNode->Speed2D < gCurrentMaxSpeed)			// we're slower than Current, so adjust current down to us
+		if (gCurrentMaxSpeed > gTargetMaxSpeed)					// see if in overdrive, so readjust currnet
 		{
-			gCurrentMaxSpeed = theNode->Speed2D;
+			if (theNode->Speed2D < gCurrentMaxSpeed)			// we're slower than Current, so adjust current down to us
+			{
+				gCurrentMaxSpeed = theNode->Speed2D;
+			}
 		}
-	}
 
-			/* UPDATE SPARKLES & FLAME */
+	/* UPDATE SPARKLES & FLAME */
 
 	UpdatePlayerSparkles(theNode);
 
 	if (gPlayerInfo.burnTimer > 0.0f)
 	{
 		gPlayerInfo.burnTimer -= fps;
-		BurnSkeleton(theNode,40.0f * gPlayerInfo.scaleRatio);
+		BurnSkeleton(theNode, 40.0f * gPlayerInfo.scaleRatio);
 	}
 
 
 
 
-			/****************/
-			/* UPDATE HANDS */
-			/****************/
+	/****************/
+	/* UPDATE HANDS */
+	/****************/
 
 	UpdateRobotHands(theNode);
 
 
-			/* CHECK FOR ACCIDENTAL SUPERNOVA DISCHARGE */
+	/* CHECK FOR ACCIDENTAL SUPERNOVA DISCHARGE */
 
 	if ((theNode->Skeleton->AnimNum != PLAYER_ANIM_CHARGING) &&		// if we are not charging but we have a static object
 		(gPlayerInfo.superNovaStatic != nil))
@@ -1725,7 +1726,7 @@ float fps = gFramesPerSecondFrac;
 	}
 
 
-		/* CHECK INV TIMER */
+	/* CHECK INV TIMER */
 
 	gPlayerInfo.invincibilityTimer -= fps;
 
@@ -1744,9 +1745,9 @@ void UpdateRobotHands(ObjNode *theNode)
 	int		weaponType;
 	bool playingInVr = true; // For testing
 
-		/****************************/
-		/* DETERMINE IF HOLDING GUN */
-		/****************************/
+	/****************************/
+	/* DETERMINE IF HOLDING GUN */
+	/****************************/
 
 	if ((theNode->Skeleton->AnimNum == PLAYER_ANIM_CHANGEWEAPON) && (!theNode->ChangeWeapon))	// see if still holding old gun during weapon change
 	{
@@ -1767,38 +1768,38 @@ void UpdateRobotHands(ObjNode *theNode)
 		if (theNode->Skeleton->AnimNum == PLAYER_ANIM_BUBBLE)			// don't show gun while riding bubble
 			holdingGun = false;
 
-		/*****************************/
-		/* UPDATE GEOMETRY FOR HANDS */
-		/*****************************/
-	
+	/*****************************/
+	/* UPDATE GEOMETRY FOR HANDS */
+	/*****************************/
+
 	lhand = gPlayerInfo.leftHandObj;						// get hand objects
 	rhand = gPlayerInfo.rightHandObj;
 
 	lhand->ColorFilter.a = rhand->ColorFilter.a = theNode->ColorFilter.a;	// match alpha fades
-	
+
 	if (rhand && lhand) { // only update if both hands are legit
 		if (playingInVr) {
 			// Figure out if hand model should be closed fist or open hand
 			if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f) {
 				rhand->Type = GLOBAL_ObjType_OttoRightFist;
 				ResetDisplayGroupObject(rhand);
-			} 
+			}
 			else {
 				rhand->Type = GLOBAL_ObjType_OttoRightHand;
 				ResetDisplayGroupObject(rhand);
 			}
-		
+
 			// Only change left hand model if not holding gun
 			if (holdingGun)
 			{
 				lhand->Type = GLOBAL_ObjType_PulseGunHand + weaponType;
 				ResetDisplayGroupObject(lhand);
-			} 
+			}
 			else {
 				if (vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f) {
 					lhand->Type = GLOBAL_ObjType_OttoLeftFist;
 					ResetDisplayGroupObject(lhand);
-				} 
+				}
 				else {
 					lhand->Type = GLOBAL_ObjType_OttoLeftHand;
 					ResetDisplayGroupObject(lhand);
@@ -1806,9 +1807,9 @@ void UpdateRobotHands(ObjNode *theNode)
 			}
 
 
-				/* ROTATION CONTROLLER TRACKING */
+			/* ROTATION CONTROLLER TRACKING */
 
-			// For both hands, disable translation (for now we don't use this:
+		// For both hands, disable translation (for now we don't use this:
 			vrInfoLeftHand.transformationMatrix.value[M03] = 0;
 			vrInfoLeftHand.transformationMatrix.value[M13] = 0;
 			vrInfoLeftHand.transformationMatrix.value[M23] = 0;
@@ -1827,9 +1828,9 @@ void UpdateRobotHands(ObjNode *theNode)
 
 
 
-				/* POSITION CONTROLLER TRACKING */
+			/* POSITION CONTROLLER TRACKING */
 
-			// This also adjusts based on gameYaw rotation so using thumbsticks to rotate world doesn't leave hands behind
+		// This also adjusts based on gameYaw rotation so using thumbsticks to rotate world doesn't leave hands behind
 			vrpp_updateGameSpacePositions();
 
 			int scale = VRroomDistanceToGameDistanceScale;
@@ -1842,7 +1843,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			rhand->Coord.z = theNode->Coord.z + (vrInfoRightHand.posGameAxes.z - vrInfoHMD.posGameAxes.z) * scale;
 
 
-			
+
 
 			//printf("vrInfoHMD.HMDgameYawIgnoringHMD: %f\n", vrInfoHMD.HMDgameYawIgnoringHMD);
 
@@ -1854,7 +1855,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			//printf("LeftController rot.yaw: %f\n", vrInfoLeftHand.rot.yaw);
 			//printf("LeftController rot.roll: %f\n\n", vrInfoLeftHand.rot.roll);
 
-		
+
 
 			//printf("PRElhand pos X m12: %f\n", vrInfoLeftHand.transformationMatrix.value[M03]);
 			//printf("PRElhand pos Y m13: %f\n", vrInfoLeftHand.transformationMatrix.value[M13]);
@@ -2022,30 +2023,30 @@ void UpdateRobotHands(ObjNode *theNode)
 
 void UpdatePlayerMotionBlur(ObjNode *theNode)
 {
-int		v,i;
-static OGLColorRGBA color	= { 0.6f, 0.6f, 1.0f, PLAYER_VAPOR_ALPHA };
-static OGLColorRGBA color2	= { 0.4f, 1.0f, 0.4f, PLAYER_VAPOR_ALPHA };
-OGLPoint3D	p;
-OGLVector3D	playerVec,viewVec;
-float		dot;
+	int		v, i;
+	static OGLColorRGBA color = { 0.6f, 0.6f, 1.0f, PLAYER_VAPOR_ALPHA };
+	static OGLColorRGBA color2 = { 0.4f, 1.0f, 0.4f, PLAYER_VAPOR_ALPHA };
+	OGLPoint3D	p;
+	OGLVector3D	playerVec, viewVec;
+	float		dot;
 
 
-			/*************************/
-			/* SEE IF SHOULD TO BLUR */
-			/*************************/
+	/*************************/
+	/* SEE IF SHOULD TO BLUR */
+	/*************************/
 
 	if (theNode->Skeleton->AnimNum != PLAYER_ANIM_JUMPJET)													// always blur when jump-jetting
 	{
 		if (theNode->Speed3D < PLAYER_VAPOR_THRESHOLD)				// only add trail if going fast
 			return;
 
-			/* DONT DO BLUR IF PLAYER IS MOVING AWAY FROM CAMERA */
+		/* DONT DO BLUR IF PLAYER IS MOVING AWAY FROM CAMERA */
 
 		FastNormalizeVector(theNode->Delta.x, theNode->Delta.y, theNode->Delta.z, &playerVec);					// calc player motion vector
 		FastNormalizeVector(theNode->Coord.x - gGameViewInfoPtr->cameraPlacement.cameraLocation.x,				// calc vector from camera to player
-							theNode->Coord.y - gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
-							theNode->Coord.z - gGameViewInfoPtr->cameraPlacement.cameraLocation.z,
-							&viewVec);
+			theNode->Coord.y - gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+			theNode->Coord.z - gGameViewInfoPtr->cameraPlacement.cameraLocation.z,
+			&viewVec);
 
 		dot = OGLVector3D_Dot(&playerVec, &viewVec);															// calc dot product to determine angle
 		if ((dot > .9f) || (dot < -.9f))
@@ -2053,11 +2054,11 @@ float		dot;
 	}
 
 
-			/*******************/
-			/* UPDATE THE BLUR */
-			/*******************/
+	/*******************/
+	/* UPDATE THE BLUR */
+	/*******************/
 
-	for (v = 0; v< theNode->Skeleton->skeletonDefinition->NumBones; v++)
+	for (v = 0; v < theNode->Skeleton->skeletonDefinition->NumBones; v++)
 	{
 		FindCoordOfJoint(theNode, v, &p);
 
@@ -2084,7 +2085,7 @@ float		dot;
 
 static void UpdatePlayerAutoAim(ObjNode *player)
 {
-float	tx,tz;
+	float	tx, tz;
 
 	if (gPlayerInfo.autoAimTimer <= 0.0f)
 		return;
@@ -2133,7 +2134,7 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 	float	mouseRotationPlayer;
 	float   VRcameraJoyPostionX;
-	
+
 
 
 	//// Initial alignment
@@ -2155,14 +2156,23 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	}
 	else {
 		// If here, VR joystick is moving
+		// Get joystick input
 		VRcameraJoyPostionX = vrcpp_GetAnalogActionData(vrCameraXY).x;
-		VRcameraJoyPostionX /= 30; // Reduce for sensitivty
-		vrInfoHMD.HMDYawCorrected -= VRcameraJoyPostionX;
-		printf("ROTATE X: %f                  ", VRcameraJoyPostionX);
+		// ? VRcameraJoyPostionX /= 30; // Reduce for sensitivty
+
+		// MULTIPLY by frame time for smooth rotation!
+		float rotationSpeed = 3.0f;  // Degrees per second
+		float deltaTime = gFramesPerSecondFrac;  // Frame time in seconds
+
+		vrInfoHMD.camThumbstickAccum -= VRcameraJoyPostionX * rotationSpeed * deltaTime;
+
+
+		vrInfoHMD.HMDYawCorrected = vrInfoHMD.camThumbstickAccum;
+		// printf("\nROTATE X: %f                  ", VRcameraJoyPostionX);
 	}
 
 	//// HMD rotation turns Otto:
-	//theNode->Rot.y = vrInfoHMD.HMDYawCorrected;
+	theNode->Rot.y = vrInfoHMD.HMDYawCorrected;
 
 	float	strafe = 0.0f, movement = 0.0f;
 
@@ -2257,10 +2267,10 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	{
 		float	dx, dy, dz;
 
-//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
+		//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
 
 
-				/* GET DELTA */
+						/* GET DELTA */
 
 		dx = gDelta.x;
 		dy = gDelta.y;
@@ -2283,7 +2293,7 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 
 
-		/* DO VR HMD POSITION DELTA   (move Otto when you physically walk)  */ 
+		/* DO VR HMD POSITION DELTA   (move Otto when you physically walk)  */
 
 		// Must do this last, because it is an addition to everything else,
 		// We want everything else to keep working (platforms etc) and just add this as a bonus
@@ -2291,28 +2301,28 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 		 /*gPlayerInfo stuff is in regards to the PLAYER, Z is always fore / back player, X is left / right player
 		 vrpos_hmdPos stuff is in regards to the ROOM, Z is fore/back ROOM, X is left/right ROOM*/
 
-		
-		// This works with stick yaw only (HMD yaw breaks it):
-		 //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
-		 //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
-		 //gCoord.x -= -sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected - PI / 2) * gVrHMDPosMovedeltaWorldspace.x * fps;
-		 //gCoord.z -= sin(vrInfoHMD.HMDYawCorrected - PI/2) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.x * fps;
 
-		// This works with HMD yaw only (stick breaks it):
-		 //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
-		 //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
-		 //gCoord.x += gVrHMDPosMovedeltaWorldspace.x * fps;
-		 //gCoord.z += gVrHMDPosMovedeltaWorldspace.z * fps;
-		
+		 // This works with stick yaw only (HMD yaw breaks it):
+		  //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
+		  //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
+		  //gCoord.x -= -sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected - PI / 2) * gVrHMDPosMovedeltaWorldspace.x * fps;
+		  //gCoord.z -= sin(vrInfoHMD.HMDYawCorrected - PI/2) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.x * fps;
 
-		// Now to mix both together
-		// Figure out the gVrHMDPosMovedeltaWorldspace, which is how much the HMD moved with the X and Z axies
-		// corrected for the HMD rotation (including thumbstick)
+		 // This works with HMD yaw only (stick breaks it):
+		  //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
+		  //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
+		  //gCoord.x += gVrHMDPosMovedeltaWorldspace.x * fps;
+		  //gCoord.z += gVrHMDPosMovedeltaWorldspace.z * fps;
+
+
+		 // Now to mix both together
+		 // Figure out the gVrHMDPosMovedeltaWorldspace, which is how much the HMD moved with the X and Z axies
+		 // corrected for the HMD rotation (including thumbstick)
 		gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
 		gVrHMDPosMovedeltaWorldspace.x += vrInfoHMD.posDelta.z * 32768 * -sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
 		gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
 		gVrHMDPosMovedeltaWorldspace.z += vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
-		
+
 		gCoord.x -= gVrHMDPosMovedeltaWorldspace.x * fps;
 		gCoord.z -= gVrHMDPosMovedeltaWorldspace.z * fps;
 
@@ -2350,10 +2360,10 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	terrainY = GetTerrainY(gCoord.x, gCoord.z);
 	gPlayerInfo.distToFloor = gCoord.y + theNode->BBox.min.y - terrainY;				// calc dist to floor
 
-//	if ((terrainY == BOTTOMLESS_PIT_Y) && ((gCoord.y + theNode->BBox.min.y) < 0.0f))	// special check if fallen into bottomless pit
-//	{
-//		KillPlayer(PLAYER_DEATH_TYPE_FALL);
-//	}
+	//	if ((terrainY == BOTTOMLESS_PIT_Y) && ((gCoord.y + theNode->BBox.min.y) < 0.0f))	// special check if fallen into bottomless pit
+	//	{
+	//		KillPlayer(PLAYER_DEATH_TYPE_FALL);
+	//	}
 
 	return(killed);
 }
@@ -2367,30 +2377,30 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 static Boolean DoPlayerMovementAndCollision_JumpJet(ObjNode *theNode)
 {
-float				fps = gFramesPerSecondFrac,oldFPS,oldFPSFrac;
-OGLVector3D			accVec;
-OGLMatrix4x4		m;
-static const OGLVector3D up = {0,1,0};
-Boolean				killed = false;
-int					numPasses,pass;
+	float				fps = gFramesPerSecondFrac, oldFPS, oldFPSFrac;
+	OGLVector3D			accVec;
+	OGLMatrix4x4		m;
+	static const OGLVector3D up = { 0,1,0 };
+	Boolean				killed = false;
+	int					numPasses, pass;
 
 
 
-				/* SET INITIAL INFO */
+	/* SET INITIAL INFO */
 
 	theNode->AccelVector.x = theNode->AccelVector.y = 0;							// player has no acceleration control of jump-jet
 
-				/* CALC TURNING */
+	/* CALC TURNING */
 
 	theNode->Rot.y -= gPlayerInfo.strafeControlX * fps;
 
 
-		/* CALC MOTION VECTOR BASED ON AIM OF JUMP-JET ANIM */
+	/* CALC MOTION VECTOR BASED ON AIM OF JUMP-JET ANIM */
 
-	FindJointFullMatrix(theNode,  PLAYER_JOINT_BASE, &m);							// get matrix from skeleton joint
+	FindJointFullMatrix(theNode, PLAYER_JOINT_BASE, &m);							// get matrix from skeleton joint
 	OGLVector3D_Transform(&up, &m, &accVec);										// calculate a motion vector
 
-				/* CALC SPEED */
+	/* CALC SPEED */
 
 	VectorLength2D(theNode->Speed2D, gDelta.x, gDelta.z);					// calc 2D speed value
 	if ((theNode->Speed2D >= 0.0f) && (theNode->Speed2D < 10000000.0f))	// check for weird NaN bug
@@ -2403,16 +2413,16 @@ int					numPasses,pass;
 	}
 
 
-		/*****************************************/
-		/* PART 1: MOVE AND COLLIDE IN MULTIPASS */
-		/*****************************************/
+	/*****************************************/
+	/* PART 1: MOVE AND COLLIDE IN MULTIPASS */
+	/*****************************************/
 
-		/* SUB-DIVIDE DELTA INTO MANAGABLE LENGTHS */
+	/* SUB-DIVIDE DELTA INTO MANAGABLE LENGTHS */
 
 	oldFPS = gFramesPerSecond;											// remember what fps really is
 	oldFPSFrac = gFramesPerSecondFrac;
 
-	numPasses = (theNode->Speed2D*oldFPSFrac) * (1.0f / DELTA_SUBDIV);	// calc how many subdivisions to create
+	numPasses = (theNode->Speed2D * oldFPSFrac) * (1.0f / DELTA_SUBDIV);	// calc how many subdivisions to create
 	numPasses++;
 
 	gFramesPerSecondFrac *= 1.0f / (float)numPasses;					// adjust frame rate during motion and collision
@@ -2422,19 +2432,19 @@ int					numPasses,pass;
 
 	for (pass = 0; pass < numPasses; pass++)
 	{
-		float	dx,dy,dz;
+		float	dx, dy, dz;
 
-//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
+		//		OGLPoint3D oldCoord = gCoord;									// remember starting coord
 
 
-				/* GET DELTA */
+						/* GET DELTA */
 
 		dx = gDelta.x;
 		dy = gDelta.y;
 		dz = gDelta.z;
 
 
-					/* MOVE IT */
+		/* MOVE IT */
 
 		if (theNode->JumpJetEnginesOff)
 		{
@@ -2454,14 +2464,14 @@ int					numPasses,pass;
 		gDelta.y = accVec.y * gPlayerInfo.jumpJetSpeed;
 		gDelta.z = accVec.z * gPlayerInfo.jumpJetSpeed;
 
-		gCoord.x += dx*fps;
-		gCoord.y += dy*fps;
-		gCoord.z += dz*fps;
+		gCoord.x += dx * fps;
+		gCoord.y += dy * fps;
+		gCoord.z += dz * fps;
 
 
-					/******************************/
-					/* DO OBJECT COLLISION DETECT */
-					/******************************/
+		/******************************/
+		/* DO OBJECT COLLISION DETECT */
+		/******************************/
 
 		killed = DoRobotCollisionDetect(theNode, true);
 
@@ -2471,9 +2481,9 @@ int					numPasses,pass;
 	gFramesPerSecond = oldFPS;										// restore real FPS values
 	gFramesPerSecondFrac = oldFPSFrac;
 
-				/*************************/
-				/* CHECK FENCE COLLISION */
-				/*************************/
+	/*************************/
+	/* CHECK FENCE COLLISION */
+	/*************************/
 
 	DoFenceCollision(theNode);
 
@@ -2481,18 +2491,18 @@ int					numPasses,pass;
 
 
 
-				/******************************/
-				/* DO JUMP-JET FIST COLLISION */
-				/******************************/
+	/******************************/
+	/* DO JUMP-JET FIST COLLISION */
+	/******************************/
 
 	if (!killed)
 	{
-		static const OGLPoint3D fistOff = {0,-50,0};
-		OGLPoint3D	fistCoord1,fistCoord2;
+		static const OGLPoint3D fistOff = { 0,-50,0 };
+		OGLPoint3D	fistCoord1, fistCoord2;
 		int			i;
-		ObjNode		*hitObj;
+		ObjNode *hitObj;
 
-					/* CALC COORD TO TEST */
+		/* CALC COORD TO TEST */
 
 		FindCoordOnJoint(theNode, PLAYER_JOINT_RIGHTHAND, &fistOff, &fistCoord1);			// calc coord of fists
 		FindCoordOnJoint(theNode, PLAYER_JOINT_LEFTHAND, &fistOff, &fistCoord2);
@@ -2501,10 +2511,10 @@ int					numPasses,pass;
 		fistCoord1.y = (fistCoord1.y + fistCoord2.y) * .5f;
 		fistCoord1.z = (fistCoord1.z + fistCoord2.z) * .5f;
 
-						/* SEE IF HIT ANYTHING */
+		/* SEE IF HIT ANYTHING */
 
 		if (DoSimpleBoxCollision(fistCoord1.y + 30.0f, fistCoord1.y - 30.0f, fistCoord1.x - 30.0f, fistCoord1.x + 30.0f,
-								fistCoord1.z + 30.0f, fistCoord1.z - 30.0f, CTYPE_MISC|CTYPE_ENEMY))
+			fistCoord1.z + 30.0f, fistCoord1.z - 30.0f, CTYPE_MISC | CTYPE_ENEMY))
 		{
 			for (i = 0; i < gNumCollisions; i++)										// scan hits for a handler
 			{
@@ -2529,16 +2539,16 @@ int					numPasses,pass;
 
 static void DoPlayerMovementAndCollision_Bubble(ObjNode *theNode)
 {
-float				fps = gFramesPerSecondFrac;
-OGLVector2D			aimVec,deltaVec, accVec;
-OGLMatrix3x3		m;
-static OGLPoint2D origin = {0,0};
-Boolean				hit = false;
-float				oldRadius;
+	float				fps = gFramesPerSecondFrac;
+	OGLVector2D			aimVec, deltaVec, accVec;
+	OGLMatrix3x3		m;
+	static OGLPoint2D origin = { 0,0 };
+	Boolean				hit = false;
+	float				oldRadius;
 
-				/*******************************/
-				/* DO PLAYER-RELATIVE CONTROLS */
-				/*******************************/
+	/*******************************/
+	/* DO PLAYER-RELATIVE CONTROLS */
+	/*******************************/
 
 	if (gGamePrefs.playerRelControls)
 	{
@@ -2562,15 +2572,15 @@ float				oldRadius;
 
 	}
 
-				/*******************************/
-				/* DO CAMERA-RELATIVE CONTROLS */
-				/*******************************/
+	/*******************************/
+	/* DO CAMERA-RELATIVE CONTROLS */
+	/*******************************/
 
 	else
 	{
 
 
-				/* ROTATE ANALOG ACCELERATION VECTOR BASED ON CAMERA POS & APPLY TO DELTA */
+		/* ROTATE ANALOG ACCELERATION VECTOR BASED ON CAMERA POS & APPLY TO DELTA */
 
 		OGLMatrix3x3_SetRotateAboutPoint(&m, &origin, gPlayerToCameraAngle);			// make a 2D rotation matrix camera-rel
 		theNode->AccelVector.x = gPlayerInfo.analogControlX;
@@ -2578,19 +2588,19 @@ float				oldRadius;
 		OGLVector2D_Transform(&theNode->AccelVector, &m, &theNode->AccelVector);		// rotate the acceleration vector
 
 
-					/* APPLY ACCELERATION TO DELTAS */
+		/* APPLY ACCELERATION TO DELTAS */
 
 		gDelta.x += theNode->AccelVector.x * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
 		gDelta.z += theNode->AccelVector.y * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
 
-				/**********************************************************/
-				/* TURN PLAYER TO AIM DIRECTION OF ACCELERATION OR MOTION */
-				/**********************************************************/
-				//
-				// Depending on how slippery the terrain is, we aim toward the direction
-				// of motion or the direction of acceleration.  We'll use the gPlayerSlipperyFactor value
-				// to average an aim vector between the two.
-				//
+		/**********************************************************/
+		/* TURN PLAYER TO AIM DIRECTION OF ACCELERATION OR MOTION */
+		/**********************************************************/
+		//
+		// Depending on how slippery the terrain is, we aim toward the direction
+		// of motion or the direction of acceleration.  We'll use the gPlayerSlipperyFactor value
+		// to average an aim vector between the two.
+		//
 
 		FastNormalizeVector2D(gDelta.x, gDelta.z, &deltaVec, true);
 		FastNormalizeVector2D(theNode->AccelVector.x, theNode->AccelVector.y, &accVec, true);
@@ -2601,7 +2611,7 @@ float				oldRadius;
 		TurnObjectTowardTarget(theNode, &gCoord, gCoord.x + aimVec.x, gCoord.z + aimVec.y, 8.0f, false);
 	}
 
-				/* CALC SPEED */
+	/* CALC SPEED */
 
 	VectorLength2D(theNode->Speed2D, gDelta.x, gDelta.z);					// calc 2D speed value
 	if ((theNode->Speed2D >= 0.0f) && (theNode->Speed2D < 10000000.0f))		// check for weird NaN bug
@@ -2626,35 +2636,35 @@ float				oldRadius;
 	}
 
 
-			/* MOVE IT */
+	/* MOVE IT */
 
-	gCoord.x += gDelta.x*fps;
-	gCoord.y += gDelta.y*fps;
-	gCoord.z += gDelta.z*fps;
+	gCoord.x += gDelta.x * fps;
+	gCoord.y += gDelta.y * fps;
+	gCoord.z += gDelta.z * fps;
 
 
-			/******************************/
-			/* DO OBJECT COLLISION DETECT */
-			/******************************/
-			//
-			// for the bubble, we do only rudimentary collision to see
-			// if we need to pop the bubble
-			//
+	/******************************/
+	/* DO OBJECT COLLISION DETECT */
+	/******************************/
+	//
+	// for the bubble, we do only rudimentary collision to see
+	// if we need to pop the bubble
+	//
 
 	if (DoSimpleBoxCollision(gCoord.y + gSoapBubble->TopOff, gCoord.y + gSoapBubble->BottomOff,
-							 gCoord.x + gSoapBubble->LeftOff, gCoord.x + gSoapBubble->RightOff,
-							 gCoord.z + gSoapBubble->FrontOff, gCoord.z + gSoapBubble->BackOff,
-							CTYPE_MISC|CTYPE_ENEMY|CTYPE_TRIGGER))
+		gCoord.x + gSoapBubble->LeftOff, gCoord.x + gSoapBubble->RightOff,
+		gCoord.z + gSoapBubble->FrontOff, gCoord.z + gSoapBubble->BackOff,
+		CTYPE_MISC | CTYPE_ENEMY | CTYPE_TRIGGER))
 	{
 		hit = true;
 	}
 
-				/*************************/
-				/* CHECK FENCE COLLISION */
-				/*************************/
+	/*************************/
+	/* CHECK FENCE COLLISION */
+	/*************************/
 
 	oldRadius = theNode->BoundingSphereRadius;								// tweak the radius for this
-	theNode->BoundingSphereRadius =  gSoapBubble->BBox.max.x;
+	theNode->BoundingSphereRadius = gSoapBubble->BBox.max.x;
 	if (DoFenceCollision(theNode) || hit)
 	{
 		PopSoapBubble(gSoapBubble);
@@ -2672,49 +2682,49 @@ float				oldRadius;
 
 static void DoRobotFrictionAndGravity(ObjNode *theNode, float friction)
 {
-OGLVector2D	v;
-float	x,z,fps;
+	OGLVector2D	v;
+	float	x, z, fps;
 
 	fps = gFramesPerSecondFrac;
 
-			/**************/
-			/* DO GRAVITY */
-			/**************/
+	/**************/
+	/* DO GRAVITY */
+	/**************/
 
-	gDelta.y -= gGravity*fps;					// add gravity
+	gDelta.y -= gGravity * fps;					// add gravity
 
 	if (gDelta.y < 0.0f)							// if falling, keep dy at least -1.0 to avoid collision jitter on platforms
 		if (gDelta.y > (-20.0f * fps))
 			gDelta.y = (-20.0f * fps);
 
 
-			/***************/
-			/* DO FRICTION */
-			/***************/
-			//
-			// Dont do friction if player is pressing controls
-			//
+	/***************/
+	/* DO FRICTION */
+	/***************/
+	//
+	// Dont do friction if player is pressing controls
+	//
 
-	if(true) // Always player relative controls in VR
+	if (true) // Always player relative controls in VR
 	{
 		/* Removed "analogControlX" from here as that is for mouse movement only. If we don't
 		   do friction when there is mouse movement we get the bug of moving mouse = always move (ref fordcars/OttoMatic-VR#7) */
-		if(gPlayerInfo.analogControlZ || gPlayerInfo.strafeControlX)	// if there is any player control then no friction
+		if (gPlayerInfo.analogControlZ || gPlayerInfo.strafeControlX)	// if there is any player control then no friction
 			return;
 	}
 	else										// with player relative controls, do heavier friction in some cases
 	{
-		switch(theNode->Skeleton->AnimNum)
+		switch (theNode->Skeleton->AnimNum)
 		{
-			case	PLAYER_ANIM_STAND:
-			case	PLAYER_ANIM_WALK:
-			case	PLAYER_ANIM_WALKWITHGUN:
-			case	PLAYER_ANIM_STANDWITHGUN:
-			case	PLAYER_ANIM_PUNCH:
-			case	PLAYER_ANIM_PICKUPDEPOSIT:
-			case	PLAYER_ANIM_PICKUPANDHOLDGUN:
-					friction *= 2.0f;
-					break;
+		case	PLAYER_ANIM_STAND:
+		case	PLAYER_ANIM_WALK:
+		case	PLAYER_ANIM_WALKWITHGUN:
+		case	PLAYER_ANIM_STANDWITHGUN:
+		case	PLAYER_ANIM_PUNCH:
+		case	PLAYER_ANIM_PICKUPDEPOSIT:
+		case	PLAYER_ANIM_PICKUPANDHOLDGUN:
+			friction *= 2.0f;
+			break;
 		}
 	}
 
@@ -2736,12 +2746,12 @@ float	x,z,fps;
 			gDelta.x = 0;
 	}
 	else
-	if (gDelta.x > 0.0f)
-	{
-		gDelta.x += x;
-		if (gDelta.x < 0.0f)
-			gDelta.x = 0;
-	}
+		if (gDelta.x > 0.0f)
+		{
+			gDelta.x += x;
+			if (gDelta.x < 0.0f)
+				gDelta.x = 0;
+		}
 
 	if (gDelta.z < 0.0f)
 	{
@@ -2750,12 +2760,12 @@ float	x,z,fps;
 			gDelta.z = 0;
 	}
 	else
-	if (gDelta.z > 0.0f)
-	{
-		gDelta.z += z;
-		if (gDelta.z < 0.0f)
-			gDelta.z = 0;
-	}
+		if (gDelta.z > 0.0f)
+		{
+			gDelta.z += z;
+			if (gDelta.z < 0.0f)
+				gDelta.z = 0;
+		}
 
 	if ((gDelta.x == 0.0f) && (gDelta.z == 0.0f))
 	{
@@ -2776,13 +2786,13 @@ float	x,z,fps;
 
 static Boolean DoRobotCollisionDetect(ObjNode *theNode, Boolean useBBoxForTerrain)
 {
-ObjNode		*hitObj;
-uint32_t	ctype;
-float		distToFloor, terrainY, fps = gFramesPerSecondFrac;
-float		bottomOff;
-Boolean		killed = false;
+	ObjNode *hitObj;
+	uint32_t	ctype;
+	float		distToFloor, terrainY, fps = gFramesPerSecondFrac;
+	float		bottomOff;
+	Boolean		killed = false;
 
-			/* DETERMINE CTYPE BITS TO CHECK FOR */
+	/* DETERMINE CTYPE BITS TO CHECK FOR */
 
 	ctype = PLAYER_COLLISION_CTYPE;
 
@@ -2790,12 +2800,12 @@ Boolean		killed = false;
 
 	gPlayerSlipperyFactor = 0;									// assume normal friction
 
-			/***************************************/
-			/* AUTOMATICALLY HANDLE THE GOOD STUFF */
-			/***************************************/
-			//
-			// this also sets the ONGROUND status bit if on a solid object.
-			//
+	/***************************************/
+	/* AUTOMATICALLY HANDLE THE GOOD STUFF */
+	/***************************************/
+	//
+	// this also sets the ONGROUND status bit if on a solid object.
+	//
 
 	if (useBBoxForTerrain)
 		theNode->BottomOff = theNode->BBox.min.y;
@@ -2804,7 +2814,7 @@ Boolean		killed = false;
 
 	HandleCollisions(theNode, ctype, -.3);
 
-			/* SCAN FOR INTERESTING STUFF */
+	/* SCAN FOR INTERESTING STUFF */
 
 
 	for (int i = 0; i < gNumCollisions; i++)
@@ -2846,16 +2856,16 @@ Boolean		killed = false;
 		}
 	}
 
-		/*************************************/
-		/* CHECK & HANDLE TERRAIN  COLLISION */
-		/*************************************/
+	/*************************************/
+	/* CHECK & HANDLE TERRAIN  COLLISION */
+	/*************************************/
 
 	if (useBBoxForTerrain)
 		bottomOff = theNode->BBox.min.y;							// use bbox for bottom
 	else
 		bottomOff = theNode->BottomOff;								// use collision box for bottom
 
-	terrainY =  GetTerrainY(gCoord.x, gCoord.z);					// get terrain Y
+	terrainY = GetTerrainY(gCoord.x, gCoord.z);					// get terrain Y
 
 	distToFloor = (gCoord.y + bottomOff) - terrainY;				// calc amount I'm above or under
 
@@ -2866,38 +2876,38 @@ Boolean		killed = false;
 		theNode->StatusBits |= STATUS_BIT_ONGROUND;
 		gPlayerSlipperyFactor = gTileSlipperyFactor;				// use this slippery factor
 
-		switch(gLevelNum)
+		switch (gLevelNum)
 		{
-			case	LEVEL_NUM_BLOBBOSS:								// if touch blob boss ground, then hurt player and bounce back up
-					PlayerLoseHealth(.25, PLAYER_DEATH_TYPE_EXPLODE);
-					gDelta.y = 2500.0f;
-					PlayEffect3D(EFFECT_SLIMEBOUNCE, &gCoord);
-					break;
+		case	LEVEL_NUM_BLOBBOSS:								// if touch blob boss ground, then hurt player and bounce back up
+			PlayerLoseHealth(.25, PLAYER_DEATH_TYPE_EXPLODE);
+			gDelta.y = 2500.0f;
+			PlayEffect3D(EFFECT_SLIMEBOUNCE, &gCoord);
+			break;
 
-			case	LEVEL_NUM_CLOUD:								// see if touch electric floor
-					if (gTileAttribFlags & (TILE_ATTRIB_ELECTROCUTE_AREA0|TILE_ATTRIB_ELECTROCUTE_AREA1))
-					{
-						if (gTileAttribFlags & TILE_ATTRIB_ELECTROCUTE_AREA0)	// check area #0
-						{
-							if (!gBumperCarGateBlown[0])
-								PlayerTouchedElectricFloor(theNode);
-						}
-						else													// check area #1
-						{
-							if (!gBumperCarGateBlown[1])
-								PlayerTouchedElectricFloor(theNode);
-						}
-					}
-					break;
+		case	LEVEL_NUM_CLOUD:								// see if touch electric floor
+			if (gTileAttribFlags & (TILE_ATTRIB_ELECTROCUTE_AREA0 | TILE_ATTRIB_ELECTROCUTE_AREA1))
+			{
+				if (gTileAttribFlags & TILE_ATTRIB_ELECTROCUTE_AREA0)	// check area #0
+				{
+					if (!gBumperCarGateBlown[0])
+						PlayerTouchedElectricFloor(theNode);
+				}
+				else													// check area #1
+				{
+					if (!gBumperCarGateBlown[1])
+						PlayerTouchedElectricFloor(theNode);
+				}
+			}
+			break;
 		}
 	}
 
 
-			/* DEAL WITH SLOPES */
-			//
-			// Using the floor normal here, apply some deltas to it.
-			// Only apply slopes when on the ground (or really close to it)
-			//
+	/* DEAL WITH SLOPES */
+	//
+	// Using the floor normal here, apply some deltas to it.
+	// Only apply slopes when on the ground (or really close to it)
+	//
 
 	if (ShouldApplySlopesToPlayer(distToFloor))
 	{
@@ -2905,50 +2915,50 @@ Boolean		killed = false;
 		gDelta.z += gRecentTerrainNormal.z * (fps * PLAYER_SLOPE_ACCEL);
 	}
 
-			/**************************/
-			/* SEE IF IN WATER VOLUME */
-			/**************************/
+	/**************************/
+	/* SEE IF IN WATER VOLUME */
+	/**************************/
 
 	if (!killed)
 	{
 		int		patchNum;
 		Boolean	wasInWater;
 
-					/* REMEMBER IF ALREADY IN WATER */
+		/* REMEMBER IF ALREADY IN WATER */
 
 		if (theNode->StatusBits & STATUS_BIT_UNDERWATER)
 			wasInWater = true;
 		else
 			wasInWater = false;
 
-					/* CHECK IF IN WATER NOW */
+		/* CHECK IF IN WATER NOW */
 
-		if (DoWaterCollisionDetect(theNode, gCoord.x, gCoord.y+theNode->BottomOff + 50.0f, gCoord.z, &patchNum))
+		if (DoWaterCollisionDetect(theNode, gCoord.x, gCoord.y + theNode->BottomOff + 50.0f, gCoord.z, &patchNum))
 		{
 			gPlayerInfo.waterPatch = patchNum;
 
 			gCoord.y = gWaterBBox[patchNum].max.y;
 
-			switch(gWaterList[patchNum].type)
+			switch (gWaterList[patchNum].type)
 			{
-					/* JUNGLE MUD */
+				/* JUNGLE MUD */
 
-				case	WATER_TYPE_MUD:
-						ApplyFrictionToDeltas(300.0f, &gDelta);									// mud is viscous so slow player
-						killed = PlayerLoseHealth(.3f * fps, PLAYER_DEATH_TYPE_DROWN);			// lose health
-						MakeSteam(theNode, gCoord.x, gCoord.y, gCoord.z);
-						break;
+			case	WATER_TYPE_MUD:
+				ApplyFrictionToDeltas(300.0f, &gDelta);									// mud is viscous so slow player
+				killed = PlayerLoseHealth(.3f * fps, PLAYER_DEATH_TYPE_DROWN);			// lose health
+				MakeSteam(theNode, gCoord.x, gCoord.y, gCoord.z);
+				break;
 
-				case	WATER_TYPE_LAVA:
-						ApplyFrictionToDeltas(2000.0f, &gDelta);								// lava is viscous so slow player
-						killed = PlayerLoseHealth(.5f * fps, PLAYER_DEATH_TYPE_EXPLODE);		// lose health
-						BurnFire(theNode, gCoord.x, gCoord.y, gCoord.z, true, PARTICLE_SObjType_Fire, 4.0, PARTICLE_FLAGS_ALLAIM);
-						break;
+			case	WATER_TYPE_LAVA:
+				ApplyFrictionToDeltas(2000.0f, &gDelta);								// lava is viscous so slow player
+				killed = PlayerLoseHealth(.5f * fps, PLAYER_DEATH_TYPE_EXPLODE);		// lose health
+				BurnFire(theNode, gCoord.x, gCoord.y, gCoord.z, true, PARTICLE_SObjType_Fire, 4.0, PARTICLE_FLAGS_ALLAIM);
+				break;
 
-						/* GOOD OLD ZAPPING H2O */
-				default:
-						if (!wasInWater)
-							PlayerEntersWater(theNode, patchNum);
+				/* GOOD OLD ZAPPING H2O */
+			default:
+				if (!wasInWater)
+					PlayerEntersWater(theNode, patchNum);
 			}
 		}
 	}
@@ -2965,19 +2975,19 @@ Boolean		killed = false;
 
 static void CheckPunchCollision(ObjNode *player)
 {
-static OGLPoint3D fistOff = {0,-12 ,0};
-OGLPoint3D	fistCoord;
-int			i;
-ObjNode		*hitObj;
-Boolean		endPunch;
-float		fistSize = 30.0f * gPlayerInfo.scale;
+	static OGLPoint3D fistOff = { 0,-12 ,0 };
+	OGLPoint3D	fistCoord;
+	int			i;
+	ObjNode *hitObj;
+	Boolean		endPunch;
+	float		fistSize = 30.0f * gPlayerInfo.scale;
 
 	FindCoordOnJoint(player, PLAYER_JOINT_RIGHTHAND, &fistOff, &fistCoord);			// calc coord of fist
 
 	if (DoSimpleBoxCollision(fistCoord.y + fistSize, fistCoord.y - fistSize,
-							 fistCoord.x - fistSize, fistCoord.x + fistSize,
-							 fistCoord.z + fistSize, fistCoord.z - fistSize,
-							 CTYPE_MISC|CTYPE_ENEMY|CTYPE_TRIGGER|CTYPE_POWERUP))
+		fistCoord.x - fistSize, fistCoord.x + fistSize,
+		fistCoord.z + fistSize, fistCoord.z - fistSize,
+		CTYPE_MISC | CTYPE_ENEMY | CTYPE_TRIGGER | CTYPE_POWERUP))
 	{
 		for (i = 0; i < gNumCollisions; i++)										// affect all hit objects
 		{
@@ -3011,14 +3021,14 @@ float		fistSize = 30.0f * gPlayerInfo.scale;
 
 static void CheckPlayerActionControls(ObjNode *theNode)
 {
-		/* SEE IF DO CHEAT */
+	/* SEE IF DO CHEAT */
 
 	if (GetCheatKeyCombo())
 	{
 		if (gPlayerInfo.lives < 3)
-			gPlayerInfo.lives 	= 3;
-		gPlayerInfo.health 	= 1.0;
-		gPlayerInfo.fuel 	= 1.0;
+			gPlayerInfo.lives = 3;
+		gPlayerInfo.health = 1.0;
+		gPlayerInfo.fuel = 1.0;
 		gPlayerInfo.jumpJet = 1.0;
 
 		gPlayerInfo.weaponInventory[1].type = WEAPON_TYPE_STUNPULSE;
@@ -3037,9 +3047,9 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 		gPlayerInfo.didCheat = true;
 	}
 
-			/***************/
-			/* SEE IF JUMP */
-			/***************/
+	/***************/
+	/* SEE IF JUMP */
+	/***************/
 
 	if (GetNewNeedState(kNeed_Jump) || vrcpp_GetDigitalActionData(vrJump, false))										// see if user pressed the key
 	{
@@ -3057,13 +3067,13 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 				theNode->Rot.y = gCannon->Rot.y + PI;
 				MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_CLIMBINTO, 7.0);
 				StartCannonFuse(gCannon);
-				gCameraUserRotY = -PI/2;									// swing camera to side
+				gCameraUserRotY = -PI / 2;									// swing camera to side
 				DisableHelpType(HELP_MESSAGE_INTOCANNON);
 				goto no_jump;
 			}
 		}
 
-			/* CHECK JUMP-JET */
+		/* CHECK JUMP-JET */
 
 		if ((theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMP) ||
 			(theNode->Skeleton->AnimNum == PLAYER_ANIM_FALL))			// if already jumping or falling then try Jump Jet
@@ -3071,46 +3081,46 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 			if (fabs(gDelta.y) < 800.0f)								// do it now if near apex of jump
 				StartJumpJet(theNode);
 			else
-			if (theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMP)			// not @ apex, but if already jumping then tag to do JJ @ apex
-				gDoJumpJetAtApex = true;
-			else
-			if (gPlayerInfo.distToFloor > 200.0f)						// not @ apex, but if falling still allow JJ if high enough off ground
-				StartJumpJet(theNode);
+				if (theNode->Skeleton->AnimNum == PLAYER_ANIM_JUMP)			// not @ apex, but if already jumping then tag to do JJ @ apex
+					gDoJumpJetAtApex = true;
+				else
+					if (gPlayerInfo.distToFloor > 200.0f)						// not @ apex, but if falling still allow JJ if high enough off ground
+						StartJumpJet(theNode);
 		}
 
-			/* CHECK REGULAR JUMP */
+		/* CHECK REGULAR JUMP */
 
 		else
-		if ((theNode->StatusBits & STATUS_BIT_ONGROUND)	|| (gPlayerInfo.distToFloor < 15.0f))		// must be on something solid
-		{
-			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_JUMP, 5.0f);
-			PlayEffect3D(EFFECT_JUMP, &gCoord);
-
-			gDoJumpJetAtApex = false;
-
-			gDelta.y += JUMP_DELTA;
-
-			if (theNode->MPlatform != nil)			
+			if ((theNode->StatusBits & STATUS_BIT_ONGROUND) || (gPlayerInfo.distToFloor < 15.0f))		// must be on something solid
 			{
-				if (theNode->MPlatform->CType & CTYPE_MPLATFORM_FREEJUMP)
+				MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_JUMP, 5.0f);
+				PlayEffect3D(EFFECT_JUMP, &gCoord);
+
+				gDoJumpJetAtApex = false;
+
+				gDelta.y += JUMP_DELTA;
+
+				if (theNode->MPlatform != nil)
 				{
-					theNode->MPlatform = nil;
-				}
-				else
-				{
-					// if jumping off of mplatform then also use platform's deltas
-					gDelta.x += theNode->MPlatform->Delta.x;
-					gDelta.y += theNode->MPlatform->Delta.y;
-					gDelta.z += theNode->MPlatform->Delta.z;
+					if (theNode->MPlatform->CType & CTYPE_MPLATFORM_FREEJUMP)
+					{
+						theNode->MPlatform = nil;
+					}
+					else
+					{
+						// if jumping off of mplatform then also use platform's deltas
+						gDelta.x += theNode->MPlatform->Delta.x;
+						gDelta.y += theNode->MPlatform->Delta.y;
+						gDelta.z += theNode->MPlatform->Delta.z;
+					}
 				}
 			}
-		}
 	}
 no_jump:
 
-		/******************/
-		/* HANDLE WEAPONS */
-		/******************/
+	/******************/
+	/* HANDLE WEAPONS */
+	/******************/
 
 	CheckPOWControls(theNode);
 }
@@ -3137,7 +3147,7 @@ static void StartJumpJet(ObjNode *theNode)
 
 	gResetJumpJet = false;
 
-			/* SET ANIM */
+	/* SET ANIM */
 
 	if (gPlayerInfo.scaleRatio > 1.0f)				// do special version of player is giant
 	{
@@ -3148,26 +3158,26 @@ static void StartJumpJet(ObjNode *theNode)
 		MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_JUMPJET, 6.0f);
 
 
-			/* SET SOME VARIABLES */
+	/* SET SOME VARIABLES */
 
 	gDelta.y = 0;
 	gPlayerInfo.jumpJetSpeed = 0;
 	theNode->JumpJetEnginesOff = false;
 
 
-			/* START PARTICLES */
+	/* START PARTICLES */
 
 	gPlayerInfo.jjParticleGroup[0] = -1;			// white sparks
-	gPlayerInfo.jjParticleMagic[0]	= 0;
-	gPlayerInfo.jjParticleTimer[0]	= 0;
+	gPlayerInfo.jjParticleMagic[0] = 0;
+	gPlayerInfo.jjParticleTimer[0] = 0;
 
 	gPlayerInfo.jjParticleGroup[1] = -1;			// smoke
-	gPlayerInfo.jjParticleMagic[1]	= 0;
-	gPlayerInfo.jjParticleTimer[1]	= 0;
+	gPlayerInfo.jjParticleMagic[1] = 0;
+	gPlayerInfo.jjParticleTimer[1] = 0;
 
 
 
-		/* CREATE SPARKLE */
+	/* CREATE SPARKLE */
 
 	CreatePlayerJumpJetSparkles(theNode);
 
@@ -3190,18 +3200,18 @@ static void EndJumpJet(ObjNode *theNode)
 
 static void UpdateJumpJetParticles(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
-int		particleGroup,magicNum;
-NewParticleGroupDefType	groupDef;
-NewParticleDefType	newParticleDef;
-OGLVector3D			d;
-OGLPoint3D			p;
-int					i;
-float				x,y,z;
-static const OGLPoint3D		particleBaseOff = {0,-100,0};
-OGLPoint3D			particleBase;
+	float	fps = gFramesPerSecondFrac;
+	int		particleGroup, magicNum;
+	NewParticleGroupDefType	groupDef;
+	NewParticleDefType	newParticleDef;
+	OGLVector3D			d;
+	OGLPoint3D			p;
+	int					i;
+	float				x, y, z;
+	static const OGLPoint3D		particleBaseOff = { 0,-100,0 };
+	OGLPoint3D			particleBase;
 
-				/* CALC FOOT POINT */
+	/* CALC FOOT POINT */
 
 	FindCoordOnJoint(theNode, PLAYER_JOINT_BASE, &particleBaseOff, &particleBase);
 	x = particleBase.x;
@@ -3209,33 +3219,33 @@ OGLPoint3D			particleBase;
 	z = particleBase.z;
 
 
-			/*********************/
-			/* MAKE WHITE SPARKS */
-			/*********************/
+	/*********************/
+	/* MAKE WHITE SPARKS */
+	/*********************/
 
 	gPlayerInfo.jjParticleTimer[0] -= fps;											// see if add particles
 	if (gPlayerInfo.jjParticleTimer[0] <= 0.0f)
 	{
 		gPlayerInfo.jjParticleTimer[0] += .03f;									// reset timer
 
-		particleGroup 	= gPlayerInfo.jjParticleGroup[0];
-		magicNum 		= gPlayerInfo.jjParticleMagic[0];
+		particleGroup = gPlayerInfo.jjParticleGroup[0];
+		magicNum = gPlayerInfo.jjParticleMagic[0];
 
 		if ((particleGroup == -1) || (!VerifyParticleGroupMagicNum(particleGroup, magicNum)))
 		{
 			gPlayerInfo.jjParticleMagic[0] = magicNum = MyRandomLong();			// generate a random magic num
 
-			groupDef.magicNum				= magicNum;
-			groupDef.type					= PARTICLE_TYPE_FALLINGSPARKS;
-			groupDef.flags					= PARTICLE_FLAGS_DONTCHECKGROUND;
-			groupDef.gravity				= 800;
-			groupDef.magnetism				= 0;
-			groupDef.baseScale				= 20.0f * gPlayerInfo.scaleRatio;
-			groupDef.decayRate				= .8;
-			groupDef.fadeRate				= 1.4;
-			groupDef.particleTextureNum		= PARTICLE_SObjType_WhiteSpark2;
-			groupDef.srcBlend				= GL_SRC_ALPHA;
-			groupDef.dstBlend				= GL_ONE;
+			groupDef.magicNum = magicNum;
+			groupDef.type = PARTICLE_TYPE_FALLINGSPARKS;
+			groupDef.flags = PARTICLE_FLAGS_DONTCHECKGROUND;
+			groupDef.gravity = 800;
+			groupDef.magnetism = 0;
+			groupDef.baseScale = 20.0f * gPlayerInfo.scaleRatio;
+			groupDef.decayRate = .8;
+			groupDef.fadeRate = 1.4;
+			groupDef.particleTextureNum = PARTICLE_SObjType_WhiteSpark2;
+			groupDef.srcBlend = GL_SRC_ALPHA;
+			groupDef.dstBlend = GL_ONE;
 			gPlayerInfo.jjParticleGroup[0] = particleGroup = NewParticleGroup(&groupDef);
 		}
 
@@ -3251,13 +3261,13 @@ OGLPoint3D			particleBase;
 				d.y = RandomFloat2() * 140.0f;
 				d.z = RandomFloat2() * 140.0f;
 
-				newParticleDef.groupNum		= particleGroup;
-				newParticleDef.where		= &p;
-				newParticleDef.delta		= &d;
-				newParticleDef.scale		= 1.0f;
-				newParticleDef.rotZ			= 0;
-				newParticleDef.rotDZ		= 0;
-				newParticleDef.alpha		= 1.0;
+				newParticleDef.groupNum = particleGroup;
+				newParticleDef.where = &p;
+				newParticleDef.delta = &d;
+				newParticleDef.scale = 1.0f;
+				newParticleDef.rotZ = 0;
+				newParticleDef.rotDZ = 0;
+				newParticleDef.alpha = 1.0;
 				if (AddParticleToGroup(&newParticleDef))
 				{
 					gPlayerInfo.jjParticleGroup[0] = -1;
@@ -3268,33 +3278,33 @@ OGLPoint3D			particleBase;
 	}
 
 
-			/**************/
-			/* MAKE SMOKE */
-			/**************/
+	/**************/
+	/* MAKE SMOKE */
+	/**************/
 
 	gPlayerInfo.jjParticleTimer[1] -= fps;											// see if add particles
 	if (gPlayerInfo.jjParticleTimer[1] <= 0.0f)
 	{
 		gPlayerInfo.jjParticleTimer[1] += .05f;									// reset timer
 
-		particleGroup 	= gPlayerInfo.jjParticleGroup[1];
-		magicNum 		= gPlayerInfo.jjParticleMagic[1];
+		particleGroup = gPlayerInfo.jjParticleGroup[1];
+		magicNum = gPlayerInfo.jjParticleMagic[1];
 
 		if ((particleGroup == -1) || (!VerifyParticleGroupMagicNum(particleGroup, magicNum)))
 		{
 			gPlayerInfo.jjParticleMagic[1] = magicNum = MyRandomLong();			// generate a random magic num
 
-			groupDef.magicNum				= magicNum;
-			groupDef.type					= PARTICLE_TYPE_FALLINGSPARKS;
-			groupDef.flags					= PARTICLE_FLAGS_DONTCHECKGROUND;
-			groupDef.gravity				= 0;
-			groupDef.magnetism				= 0;
-			groupDef.baseScale				= 20.0f * gPlayerInfo.scaleRatio;
-			groupDef.decayRate				= -.2;
-			groupDef.fadeRate				= .7;
-			groupDef.particleTextureNum		= PARTICLE_SObjType_GreySmoke;
-			groupDef.srcBlend				= GL_SRC_ALPHA;
-			groupDef.dstBlend				= GL_ONE_MINUS_SRC_ALPHA;
+			groupDef.magicNum = magicNum;
+			groupDef.type = PARTICLE_TYPE_FALLINGSPARKS;
+			groupDef.flags = PARTICLE_FLAGS_DONTCHECKGROUND;
+			groupDef.gravity = 0;
+			groupDef.magnetism = 0;
+			groupDef.baseScale = 20.0f * gPlayerInfo.scaleRatio;
+			groupDef.decayRate = -.2;
+			groupDef.fadeRate = .7;
+			groupDef.particleTextureNum = PARTICLE_SObjType_GreySmoke;
+			groupDef.srcBlend = GL_SRC_ALPHA;
+			groupDef.dstBlend = GL_ONE_MINUS_SRC_ALPHA;
 			gPlayerInfo.jjParticleGroup[1] = particleGroup = NewParticleGroup(&groupDef);
 		}
 
@@ -3310,13 +3320,13 @@ OGLPoint3D			particleBase;
 				d.y = RandomFloat2() * 40.0f;
 				d.z = RandomFloat2() * 40.0f;
 
-				newParticleDef.groupNum		= particleGroup;
-				newParticleDef.where		= &p;
-				newParticleDef.delta		= &d;
-				newParticleDef.scale		= RandomFloat() + 1.0f;
-				newParticleDef.rotZ			= RandomFloat() * PI2;
-				newParticleDef.rotDZ		= RandomFloat2();
-				newParticleDef.alpha		= .4f + RandomFloat() * .3f;
+				newParticleDef.groupNum = particleGroup;
+				newParticleDef.where = &p;
+				newParticleDef.delta = &d;
+				newParticleDef.scale = RandomFloat() + 1.0f;
+				newParticleDef.rotZ = RandomFloat() * PI2;
+				newParticleDef.rotDZ = RandomFloat2();
+				newParticleDef.alpha = .4f + RandomFloat() * .3f;
 				if (AddParticleToGroup(&newParticleDef))
 				{
 					gPlayerInfo.jjParticleGroup[1] = -1;
@@ -3400,15 +3410,15 @@ void StartWeaponChangeAnim(void)
 
 static void DoPlayerMagnetSkiing(ObjNode *player)
 {
-short		magnetMonsterID;
-ObjNode		*magMonster;
-float		distToTarget,mx,mz,tx,tz,y;
-OGLVector2D	v;
-float		fps = gFramesPerSecondFrac;
-OGLMatrix3x3	m;
+	short		magnetMonsterID;
+	ObjNode *magMonster;
+	float		distToTarget, mx, mz, tx, tz, y;
+	OGLVector2D	v;
+	float		fps = gFramesPerSecondFrac;
+	OGLMatrix3x3	m;
 
 
-			/* GET INFO ABOUT THE MAGNET MONSTER */
+	/* GET INFO ABOUT THE MAGNET MONSTER */
 
 	magnetMonsterID = gTargetPickup->MagnetMonsterID;		// get ID# of the magnet so we know which monster to go to
 	magMonster = gMagnetMonsterList[magnetMonsterID];		// get objNode of magnet monster
@@ -3418,44 +3428,44 @@ OGLMatrix3x3	m;
 	mx = magMonster->Coord.x;
 	mz = magMonster->Coord.z;
 
-			/* KEEP PLAYER AIMED AT IT */
+	/* KEEP PLAYER AIMED AT IT */
 
 	TurnObjectTowardTarget(player, &gCoord, mx, mz, 11.0, false);
 
 
 
 
-			/*******************/
-			/* CALC AIM VECTOR */
-			/*******************/
+	/*******************/
+	/* CALC AIM VECTOR */
+	/*******************/
 
-		/* CALC VEC FROM MONSTER TO PLAYER */
+/* CALC VEC FROM MONSTER TO PLAYER */
 
 	v.x = gCoord.x - mx;									// calc vector from monster to player
 	v.y = gCoord.z - mz;
 	FastNormalizeVector2D(v.x, v.y, &v, true);
 
 
-			/* ROTATE BASED ON PLAYER INPUT */
+	/* ROTATE BASED ON PLAYER INPUT */
 
 	OGLMatrix3x3_SetRotate(&m, gPlayerInfo.analogControlX * .5f);
 	OGLVector2D_Transform(&v, &m, &v);
 
 
 
-			/* CALC ACCELERATION */
+	/* CALC ACCELERATION */
 
 	tx = mx + v.x * TARGET_SKIING_DIST;						// calc target point where we'd like to be
 	tz = mz + v.y * TARGET_SKIING_DIST;
 
-	distToTarget = CalcDistance(gCoord.x, gCoord.z,  tx, tz);							// calc dist to target point
+	distToTarget = CalcDistance(gCoord.x, gCoord.z, tx, tz);							// calc dist to target point
 	if (distToTarget > 2000.0f)								// limit it
 		distToTarget = 2000.0f;
 
 
-			/***********/
-			/* MOVE IT */
-			/***********/
+	/***********/
+	/* MOVE IT */
+	/***********/
 
 	gDelta.x = distToTarget * -v.x * 1.5f;
 	gDelta.z = distToTarget * -v.y * 1.5f;
@@ -3466,11 +3476,11 @@ OGLMatrix3x3	m;
 	gCoord.z += gDelta.z * fps;
 
 
-			/***********************/
-			/* SEE IF HIT ANYTHING */
-			/***********************/
+	/***********************/
+	/* SEE IF HIT ANYTHING */
+	/***********************/
 
-			/* SEE IF HIT WATER */
+	/* SEE IF HIT WATER */
 
 	if (GetWaterY(gCoord.x, gCoord.z, &y))					// get water y
 	{
@@ -3492,7 +3502,7 @@ OGLMatrix3x3	m;
 		}
 	}
 
-			/* SEE IF HIT GROUND */
+	/* SEE IF HIT GROUND */
 
 	y = GetTerrainY(gCoord.x, gCoord.z);					// get terrain y
 	if ((gCoord.y + player->BBox.min.y) <= y)				// see if hit ground
@@ -3504,7 +3514,7 @@ OGLMatrix3x3	m;
 	}
 
 
-			/* SEE IF HIT SOLID OBJECT HARD */
+	/* SEE IF HIT SOLID OBJECT HARD */
 
 	if (HandleCollisions(player, CTYPE_MISC, -.6) || DoFenceCollision(player))
 	{
@@ -3514,9 +3524,9 @@ OGLMatrix3x3	m;
 		}
 	}
 
-			/***********************/
-			/* SEE IF ABORT SKIING */
-			/***********************/
+	/***********************/
+	/* SEE IF ABORT SKIING */
+	/***********************/
 
 	if (gTargetPickup != nil)															// see if already aborted via collision
 	{
@@ -3541,13 +3551,13 @@ OGLMatrix3x3	m;
 
 static void EndMagnetSkiing(ObjNode *player, Boolean crash)
 {
-short		magnetMonsterID;
-ObjNode		*magMonster;
+	short		magnetMonsterID;
+	ObjNode *magMonster;
 
 	if (gTargetPickup == nil)					// this can get called twice, so check if pickup==nil
 		return;
 
-			/* GET INFO ABOUT THE MAGNET MONSTER */
+	/* GET INFO ABOUT THE MAGNET MONSTER */
 
 	magnetMonsterID = gTargetPickup->MagnetMonsterID;		// get ID# of the magnet so we know which monster to go to
 	magMonster = gMagnetMonsterList[magnetMonsterID];		// get objNode of magnet monster
@@ -3577,17 +3587,17 @@ static Boolean ShouldApplySlopesToPlayer(float newDistToFloor)
 {
 	switch (gPlayerInfo.objNode->Skeleton->AnimNum)
 	{
-		case PLAYER_ANIM_WALK:
-		case PLAYER_ANIM_WALKWITHGUN:
-		case PLAYER_ANIM_BELLYSLIDE:
-		case PLAYER_ANIM_THROWN:
-			// allow slopes for these
-			break;
+	case PLAYER_ANIM_WALK:
+	case PLAYER_ANIM_WALKWITHGUN:
+	case PLAYER_ANIM_BELLYSLIDE:
+	case PLAYER_ANIM_THROWN:
+		// allow slopes for these
+		break;
 
-		default:
-			// don't apply slopes this while standing
-			// otherwise some weird rotation may occur on steep slopes at high framerates
-			return false;
+	default:
+		// don't apply slopes this while standing
+		// otherwise some weird rotation may occur on steep slopes at high framerates
+		return false;
 	}
 
 	// only do slopes if player isn't controlling
