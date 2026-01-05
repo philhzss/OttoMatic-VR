@@ -1900,8 +1900,8 @@ lhand->Coord.z = handMatrix.value[M23];
 
 
 
-logHandDebug("RHand", rhand);
-logHandDebug("LHand", lhand);
+// logHandDebug("RHand", rhand);
+// logHandDebug("LHand", lhand);
 
 // printf("[RHand] Raw Matrix Translation: %.2f, %.2f, %.2f\n",
 //        vrInfoRightHand.transformationMatrix.value[M03],

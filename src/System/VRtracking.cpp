@@ -143,9 +143,19 @@ if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
     deviceToParse->transformationMatrix.value[M13] *= VRroomDistanceToGameDistanceScale;
     deviceToParse->transformationMatrix.value[M23] *= VRroomDistanceToGameDistanceScale;
 
-    // 2️⃣ Apply game yaw (thumbstick rotation) in world space
+
+    // 2️⃣ --- Apply world rotation (thumbstick yaw) instead of old gameYaw ---
+    OGLMatrix4x4 worldRotation = {0};
+    float yaw = -vrInfoHMD.camThumbstickAccum; // accumulated game yaw
+    worldRotation.value[M00] = cos(yaw);
+    worldRotation.value[M02] = -sin(yaw);
+    worldRotation.value[M20] = sin(yaw);
+    worldRotation.value[M22] = cos(yaw);
+    worldRotation.value[M11] = 1;
+    worldRotation.value[M33] = 1;
+
     OGLMatrix4x4 controllerFinal;
-    OGLMatrix4x4_Multiply(&vrInfoHMD.HMDgameYawCorrectionMatrix, &deviceToParse->transformationMatrix, &controllerFinal);
+	OGLMatrix4x4_Multiply(&deviceToParse->transformationMatrix, &worldRotation, &controllerFinal);
 
     // 3️⃣ Store final matrices
     deviceToParse->transformationMatrixCorrected = controllerFinal;
@@ -165,6 +175,7 @@ if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
     transOnly.value[M00] = transOnly.value[M11] = transOnly.value[M22] = transOnly.value[M33] = 1;
     deviceToParse->translationMatrix = transOnly;
 }
+
 
 
 
