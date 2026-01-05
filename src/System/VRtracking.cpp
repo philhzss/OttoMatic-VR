@@ -138,44 +138,34 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
 if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
 {
-    // Scale translation for game world units
+    // 1️⃣ Scale translation for game units
     deviceToParse->transformationMatrix.value[M03] *= VRroomDistanceToGameDistanceScale;
     deviceToParse->transformationMatrix.value[M13] *= VRroomDistanceToGameDistanceScale;
     deviceToParse->transformationMatrix.value[M23] *= VRroomDistanceToGameDistanceScale;
 
-    // Controller pose relative to HMD
-    OGLMatrix4x4 controllerRelToHMD;
-    OGLMatrix4x4_Multiply(
-        &vrInfoHMD.transformationMatrixInverted,
-        &deviceToParse->transformationMatrix,
-        &controllerRelToHMD
-    );
+    // 2️⃣ Apply game yaw (thumbstick rotation) in world space
+    OGLMatrix4x4 controllerFinal;
+    OGLMatrix4x4_Multiply(&vrInfoHMD.HMDgameYawCorrectionMatrix, &deviceToParse->transformationMatrix, &controllerFinal);
 
-    // Apply game yaw (thumbstick turning)
-    OGLMatrix4x4 controllerRelToHMD_GameYaw;
-    OGLMatrix4x4_Multiply(
-        &vrInfoHMD.HMDgameYawCorrectionMatrix,
-        &controllerRelToHMD,
-        &controllerRelToHMD_GameYaw
-    );
+    // 3️⃣ Store final matrices
+    deviceToParse->transformationMatrixCorrected = controllerFinal;
 
-    // Store this as the controller's FINAL usable transform
-    deviceToParse->transformationMatrixCorrected = controllerRelToHMD_GameYaw;
-
-    // Update rotation/translation matrices for robot.c usage
-    OGLMatrix4x4 rotOnly = deviceToParse->transformationMatrixCorrected;
+    // 4️⃣ Rotation-only matrix
+    OGLMatrix4x4 rotOnly = controllerFinal;
     rotOnly.value[M03] = 0;
     rotOnly.value[M13] = 0;
     rotOnly.value[M23] = 0;
     deviceToParse->rotationMatrixCorrected = rotOnly;
 
+    // 5️⃣ Translation-only matrix
     OGLMatrix4x4 transOnly = {0};
-    transOnly.value[M03] = deviceToParse->transformationMatrixCorrected.value[M03];
-    transOnly.value[M13] = deviceToParse->transformationMatrixCorrected.value[M13];
-    transOnly.value[M23] = deviceToParse->transformationMatrixCorrected.value[M23];
+    transOnly.value[M03] = controllerFinal.value[M03];
+    transOnly.value[M13] = controllerFinal.value[M13];
+    transOnly.value[M23] = controllerFinal.value[M23];
     transOnly.value[M00] = transOnly.value[M11] = transOnly.value[M22] = transOnly.value[M33] = 1;
     deviceToParse->translationMatrix = transOnly;
 }
+
 
 
 }
