@@ -331,7 +331,10 @@ float		fps = gFramesPerSecondFrac;
 ObjNode		*playerObj = gPlayerInfo.objNode;
 SkeletonObjDataType	*skeleton;
 float			oldCamX,oldCamZ,oldCamY,oldPointOfInterestX,oldPointOfInterestZ,oldPointOfInterestY;
-int			firstPersonHeight = 100;
+
+// ! NOT USED FOR VR MODE, DEFINED LOWER:
+int			firstPersonHeight = VRroomDistanceToGameDistanceScale*2;
+
 
 // Calculate the HMD's corrected matrix
 OGLMatrix4x4 rotOnly = vrInfoHMD.rotationMatrixCorrected;
@@ -339,10 +342,10 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 
 
 	// * Debug camera not attached to player
-    printf("Camera at: %.2f, %.2f, %.2f\n",
-           gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-           gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
-           gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
+    // printf("Camera at: %.2f, %.2f, %.2f\n",
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+    //        gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
 
     printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
            playerObj->Coord.x,
@@ -440,7 +443,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	else {
 		// VR HMD Controlled view
 		// Set FPS height to VR height
-		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 0; // seems to give reasonable height 
+		firstPersonHeight = vrInfoHMD.pos.y + playerEyeHeight; // seems to give reasonable height 
 													   // SLIGHTLY too low when standing? but too high when touching floor. To adjust
 		// firstPersonHeight to be tested / not sure where to apply this now
 		// Set initial to.xyz pos, x & y should be 0, and z -1 * "rotation resolution"
@@ -476,7 +479,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 			/*************************************/
 
 
-	from.x = playerObj->Coord.x; // ( + a few hundred if needed to see body for testing )
+	from.x = playerObj->Coord.x; // ( + a few hundred if needed to see Otto/robot/player for testing )
 	from.z = playerObj->Coord.z;	
 	from.y = playerObj->Coord.y + firstPersonHeight;
 

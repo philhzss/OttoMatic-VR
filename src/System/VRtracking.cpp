@@ -12,9 +12,8 @@ extern "C" {
 #include "SDL3/SDL_opengl.h"
 }
 
-
+#include "vr_support.h"
 extern vr::IVRSystem *gIVRSystem;
-extern float gIpdScale;
 
 vr::TrackedDevicePose_t trackedDevicePoseHMD;
 vr::TrackedDevicePose_t trackedDevicePoseLeftHand;
@@ -86,15 +85,15 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 	deviceToParse->transformationMatrix.value[M00] = deviceToParse->rawVRmatrix.m[0][0];
 	deviceToParse->transformationMatrix.value[M01] = deviceToParse->rawVRmatrix.m[0][1];
 	deviceToParse->transformationMatrix.value[M02] = deviceToParse->rawVRmatrix.m[0][2];
-	deviceToParse->transformationMatrix.value[M03] = deviceToParse->rawVRmatrix.m[0][3]; // Unused for controllers -> Translation X
+	deviceToParse->transformationMatrix.value[M03] = deviceToParse->rawVRmatrix.m[0][3]; // Translation X
 	deviceToParse->transformationMatrix.value[M10] = deviceToParse->rawVRmatrix.m[1][0];
 	deviceToParse->transformationMatrix.value[M11] = deviceToParse->rawVRmatrix.m[1][1];
 	deviceToParse->transformationMatrix.value[M12] = deviceToParse->rawVRmatrix.m[1][2];
-	deviceToParse->transformationMatrix.value[M13] = deviceToParse->rawVRmatrix.m[1][3]; // Unused for controllers -> Translation Y
+	deviceToParse->transformationMatrix.value[M13] = deviceToParse->rawVRmatrix.m[1][3]; // Translation Y
 	deviceToParse->transformationMatrix.value[M20] = deviceToParse->rawVRmatrix.m[2][0];
 	deviceToParse->transformationMatrix.value[M21] = deviceToParse->rawVRmatrix.m[2][1];
 	deviceToParse->transformationMatrix.value[M22] = deviceToParse->rawVRmatrix.m[2][2];
-	deviceToParse->transformationMatrix.value[M23] = deviceToParse->rawVRmatrix.m[2][3]; // Unused for controllers -> Translation Z
+	deviceToParse->transformationMatrix.value[M23] = deviceToParse->rawVRmatrix.m[2][3]; // Translation Z
 	deviceToParse->transformationMatrix.value[M30] = 0;
 	deviceToParse->transformationMatrix.value[M31] = 0;
 	deviceToParse->transformationMatrix.value[M32] = 0;
@@ -139,9 +138,13 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
 if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
 {
-    OGLMatrix4x4 controllerRelToHMD;
+    // Scale translation for game world units
+    deviceToParse->transformationMatrix.value[M03] *= VRroomDistanceToGameDistanceScale;
+    deviceToParse->transformationMatrix.value[M13] *= VRroomDistanceToGameDistanceScale;
+    deviceToParse->transformationMatrix.value[M23] *= VRroomDistanceToGameDistanceScale;
 
     // Controller pose relative to HMD
+    OGLMatrix4x4 controllerRelToHMD;
     OGLMatrix4x4_Multiply(
         &vrInfoHMD.transformationMatrixInverted,
         &deviceToParse->transformationMatrix,
@@ -158,7 +161,22 @@ if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
 
     // Store this as the controller's FINAL usable transform
     deviceToParse->transformationMatrixCorrected = controllerRelToHMD_GameYaw;
+
+    // Update rotation/translation matrices for robot.c usage
+    OGLMatrix4x4 rotOnly = deviceToParse->transformationMatrixCorrected;
+    rotOnly.value[M03] = 0;
+    rotOnly.value[M13] = 0;
+    rotOnly.value[M23] = 0;
+    deviceToParse->rotationMatrixCorrected = rotOnly;
+
+    OGLMatrix4x4 transOnly = {0};
+    transOnly.value[M03] = deviceToParse->transformationMatrixCorrected.value[M03];
+    transOnly.value[M13] = deviceToParse->transformationMatrixCorrected.value[M13];
+    transOnly.value[M23] = deviceToParse->transformationMatrixCorrected.value[M23];
+    transOnly.value[M00] = transOnly.value[M11] = transOnly.value[M22] = transOnly.value[M33] = 1;
+    deviceToParse->translationMatrix = transOnly;
 }
+
 
 }
 
