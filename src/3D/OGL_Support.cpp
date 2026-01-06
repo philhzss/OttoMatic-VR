@@ -68,7 +68,12 @@ extern vr::TrackedDevicePose_t trackedDevices[vr::k_unMaxTrackedDeviceCount];
 
 OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
-float gIpdScale = 100; // Higher value makes the world appear smaller
+
+// * VR Specific
+float gIpdScale = 1.2; // Higher value makes the world appear smaller
+float gWorldScale = 0.01f;  // Makes everything half-size (you appear 2x bigger)
+float cameraYOffset = -playerEyeHeight; // Needed to offset the camera height with the smaller world scale
+
 
 float	gCurrentAspectRatio = 1;
 float	g2DLogicalWidth = 640.0f;
@@ -574,10 +579,14 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	// 2) APPLY GAME YAW (thumbstick turning)
 	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
 
+	// Scale the entire world
+	glScalef(gWorldScale, gWorldScale, gWorldScale);
+
+
 	// Add camera position translation
 	glTranslatef(
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
 	);
 
@@ -601,10 +610,15 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	// 2) APPLY GAME YAW (thumbstick turning)
 	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
 
+
+	// Scale the entire world
+	glScalef(gWorldScale, gWorldScale, gWorldScale);
+
+
 	// Add camera position translation
 	glTranslatef(
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
 	);
 

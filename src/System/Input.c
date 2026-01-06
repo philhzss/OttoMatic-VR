@@ -171,19 +171,31 @@ void UpdateInput(void)
 				gUserPrefersGamepad = false;
 
 				// * IPD Scale adjustment for testing P and O
-				
-				// if (event.key.scancode == SDL_SCANCODE_P)
-				// {
-				// 	gIpdScale += 10.0f;
-				// 	if (gIpdScale > 400.0f) gIpdScale = 400.0f;  // Optional cap
-				// 	printf("IPD Scale increased to: %.1f\n", gIpdScale);
-				// }
-				// else if (event.key.scancode == SDL_SCANCODE_O)
-				// {
-				// 	gIpdScale -= 10.0f;
-				// 	if (gIpdScale < 1.0f) gIpdScale = 1.0f;  // Optional minimum
-				// 	printf("IPD Scale decreased to: %.1f\n", gIpdScale);
-				// }
+
+				if (event.key.scancode == SDL_SCANCODE_RIGHTBRACKET)
+				{
+					gIpdScale += 0.1f;
+					//if (gIpdScale > 400.0f) gIpdScale = 400.0f;  // Optional cap
+					printf("IPD Scale increased to: %.1f\n", gIpdScale);
+				}
+				else if (event.key.scancode == SDL_SCANCODE_LEFTBRACKET)
+				{
+					gIpdScale -= 0.1f;
+					//if (gIpdScale < 0.0f) gIpdScale = 0.0f;  // Optional minimum
+					printf("IPD Scale decreased to: %.1f\n", gIpdScale);
+				}
+				else if (event.key.scancode == SDL_SCANCODE_EQUALS)  // + key
+				{
+					gWorldScale += 0.01f;
+					//if (gWorldScale > 5.0f) gWorldScale = 5.0f;
+					printf("World Scale: %.2f\n", gWorldScale);
+				}
+				else if (event.key.scancode == SDL_SCANCODE_MINUS)  // - key
+				{
+					gWorldScale -= 0.01f;
+					//if (gWorldScale < 0.1f) gWorldScale = 0.1f;
+					printf("World Scale: %.2f\n", gWorldScale);
+				}
 				break;
 
 			case SDL_EVENT_GAMEPAD_BUTTON_DOWN:

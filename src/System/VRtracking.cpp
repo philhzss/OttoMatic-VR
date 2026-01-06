@@ -305,8 +305,10 @@ extern "C" void vrcpp_updateTrackedDevices(void)
 		parseTrackingData(&vrInfoRightHand);
 
 	// Get eye projection matrix
-	vr::HmdMatrix44_t vrMatProjLeft = gIVRSystem->GetProjectionMatrix(vr::Eye_Left, gGameViewInfoPtr->hither, gGameViewInfoPtr->yon);
-	vr::HmdMatrix44_t vrMatProjRight = gIVRSystem->GetProjectionMatrix(vr::Eye_Right, gGameViewInfoPtr->hither, gGameViewInfoPtr->yon);
+	vr::HmdMatrix44_t vrMatProjLeft = gIVRSystem->GetProjectionMatrix(
+		vr::Eye_Left, gGameViewInfoPtr->hither * gWorldScale, gGameViewInfoPtr->yon * gWorldScale);
+	vr::HmdMatrix44_t vrMatProjRight = gIVRSystem->GetProjectionMatrix(
+		vr::Eye_Right, gGameViewInfoPtr->hither * gWorldScale, gGameViewInfoPtr->yon * gWorldScale);
 	vrInfoHMD.HMDleftProj = hmdMatrix4x4_to_OGLMatrix4x4(&vrMatProjLeft);
 	vrInfoHMD.HMDrightProj = hmdMatrix4x4_to_OGLMatrix4x4(&vrMatProjRight);
 

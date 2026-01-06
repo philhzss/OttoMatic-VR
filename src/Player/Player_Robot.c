@@ -1853,7 +1853,7 @@ void UpdateRobotHands(ObjNode *theNode)
 
 
 			// * Right hand
-			float handScale = 0.5f;
+			float handScale = 0.65f;
 
 			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
 			float handModelOffsetX = 0.0f;
@@ -1864,7 +1864,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Calculate the vertical hand model offset for translation only
 			// This would be == -playerEyeHeight, but since the pivot point is moved
 			// we must compensate for that or the hands are too low
-			float handVerticalOffset = -38; // * -38 seems good
+			float handVerticalOffset = 0.0f; // * -38 seems good
 
 			// Start with the rotation matrix (rotation around origin)
 			OGLMatrix4x4 handMatrix = vrInfoRightHand.rotationMatrixCorrected;

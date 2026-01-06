@@ -27,11 +27,12 @@ enum playerActions
 // This number is APPROXIMATE and should be tweaked as playtesting happens
 #define VRroomDistanceToGameDistanceScale 100
 
-// Used for cam from.y & lowering hand height 
+// Used for cam from.y
 #define playerEyeHeight 90
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support
+extern float gWorldScale; // Defined in OGL support
 
 
 typedef enum
