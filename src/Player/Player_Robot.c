@@ -11,6 +11,8 @@
 
 #include "game.h"
 #include "vr_support.h"
+extern void OGLMatrix4x4_ApplyUniformScale(OGLMatrix4x4 *m, float s);
+
 
 /****************************/
 /*    PROTOTYPES            */
@@ -1847,171 +1849,112 @@ void UpdateRobotHands(ObjNode *theNode)
 			}
 
 
-			/* ROTATION CONTROLLER TRACKING */
-
-		// ! Do not strip translation from matrix
-		// // For both hands, disable translation (for now we don't use this:
-		// 	vrInfoLeftHand.transformationMatrix.value[M03] = 0;
-		// 	vrInfoLeftHand.transformationMatrix.value[M13] = 0;
-		// 	vrInfoLeftHand.transformationMatrix.value[M23] = 0;
-
-			// Multiply controller orientation with the gameYaw correction to make the hand rotate with the player when using thumbsticks
-			// OGLMatrix4x4_Multiply(&vrInfoLeftHand.transformationMatrix, &vrInfoHMD.HMDgameYawCorrectionMatrix, &vrInfoLeftHand.transformationMatrixCorrected);
-			// OGLMatrix4x4_Multiply(&vrInfoRightHand.transformationMatrix, &vrInfoHMD.HMDgameYawCorrectionMatrix, &vrInfoRightHand.transformationMatrixCorrected);
-
-			// Multiply corrected controller orientation with the hands BaseTransformMatrix
-			// OGLMatrix4x4_Multiply(&vrInfoLeftHand.transformationMatrixCorrected, &lhand->BaseTransformMatrix, &lhand->BaseTransformMatrix);
-			// OGLMatrix4x4_Multiply(&vrInfoRightHand.transformationMatrixCorrected, &rhand->BaseTransformMatrix, &rhand->BaseTransformMatrix);
-
-			// lhand->BaseTransformMatrix = vrInfoLeftHand.transformationMatrixCorrected;
-			// rhand->BaseTransformMatrix = vrInfoRightHand.transformationMatrixCorrected;
-
-			// // Apply
-			// SetObjectTransformMatrix(lhand);
-			// SetObjectTransformMatrix(rhand);
-
-// Right hand
-OGLMatrix4x4 handMatrix = vrInfoRightHand.rotationMatrixCorrected; // rotation only
-handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoRightHand.translationMatrix.value[M03];
-handMatrix.value[M13] = -playerEyeHeight + gPlayerInfo.coord.y + vrInfoRightHand.translationMatrix.value[M13];
-handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoRightHand.translationMatrix.value[M23];
-rhand->BaseTransformMatrix = handMatrix;
-SetObjectTransformMatrix(rhand);
-
-// Update coordinates for weapon firing, etc
-rhand->Coord.x = handMatrix.value[M03];
-rhand->Coord.y = handMatrix.value[M13];
-rhand->Coord.z = handMatrix.value[M23];
+			/* CONTROLLER TRACKING */
 
 
-// Left hand
-handMatrix = vrInfoLeftHand.rotationMatrixCorrected; // rotation only
-handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoLeftHand.translationMatrix.value[M03];
-handMatrix.value[M13] = -playerEyeHeight + gPlayerInfo.coord.y + vrInfoLeftHand.translationMatrix.value[M13];
-handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoLeftHand.translationMatrix.value[M23];
-lhand->BaseTransformMatrix = handMatrix;
-SetObjectTransformMatrix(lhand);
+			// * Right hand
+			float handScale = 0.5f;
 
-// Update coordinates for weapon firing, etc
-lhand->Coord.x = handMatrix.value[M03];
-lhand->Coord.y = handMatrix.value[M13];
-lhand->Coord.z = handMatrix.value[M23];
+			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
+			float handModelOffsetX = 0.0f;
+			float handModelOffsetY = 0.0f;
+			float handModelOffsetZ = 22.0f; // * 22 seems good, 25 was nicer with holding the gun but looks stranger with no gun
 
 
+			// Calculate the vertical hand model offset for translation only
+			// This would be == -playerEyeHeight, but since the pivot point is moved
+			// we must compensate for that or the hands are too low
+			float handVerticalOffset = -38; // * -38 seems good
+
+			// Start with the rotation matrix (rotation around origin)
+			OGLMatrix4x4 handMatrix = vrInfoRightHand.rotationMatrixCorrected;
+
+			// Apply scale to ALL components of the rotation matrix
+			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
 
 
-// logHandDebug("RHand", rhand);
-// logHandDebug("LHand", lhand);
+			// Now set translation = controller position + rotated model offset
+			// The rotation matrix rotates the offset so the hand stays in the right place
+			// regardless of controller orientation
+			handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoRightHand.translationMatrix.value[M03]
+				+ (handMatrix.value[M00] * handModelOffsetX
+					+ handMatrix.value[M01] * handModelOffsetY
+					+ handMatrix.value[M02] * handModelOffsetZ);
 
-// printf("[RHand] Raw Matrix Translation: %.2f, %.2f, %.2f\n",
-//        vrInfoRightHand.transformationMatrix.value[M03],
-//        vrInfoRightHand.transformationMatrix.value[M13],
-//        vrInfoRightHand.transformationMatrix.value[M23]);
+			handMatrix.value[M13] = handVerticalOffset + gPlayerInfo.coord.y + vrInfoRightHand.translationMatrix.value[M13]
+				+ (handMatrix.value[M10] * handModelOffsetX
+					+ handMatrix.value[M11] * handModelOffsetY
+					+ handMatrix.value[M12] * handModelOffsetZ);
 
-// printf("[RHand] Corrected Matrix Translation: %.2f, %.2f, %.2f\n",
-//        vrInfoRightHand.transformationMatrixCorrected.value[M03],
-//        vrInfoRightHand.transformationMatrixCorrected.value[M13],
-//        vrInfoRightHand.transformationMatrixCorrected.value[M23]);
+			handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoRightHand.translationMatrix.value[M23]
+				+ (handMatrix.value[M20] * handModelOffsetX
+					+ handMatrix.value[M21] * handModelOffsetY
+					+ handMatrix.value[M22] * handModelOffsetZ);
 
-	//    printf("[HMD] Corrected Pos: %.2f, %.2f, %.2f\n",
-    //    vrInfoHMD.transformationMatrixCorrected.value[M03],
-    //    vrInfoHMD.transformationMatrixCorrected.value[M13],
-    //    vrInfoHMD.transformationMatrixCorrected.value[M23]);
+			// Apply
+			rhand->BaseTransformMatrix = handMatrix;
+			SetObjectTransformMatrix(rhand);
+
+			// Update coordinates for weapon firing, etc
+			rhand->Coord.x = handMatrix.value[M03];
+			rhand->Coord.y = handMatrix.value[M13];
+			rhand->Coord.z = handMatrix.value[M23];
 
 
 
+			// * Left hand
+			// Uses the same hand model offsets as right hand
+
+			// 1. Rotation matrix (rotation around origin)
+			handMatrix = vrInfoLeftHand.rotationMatrixCorrected;
+
+			// Apply scale to ALL components of the rotation matrix
+			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
+
+			// Now set translation = controller position + rotated model offset
+			handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoLeftHand.translationMatrix.value[M03]
+				+ (handMatrix.value[M00] * handModelOffsetX
+					+ handMatrix.value[M01] * handModelOffsetY
+					+ handMatrix.value[M02] * handModelOffsetZ);
+
+			handMatrix.value[M13] = handVerticalOffset + gPlayerInfo.coord.y + vrInfoLeftHand.translationMatrix.value[M13]
+				+ (handMatrix.value[M10] * handModelOffsetX
+					+ handMatrix.value[M11] * handModelOffsetY
+					+ handMatrix.value[M12] * handModelOffsetZ);
+
+			handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoLeftHand.translationMatrix.value[M23]
+				+ (handMatrix.value[M20] * handModelOffsetX
+					+ handMatrix.value[M21] * handModelOffsetY
+					+ handMatrix.value[M22] * handModelOffsetZ);
+
+			// Apply
+			lhand->BaseTransformMatrix = handMatrix;
+			SetObjectTransformMatrix(lhand);
+
+			// Update coordinates for weapon firing, etc
+			lhand->Coord.x = handMatrix.value[M03];
+			lhand->Coord.y = handMatrix.value[M13];
+			lhand->Coord.z = handMatrix.value[M23];
 
 
-			/* POSITION CONTROLLER TRACKING */
+			// ? Debug testing
+			// logHandDebug("RHand", rhand);
+			// logHandDebug("LHand", lhand);
 
-		// This also adjusts based on gameYaw rotation so using thumbsticks to rotate world doesn't leave hands behind
-			
-		// ! Probably not needed anymore
-		// vrpp_updateGameSpacePositions();
+			// printf("[RHand] Raw Matrix Translation: %.2f, %.2f, %.2f\n",
+			// 	vrInfoRightHand.transformationMatrix.value[M03],
+			// 	vrInfoRightHand.transformationMatrix.value[M13],
+			// 	vrInfoRightHand.transformationMatrix.value[M23]);
 
-			// lhand->Coord.x = theNode->Coord.x + (vrInfoLeftHand.posGameAxes.x - vrInfoHMD.posGameAxes.x) * scale;
-			// lhand->Coord.y = theNode->Coord.y + (vrInfoLeftHand.pos.y - vrInfoHMD.pos.y) * scale;
-			// lhand->Coord.z = theNode->Coord.z + (vrInfoLeftHand.posGameAxes.z - vrInfoHMD.posGameAxes.z) * scale;
+			// printf("[RHand] Corrected Matrix Translation: %.2f, %.2f, %.2f\n",
+			// 	vrInfoRightHand.transformationMatrixCorrected.value[M03],
+			// 	vrInfoRightHand.transformationMatrixCorrected.value[M13],
+			// 	vrInfoRightHand.transformationMatrixCorrected.value[M23]);
 
-			// rhand->Coord.x = theNode->Coord.x + (vrInfoRightHand.posGameAxes.x - vrInfoHMD.posGameAxes.x) * scale;
-			// rhand->Coord.y = theNode->Coord.y + (vrInfoRightHand.pos.y - vrInfoHMD.pos.y) * scale;
-			// rhand->Coord.z = theNode->Coord.z + (vrInfoRightHand.posGameAxes.z - vrInfoHMD.posGameAxes.z) * scale;
-
-
-// // Right hand
-// 			rhand->Coord.x = gPlayerInfo.coord.x + vrInfoRightHand.posGameAxes.x * scale;
-// 			rhand->Coord.y = gPlayerInfo.coord.y + vrInfoRightHand.posGameAxes.y * scale;
-// 			rhand->Coord.z = gPlayerInfo.coord.z + vrInfoRightHand.posGameAxes.z * scale;
-
-// 			// Left hand
-// 			lhand->Coord.x = gPlayerInfo.coord.x + vrInfoLeftHand.posGameAxes.x * scale;
-// 			lhand->Coord.y = gPlayerInfo.coord.y + vrInfoLeftHand.posGameAxes.y * scale;
-// 			lhand->Coord.z = gPlayerInfo.coord.z + vrInfoLeftHand.posGameAxes.z * scale;
-
-
-
-// 			// * Right hand
-// 			// Copy rotation from the corrected VR matrix
-// 			OGLMatrix4x4 handMatrix = rhand->BaseTransformMatrix;
-
-// 			// Override translation with your computed Coord
-// 			handMatrix.value[M03] = rhand->Coord.x;
-// 			handMatrix.value[M13] = rhand->Coord.y;
-// 			handMatrix.value[M23] = rhand->Coord.z;
-
-// 			rhand->BaseTransformMatrix = handMatrix;
-// 			SetObjectTransformMatrix(rhand);
-
-// 			// * Left Hand
-// 			// Copy rotation from the corrected VR matrix
-// 			handMatrix = lhand->BaseTransformMatrix;
-
-// 			// Override translation with your computed Coord
-// 			handMatrix.value[M03] = lhand->Coord.x;
-// 			handMatrix.value[M13] = lhand->Coord.y;
-// 			handMatrix.value[M23] = lhand->Coord.z;
-
-// 			lhand->BaseTransformMatrix = handMatrix;
-// 			SetObjectTransformMatrix(lhand);
-
-
-			// ? Test with hands frozen at center
-			// // Position only, no rotation
-			// OGLMatrix4x4 handMatrix;
-			// OGLMatrix4x4_SetIdentity(&handMatrix);   // make it upright
-			// handMatrix.value[M03] = rhand->Coord.x;
-			// handMatrix.value[M13] = rhand->Coord.y;
-			// handMatrix.value[M23] = rhand->Coord.z;
-			// rhand->BaseTransformMatrix = handMatrix;
-
-			// SetObjectTransformMatrix(rhand);
-
-			// // Position only, no rotation
-			// OGLMatrix4x4 handMatrix2;
-			// OGLMatrix4x4_SetIdentity(&handMatrix2);   // make it upright
-			// handMatrix2.value[M03] = lhand->Coord.x;
-			// handMatrix2.value[M13] = lhand->Coord.y;
-			// handMatrix2.value[M23] = lhand->Coord.z;
-			// lhand->BaseTransformMatrix = handMatrix2;
-			// SetObjectTransformMatrix(lhand);
-
-
-
-			// printf("rhand at: %.2f, %.2f, %.2f\n",
-			// 	rhand->Coord.x,
-			// 	rhand->Coord.y,
-			// 	rhand->Coord.z);
-
-			// printf("rhand rel camera: %f, %f, %f\n",
-			// 	rhand->Coord.x - gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-			// 	rhand->Coord.y - gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
-			// 	rhand->Coord.z - gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
-			// printf("Hand forward: %f, %f, %f\n",
-			// 	rhand->BaseTransformMatrix.value[M02],
-			// 	rhand->BaseTransformMatrix.value[M12],
-			// 	rhand->BaseTransformMatrix.value[M22]);
-
-
+			// printf("[HMD] Corrected Pos: %.2f, %.2f, %.2f\n",
+			// 	vrInfoHMD.transformationMatrixCorrected.value[M03],
+			// 	vrInfoHMD.transformationMatrixCorrected.value[M13],
+			// 	vrInfoHMD.transformationMatrixCorrected.value[M23]);
 		}
 	}
 }

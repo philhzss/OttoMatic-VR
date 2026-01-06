@@ -1333,6 +1333,18 @@ void OGLMatrix4x4_SetScale(OGLMatrix4x4 *m, float x, float y, float z)
 }
 
 
+
+/**************** GLMATRIX4X4: APPLY UNIFORM SCALE ******************/
+
+void OGLMatrix4x4_ApplyUniformScale(OGLMatrix4x4 *m, float s)
+{
+	for (int row = 0; row < 3; row++)
+		for (int col = 0; col < 3; col++)
+			m->value[row * 4 + col] *= s;
+}
+
+
+
 /**************** GLMATRIX4X4: SET ROTATE X ******************/
 
 void OGLMatrix4x4_SetRotate_X(OGLMatrix4x4	*m, float angle)
