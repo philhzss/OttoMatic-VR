@@ -169,6 +169,21 @@ void UpdateInput(void)
 
 			case SDL_EVENT_KEY_DOWN:
 				gUserPrefersGamepad = false;
+
+				// * IPD Scale adjustment for testing P and O
+				
+				// if (event.key.scancode == SDL_SCANCODE_P)
+				// {
+				// 	gIpdScale += 10.0f;
+				// 	if (gIpdScale > 400.0f) gIpdScale = 400.0f;  // Optional cap
+				// 	printf("IPD Scale increased to: %.1f\n", gIpdScale);
+				// }
+				// else if (event.key.scancode == SDL_SCANCODE_O)
+				// {
+				// 	gIpdScale -= 10.0f;
+				// 	if (gIpdScale < 1.0f) gIpdScale = 1.0f;  // Optional minimum
+				// 	printf("IPD Scale decreased to: %.1f\n", gIpdScale);
+				// }
 				break;
 
 			case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
@@ -334,8 +349,8 @@ void UpdateInput(void)
 
 		gPlayerInfo.analogControlZ = -VRmoveJoyPositionY;
 		gPlayerInfo.strafeControlX = VRmoveJoyPostionX;
-		printf("X (LEFT RIGHT): %f\n", VRmoveJoyPostionX);
-		printf("Y (FORE BACK): %f\n", -VRmoveJoyPositionY);
+		// printf("X (LEFT RIGHT): %f\n", VRmoveJoyPostionX);
+		// printf("Y (FORE BACK): %f\n", -VRmoveJoyPositionY);
 	}
 
 

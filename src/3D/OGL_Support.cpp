@@ -68,6 +68,7 @@ extern vr::TrackedDevicePose_t trackedDevices[vr::k_unMaxTrackedDeviceCount];
 
 OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
+float gIpdScale = 100; // Higher value makes the world appear smaller
 
 float	gCurrentAspectRatio = 1;
 float	g2DLogicalWidth = 640.0f;

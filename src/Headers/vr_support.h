@@ -25,13 +25,13 @@ enum playerActions
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
 // This number is APPROXIMATE and should be tweaked as playtesting happens
-#define VRroomDistanceToGameDistanceScale 135
+#define VRroomDistanceToGameDistanceScale 100
 
 // Used for cam from.y & lowering hand height 
 #define playerEyeHeight 90
 
 // Virtual IPD
-#define gIpdScale 210.0f; // A larger number makes the world appear smaller
+extern float gIpdScale; // Defined in OGL support
 
 
 typedef enum

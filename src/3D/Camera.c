@@ -347,10 +347,10 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
     //        gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
     //        gGameViewInfoPtr->cameraPlacement.cameraLocation.z);
 
-    printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
-           playerObj->Coord.x,
-           playerObj->Coord.y,
-           playerObj->Coord.z);
+    // printf("PLAYER gPlayerObj at: %.2f, %.2f, %.2f\n",
+    //        playerObj->Coord.x,
+    //        playerObj->Coord.y,
+    //        playerObj->Coord.z);
 
 	// printf("gPlayerInfor cam location: %.2f, %.2f, %.2f\n",
     //        gPlayerInfo.camera.cameraLocation.x,
