@@ -25,10 +25,10 @@ enum playerActions
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
 // This number is APPROXIMATE and should be tweaked as playtesting happens
-#define VRroomDistanceToGameDistanceScale 100
+extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
 
 // Used for cam from.y
-#define playerEyeHeight 90
+#define playerEyeHeight 0 // ? 90
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support

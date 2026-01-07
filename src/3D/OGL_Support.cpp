@@ -70,9 +70,10 @@ OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 // * VR Specific
-float gIpdScale = 1.2; // Higher value makes the world appear smaller
-float gWorldScale = 0.01f;  // Makes everything half-size (you appear 2x bigger)
-float cameraYOffset = -playerEyeHeight; // Needed to offset the camera height with the smaller world scale
+float gIpdScale = 90.0f; //? 1.2 // Higher value makes the world appear smaller
+float gWorldScale = 1.0f;  // ? 0.01f // Makes everything half-size (you appear 2x bigger)
+float cameraYOffset = playerEyeHeight; //? was negative (-playerEyeHeight)// Needed to offset the camera height with the smaller world scale
+float VRroomDistanceToGameDistanceScale = 1.0f; // ? 100.0f
 
 
 float	gCurrentAspectRatio = 1;

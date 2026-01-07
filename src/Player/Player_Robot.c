@@ -1938,6 +1938,27 @@ void UpdateRobotHands(ObjNode *theNode)
 
 
 			// ? Debug testing
+
+
+			printf("Controller on floor test:\n");
+			printf("VR Hand Y (raw tracking): %.3f meters\n",
+				vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+			printf("VR Hand Y (game units): %.1f\n",
+				vrInfoRightHand.translationMatrix.value[M13]);
+			printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
+			printf("Final hand Y: %.1f\n", rhand->Coord.y);
+			printf("---\n");
+
+			printf("=== FLOOR DEBUG ===\n");
+			printf("Terrain Y at player pos: %.1f\n",
+				GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z));
+			printf("Player Y: %.1f\n", gPlayerInfo.coord.y);
+			printf("Player BBox min Y: %.1f\n", gPlayerInfo.objNode->BBox.min.y);
+			printf("Player feet should be at: %.1f\n",
+				GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z) + gPlayerInfo.objNode->BBox.min.y);
+			printf("---\n");
+
+
 			// logHandDebug("RHand", rhand);
 			// logHandDebug("LHand", lhand);
 
