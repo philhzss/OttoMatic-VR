@@ -102,8 +102,8 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
 	vrInfoHMD.HMDgameYawIgnoringHMD = vrInfoHMD.camThumbstickAccum;
 
-	
-		// Update the HMD specific members
+
+	// Update the HMD specific members
 	vrInfoHMD.HMDgameYawCorrectionMatrix = { 0 };
 	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00] = cos(vrInfoHMD.HMDgameYawIgnoringHMD);
 	vrInfoHMD.HMDgameYawCorrectionMatrix.value[M02] = -sin(vrInfoHMD.HMDgameYawIgnoringHMD);
@@ -136,50 +136,100 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
 	OGLMatrix4x4_Invert(&deviceToParse->transformationMatrix, &deviceToParse->transformationMatrixInverted);
 
+	if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER && !deviceToParse->posAnchorSet)
+	{
+		deviceToParse->posAnchor = deviceToParse->pos;
+		deviceToParse->posAnchorSet = true; // add a bool to track this
+		printf("Anchor set to: %.2f, %.2f, %.2f", deviceToParse->posAnchor.x, deviceToParse->posAnchor.y, deviceToParse->posAnchor.z);
+	}
+
+
+
+
+
+
+
+
 if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER)
 {
-    // 1️⃣ Scale translation for game units
-    deviceToParse->transformationMatrix.value[M03] *= VRroomDistanceToGameDistanceScale;
-    deviceToParse->transformationMatrix.value[M13] *= VRroomDistanceToGameDistanceScale;
-    deviceToParse->transformationMatrix.value[M23] *= VRroomDistanceToGameDistanceScale;
-
-
-    // 2️⃣ --- Apply world rotation (thumbstick yaw) instead of old gameYaw ---
-    OGLMatrix4x4 worldRotation = {0};
-    float yaw = -vrInfoHMD.camThumbstickAccum; // accumulated game yaw
+    // 1️⃣ Extract the ORIGINAL rotation and translation separately
+    OGLMatrix4x4 originalRotation = deviceToParse->transformationMatrix;
+    // Zero out translation from rotation matrix
+    originalRotation.value[M03] = 0;
+    originalRotation.value[M13] = 0;
+    originalRotation.value[M23] = 0;
+    
+    // Extract and scale translation separately
+    OGLVector3D translation;
+    translation.x = deviceToParse->transformationMatrix.value[M03] * VRroomDistanceToGameDistanceScale;
+    translation.y = deviceToParse->transformationMatrix.value[M13] * VRroomDistanceToGameDistanceScale;
+    translation.z = deviceToParse->transformationMatrix.value[M23] * VRroomDistanceToGameDistanceScale;
+    
+    // 2️⃣ Apply world rotation to the rotation matrix ONLY
+    float yaw = -vrInfoHMD.camThumbstickAccum;
+    OGLMatrix4x4 worldRotation = { 0 };
     worldRotation.value[M00] = cos(yaw);
     worldRotation.value[M02] = -sin(yaw);
     worldRotation.value[M20] = sin(yaw);
     worldRotation.value[M22] = cos(yaw);
     worldRotation.value[M11] = 1;
     worldRotation.value[M33] = 1;
+    
+    OGLMatrix4x4 rotatedRotation;
+    OGLMatrix4x4_Multiply(&originalRotation, &worldRotation, &rotatedRotation);
+    
+    // 3️⃣ Rotate the translation vector by the world rotation
+    OGLVector3D rotatedTranslation;
+    rotatedTranslation.x = translation.x * worldRotation.value[M00] + translation.z * worldRotation.value[M02];
+    rotatedTranslation.y = translation.y;  // Y doesn't change with yaw rotation
+    rotatedTranslation.z = translation.x * worldRotation.value[M20] + translation.z * worldRotation.value[M22];
 
-    OGLMatrix4x4 controllerFinal;
-	OGLMatrix4x4_Multiply(&deviceToParse->transformationMatrix, &worldRotation, &controllerFinal);
-
-    // 3️⃣ Store final matrices
+	// Right after calculating rotatedTranslation
+// printf("Controller Y position (unscaled): %.3f, scaled: %.3f\n", 
+//        deviceToParse->transformationMatrix.value[M13],
+//        rotatedTranslation.y);
+    
+    // 4️⃣ Combine: final matrix = rotated rotation + rotated translation
+    OGLMatrix4x4 controllerFinal = rotatedRotation;
+    controllerFinal.value[M03] = rotatedTranslation.x;
+    controllerFinal.value[M13] = rotatedTranslation.y;
+    controllerFinal.value[M23] = rotatedTranslation.z;
+    
+    // 5️⃣ Store final matrices
     deviceToParse->transformationMatrixCorrected = controllerFinal;
-
-    // 4️⃣ Rotation-only matrix
-    OGLMatrix4x4 rotOnly = controllerFinal;
-    rotOnly.value[M03] = 0;
-    rotOnly.value[M13] = 0;
-    rotOnly.value[M23] = 0;
+    
+    // 6️⃣ Rotation-only matrix (already have it)
+    rotOnly = rotatedRotation;
     deviceToParse->rotationMatrixCorrected = rotOnly;
-
-    // 5️⃣ Translation-only matrix
-    OGLMatrix4x4 transOnly = {0};
-    transOnly.value[M03] = controllerFinal.value[M03];
-    transOnly.value[M13] = controllerFinal.value[M13];
-    transOnly.value[M23] = controllerFinal.value[M23];
+    
+    // 7️⃣ Translation-only matrix
+    transOnly = { 0 };
+    transOnly.value[M03] = rotatedTranslation.x;
+    transOnly.value[M13] = rotatedTranslation.y;
+    transOnly.value[M23] = rotatedTranslation.z;
     transOnly.value[M00] = transOnly.value[M11] = transOnly.value[M22] = transOnly.value[M33] = 1;
     deviceToParse->translationMatrix = transOnly;
 }
-
-
-
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 OGLMatrix4x4 hmdMatrix3x4_to_OGLMatrix4x4(vr::HmdMatrix34_t *vrMat) {
 	OGLMatrix4x4 oglMat;

@@ -108,6 +108,10 @@ typedef struct
 	vrPosition posDelta; // Position delta (dif since last frame/last check)
 	vrPosition posGameAxes; // Position based in the game worldspace
 	vrPosition posDeltaGameAxes; // Position based in the game worldspace delta
+	vrPosition posAnchor; // Anchor for initial controller position
+
+	bool posAnchorSet; // Check if trackedDevice has anchor
+
 
 		/* HMD Projection View */
 	OGLMatrix4x4 HMDleftProj;
