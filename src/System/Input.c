@@ -61,6 +61,8 @@ OGLVector2D			gCameraControlDelta;
 /* STATIC FUNCTIONS   */
 /**********************/
 
+void DumpVRDebugInfo();
+
 static OGLVector2D GetThumbStickVector(bool rightStick);
 
 static inline void UpdateKeyState(KeyState* state, bool downNow)
@@ -174,39 +176,43 @@ void UpdateInput(void)
 
 				if (event.key.scancode == SDL_SCANCODE_RIGHTBRACKET)
 				{
-					gIpdScale += 0.1f;
+					gIpdScale += 1.0f;
 					// if (gIpdScale > 400.0f) gIpdScale = 400.0f;  // Optional cap
 					printf("IPD Scale increased to: %.1f\n", gIpdScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_LEFTBRACKET)
 				{
-					gIpdScale -= 0.1f;
+					gIpdScale -= 1.0f;
 					// if (gIpdScale < 0.0f) gIpdScale = 0.0f;  // Optional minimum
 					printf("IPD Scale decreased to: %.1f\n", gIpdScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_EQUALS)  // + key
 				{
-					gWorldScale += 0.01f;
+					gWorldScale += 0.001f;
 					// if (gWorldScale > 5.0f) gWorldScale = 5.0f;
 					printf("World Scale: %.2f\n", gWorldScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_MINUS)  // - key
 				{
-					gWorldScale -= 0.01f;
+					gWorldScale -= 0.001f;
 					// if (gWorldScale < 0.1f) gWorldScale = 0.1f;
 					printf("World Scale: %.2f\n", gWorldScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_APOSTROPHE)  // ' key
 				{
-					VRroomDistanceToGameDistanceScale += 1.0f;
+					VRroomDistanceToGameDistanceScale -= 10.0f;
 					// if (VRroomDistanceToGameDistanceScale > 200.0f) VRroomDistanceToGameDistanceScale = 200.0f;
 					printf("VR Room Scale increased to: %.1f\n", VRroomDistanceToGameDistanceScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_BACKSLASH)  // \ key
 				{
-					VRroomDistanceToGameDistanceScale -= 1.0f;
+					VRroomDistanceToGameDistanceScale += 10.0f;
 					// if (VRroomDistanceToGameDistanceScale < 1.0f) VRroomDistanceToGameDistanceScale = 1.0f;
 					printf("VR Room Scale decreased to: %.1f\n", VRroomDistanceToGameDistanceScale);
+				}
+				else if (event.key.scancode == SDL_SCANCODE_BACKSPACE)
+				{
+					DumpVRDebugInfo();
 				}
 
 
