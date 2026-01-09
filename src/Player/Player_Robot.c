@@ -168,6 +168,8 @@ float	gCurrentMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 
 OGLPoint3D gVrHMDPosMovedeltaWorldspace = { 0,0 };
 
+int debugInfoCounter = 1;
+
 
 
 void logHandDebug(const char* name, ObjNode* hand)
@@ -1821,6 +1823,11 @@ void UpdateRobotHands(ObjNode *theNode)
 
 	if (rhand && lhand) { // only update if both hands are legit
 		if (playingInVr) {
+			if (gPlayerInfo.objNode == NULL || gPlayerInMainMenu)
+			{
+				return;  // Don't update hands in menu
+			}
+			else {
 			// Figure out if hand model should be closed fist or open hand
 			if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f) {
 				rhand->Type = GLOBAL_ObjType_OttoRightFist;
@@ -1940,23 +1947,23 @@ void UpdateRobotHands(ObjNode *theNode)
 			// ? Debug testing
 
 
-			printf("Controller on floor test:\n");
-			printf("VR Hand Y (raw tracking): %.3f meters\n",
-				vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
-			printf("VR Hand Y (game units): %.1f\n",
-				vrInfoRightHand.translationMatrix.value[M13]);
-			printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
-			printf("Final hand Y: %.1f\n", rhand->Coord.y);
-			printf("---\n");
+			// printf("Controller on floor test:\n");
+			// printf("VR Hand Y (raw tracking): %.3f meters\n",
+			// 	vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+			// printf("VR Hand Y (game units): %.1f\n",
+			// 	vrInfoRightHand.translationMatrix.value[M13]);
+			// printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
+			// printf("Final hand Y: %.1f\n", rhand->Coord.y);
+			// printf("---\n");
 
-			printf("=== FLOOR DEBUG ===\n");
-			printf("Terrain Y at player pos: %.1f\n",
-				GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z));
-			printf("Player Y: %.1f\n", gPlayerInfo.coord.y);
-			printf("Player BBox min Y: %.1f\n", gPlayerInfo.objNode->BBox.min.y);
-			printf("Player feet should be at: %.1f\n",
-				GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z) + gPlayerInfo.objNode->BBox.min.y);
-			printf("---\n");
+			// printf("=== FLOOR DEBUG ===\n");
+			// printf("Terrain Y at player pos: %.1f\n",
+			// 	GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z));
+			// printf("Player Y: %.1f\n", gPlayerInfo.coord.y);
+			// printf("Player BBox min Y: %.1f\n", gPlayerInfo.objNode->BBox.min.y);
+			// printf("Player feet should be at: %.1f\n",
+			// 	GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z) + gPlayerInfo.objNode->BBox.min.y);
+			// printf("---\n");
 
 
 			// logHandDebug("RHand", rhand);
@@ -1976,9 +1983,65 @@ void UpdateRobotHands(ObjNode *theNode)
 			// 	vrInfoHMD.transformationMatrixCorrected.value[M03],
 			// 	vrInfoHMD.transformationMatrixCorrected.value[M13],
 			// 	vrInfoHMD.transformationMatrixCorrected.value[M23]);
+			}
 		}
 	}
 }
+
+
+
+
+// Logs debug stuff for VR tracking
+void DumpVRDebugInfo()
+{
+    printf("\n");
+    printf("=====================================\n");
+    printf("=== VR DEBUG DUMP %i===\n", debugInfoCounter);
+    printf("=====================================\n");
+    
+    // Only if in game (not menu)
+    if (gPlayerInfo.objNode == NULL || gPlayerInMainMenu)
+    {
+        printf("Not in game - skipping dump\n");
+        printf("=====================================\n\n");
+        return;
+    }
+    
+    printf("right hand:\n");
+    printf("VR Hand Y (raw tracking): %.3f meters\n", 
+           vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+    printf("VR Hand Y (game units): %.1f\n", 
+           vrInfoRightHand.translationMatrix.value[M13]);
+    printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
+    printf("Final hand Y: %.1f\n", gPlayerInfo.rightHandObj->Coord.y);
+    printf("---\n");
+
+	printf("left hand:\n");
+    printf("VR Hand Y (raw tracking): %.3f meters\n", 
+           vrInfoLeftHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+    printf("VR Hand Y (game units): %.1f\n", 
+           vrInfoLeftHand.translationMatrix.value[M13]);
+    printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
+    printf("Final hand Y: %.1f\n", gPlayerInfo.leftHandObj->Coord.y);
+    printf("---\n");
+    
+    printf("=== FLOOR DEBUG ===\n");
+    printf("Terrain Y at player pos: %.1f\n", 
+           GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z));
+    printf("Player Y: %.1f\n", gPlayerInfo.coord.y);
+    printf("Player BBox min Y: %.1f\n", gPlayerInfo.objNode->BBox.min.y);
+    printf("---\n");
+    
+    printf("=== CURRENT SETTINGS ===\n");
+    printf("VRroomDistanceToGameDistanceScale: %.1f\n", VRroomDistanceToGameDistanceScale);
+    printf("gWorldScale: %.3f\n", gWorldScale);
+    printf("gIpdScale: %.1f\n", gIpdScale);
+    printf("playerEyeHeight: %.1f\n", playerEyeHeight);
+    
+    printf("=====================================\n\n");
+	debugInfoCounter++;
+}
+
 
 
 /******************** UPDATE PLAYER MOTION BLUR **********************/
@@ -2287,10 +2350,10 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 		 // Now to mix both together
 		 // Figure out the gVrHMDPosMovedeltaWorldspace, which is how much the HMD moved with the X and Z axies
 		 // corrected for the HMD rotation (including thumbstick)
-		gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
-		gVrHMDPosMovedeltaWorldspace.x += vrInfoHMD.posDelta.z * 32768 * -sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
-		gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
-		gVrHMDPosMovedeltaWorldspace.z += vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
+		// gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
+		// gVrHMDPosMovedeltaWorldspace.x += vrInfoHMD.posDelta.z * 32768 * -sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
+		// gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
+		// gVrHMDPosMovedeltaWorldspace.z += vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
 
 		gCoord.x -= gVrHMDPosMovedeltaWorldspace.x * fps;
 		gCoord.z -= gVrHMDPosMovedeltaWorldspace.z * fps;

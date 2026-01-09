@@ -70,10 +70,10 @@ OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 // * VR Specific
-float gIpdScale = 1.2f; //? 1.2 // Higher value makes the world appear smaller
-float gWorldScale = 0.01f;  // ? 0.01f // Makes everything half-size (you appear 2x bigger)
+float gIpdScale = 90.0f; //Higher value makes the world appear smaller
+float gWorldScale = 1.00f;  //! 0.01f was used but probably a dangerous option
 float cameraYOffset = playerEyeHeight; //? was negative (-playerEyeHeight)// Needed to offset the camera height with the smaller world scale
-float VRroomDistanceToGameDistanceScale = 190.0f; // ? 100.0f
+float VRroomDistanceToGameDistanceScale = 100.0f; // ! To measure known IRL unit vs in game unit
 
 
 float	gCurrentAspectRatio = 1;
@@ -578,7 +578,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
 
 	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
+	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
 
 	// Scale the entire world
 	glScalef(gWorldScale, gWorldScale, gWorldScale);
@@ -609,7 +609,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
 
 	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
+	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
 
 
 	// Scale the entire world

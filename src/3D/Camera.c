@@ -443,14 +443,14 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	else {
 		// VR HMD Controlled view
 		// Set FPS height to VR height
-		firstPersonHeight = vrInfoHMD.pos.y + playerEyeHeight; // seems to give reasonable height 
+		// seems to give reasonable height 
 													   // SLIGHTLY too low when standing? but too high when touching floor. To adjust
 		// firstPersonHeight to be tested / not sure where to apply this now
 		// Set initial to.xyz pos, x & y should be 0, and z -1 * "rotation resolution"
 		// Higher negative numbers (-10 or -100 or -1000) seem to provide way smoother rotation than -1
 		to.x = 0;
 		to.y = 0;
-		to.z = -1000;
+		to.z = -1000; // ? why
 
 		OGLPoint3D_Transform(&to, &rotOnly, &to);
 
@@ -479,9 +479,9 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 			/*************************************/
 
 
-	from.x = playerObj->Coord.x; // ( + a few hundred if needed to see Otto/robot/player for testing )
-	from.z = playerObj->Coord.z;	
-	from.y = playerObj->Coord.y + firstPersonHeight;
+	from.x = playerObj->Coord.x + vrInfoHMD.transformationMatrixCorrected.value[M03];
+	from.z = playerObj->Coord.z + vrInfoHMD.transformationMatrixCorrected.value[M23];
+	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.transformationMatrixCorrected.value[M13];
 
 
 	// Calculate up vector
