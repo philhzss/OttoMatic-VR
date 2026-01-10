@@ -70,10 +70,10 @@ OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 // * VR Specific
-float gIpdScale = 90.0f; //Higher value makes the world appear smaller
+float gIpdScale = 150.0f; //Higher value makes the world appear smaller
 float gWorldScale = 1.00f;  //! 0.01f was used but probably a dangerous option
-float cameraYOffset = playerEyeHeight; //? was negative (-playerEyeHeight)// Needed to offset the camera height with the smaller world scale
-float VRroomDistanceToGameDistanceScale = 100.0f; // ! To measure known IRL unit vs in game unit
+float cameraYOffset = 0; // This affects everything seen through HMD (including main menu, not just levels)
+float VRroomDistanceToGameDistanceScale = 150.0f; // ! To measure known IRL unit vs in game unit
 
 
 float	gCurrentAspectRatio = 1;

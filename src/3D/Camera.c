@@ -467,22 +467,18 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 			//playerObj->StatusBits &= ~(STATUS_BIT_NOMOVE);
 		}
 	}
-	// ! Not working
-		// HMD rotation turns Otto:
-		// vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
-	// ! Not working
-		// HMD rotation turns Otto:
-		// playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
 
-				/*************************************/
+
+			/*************************************/
 			/* CALC FROM (camera location) POINT */
 			/*************************************/
 
 
-	from.x = playerObj->Coord.x + vrInfoHMD.transformationMatrixCorrected.value[M03];
-	from.z = playerObj->Coord.z + vrInfoHMD.transformationMatrixCorrected.value[M23];
+	// playerObj->Coord now ALREADY includes the HMD XZ offset (from DoPlayerMovementAndCollision)
+	// So we only need to add the Y component here
+	from.x = playerObj->Coord.x;  // Already has HMD offset
+	from.z = playerObj->Coord.z;  // Already has HMD offset
 	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.transformationMatrixCorrected.value[M13];
-
 
 	// Calculate up vector
 	calculatedUpVector = globalUp;

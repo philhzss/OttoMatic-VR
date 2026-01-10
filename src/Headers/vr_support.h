@@ -15,6 +15,7 @@ enum playerActions
 	vrPreviousWeapon,
 	vrNextWeapon,
 	vrEscapeMenu,
+	vrCheatButton,
 	vrLeftVibrate,
 	vrRightVibrate,
 	vrBothVibrate
@@ -27,8 +28,10 @@ enum playerActions
 // This number is APPROXIMATE and should be tweaked as playtesting happens
 extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
 
+static OGLPoint3D gVRPlayspaceCenter = {0, 0, 0};  // World position of VR playspace center
+
 // Used for cam from.y
-#define playerEyeHeight 0 // ? 90
+#define playerEyeHeight -150 // ? 90
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support

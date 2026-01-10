@@ -144,24 +144,69 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
     deviceToParse->transformationMatrix.value[M32] = 0;
     deviceToParse->transformationMatrix.value[M33] = 1;
 
-    // Build the game yaw correction matrix (used by both HMD and controllers)
-    // This rotates the VR tracking space to match the thumbstick rotation
-    OGLMatrix4x4 gameYawCorrectionMatrix = {0};
-    float gameYaw = vrInfoHMD.camThumbstickAccum;
 
+
+
+
+
+
+
+
+
+
+	// Get HMD's current position in playspace (BEFORE yaw correction)
+	float hmdX = vrInfoHMD.transformationMatrix.value[M03];
+	float hmdY = vrInfoHMD.transformationMatrix.value[M13];
+	float hmdZ = vrInfoHMD.transformationMatrix.value[M23];
+
+	// Build rotation matrix
+	OGLMatrix4x4 rotationMatrix = { 0 };
+	float gameYaw = vrInfoHMD.camThumbstickAccum;
 	if (deviceToParse->deviceType == VR_DEVICE_CONTROLLER) {
-    gameYaw = -gameYaw;  // Negate for controllers only
-}
+		gameYaw = -gameYaw;
+	}
+	rotationMatrix.value[M00] = cos(gameYaw);
+	rotationMatrix.value[M02] = -sin(gameYaw);
+	rotationMatrix.value[M20] = sin(gameYaw);
+	rotationMatrix.value[M22] = cos(gameYaw);
+	rotationMatrix.value[M11] = 1;
+	rotationMatrix.value[M33] = 1;
 
-    gameYawCorrectionMatrix.value[M00] = cos(gameYaw);
-    gameYawCorrectionMatrix.value[M02] = -sin(gameYaw);
-    gameYawCorrectionMatrix.value[M20] = sin(gameYaw);
-    gameYawCorrectionMatrix.value[M22] = cos(gameYaw);
-    gameYawCorrectionMatrix.value[M11] = 1;
-    gameYawCorrectionMatrix.value[M33] = 1;
+	// Translate to HMD position
+	OGLMatrix4x4 translateToHMD = { 0 };
+	translateToHMD.value[M00] = 1;
+	translateToHMD.value[M11] = 1;
+	translateToHMD.value[M22] = 1;
+	translateToHMD.value[M33] = 1;
+	translateToHMD.value[M03] = hmdX;
+	translateToHMD.value[M13] = hmdY;
+	translateToHMD.value[M23] = hmdZ;
 
-    // Apply yaw correction to get the final transformation matrix
-    OGLMatrix4x4_Multiply(&deviceToParse->transformationMatrix, &gameYawCorrectionMatrix, &deviceToParse->transformationMatrixCorrected);
+	// Translate back from HMD position
+	OGLMatrix4x4 translateFromHMD = { 0 };
+	translateFromHMD.value[M00] = 1;
+	translateFromHMD.value[M11] = 1;
+	translateFromHMD.value[M22] = 1;
+	translateFromHMD.value[M33] = 1;
+	translateFromHMD.value[M03] = -hmdX;
+	translateFromHMD.value[M13] = -hmdY;
+	translateFromHMD.value[M23] = -hmdZ;
+
+	// Combine: translateBack * rotate * translateToOrigin
+	OGLMatrix4x4 temp;
+	OGLMatrix4x4_Multiply(&deviceToParse->transformationMatrix, &translateFromHMD, &temp);
+	OGLMatrix4x4_Multiply(&temp, &rotationMatrix, &temp);
+	OGLMatrix4x4_Multiply(&temp, &translateToHMD, &deviceToParse->transformationMatrixCorrected);
+
+
+
+
+
+
+
+
+
+
 
     // Extract rotation-only matrix (zero out translation)
     OGLMatrix4x4 rotOnly = deviceToParse->transformationMatrixCorrected;
@@ -184,7 +229,7 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
     // Store the yaw correction matrix in the HMD struct for reference
     if (deviceToParse->deviceType == VR_DEVICE_HMD) {
         vrInfoHMD.HMDgameYawIgnoringHMD = gameYaw;
-        vrInfoHMD.gameYawCorrectionMatrix = gameYawCorrectionMatrix;
+        vrInfoHMD.gameYawCorrectionMatrix = rotationMatrix;
     }
 
     // Invert the transformation matrix for any reverse calculations needed

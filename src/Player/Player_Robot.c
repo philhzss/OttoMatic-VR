@@ -1871,7 +1871,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Calculate the vertical hand model offset for translation only
 			// This would be == -playerEyeHeight, but since the pivot point is moved
 			// we must compensate for that or the hands are too low
-			float handVerticalOffset = 0.0f; // * -38 seems good
+			float handVerticalOffset = playerEyeHeight; // * -38 seems good
 
 			// Start with the rotation matrix (rotation around origin)
 			OGLMatrix4x4 handMatrix = vrInfoRightHand.rotationMatrixCorrected;
@@ -1883,17 +1883,17 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Now set translation = controller position + rotated model offset
 			// The rotation matrix rotates the offset so the hand stays in the right place
 			// regardless of controller orientation
-			handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoRightHand.translationMatrix.value[M03]
+			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoRightHand.translationMatrix.value[M03]
 				+ (handMatrix.value[M00] * handModelOffsetX
 					+ handMatrix.value[M01] * handModelOffsetY
 					+ handMatrix.value[M02] * handModelOffsetZ);
 
-			handMatrix.value[M13] = handVerticalOffset + gPlayerInfo.coord.y + vrInfoRightHand.translationMatrix.value[M13]
+			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoRightHand.translationMatrix.value[M13]
 				+ (handMatrix.value[M10] * handModelOffsetX
 					+ handMatrix.value[M11] * handModelOffsetY
 					+ handMatrix.value[M12] * handModelOffsetZ);
 
-			handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoRightHand.translationMatrix.value[M23]
+			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoRightHand.translationMatrix.value[M23]
 				+ (handMatrix.value[M20] * handModelOffsetX
 					+ handMatrix.value[M21] * handModelOffsetY
 					+ handMatrix.value[M22] * handModelOffsetZ);
@@ -1919,17 +1919,17 @@ void UpdateRobotHands(ObjNode *theNode)
 			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
 
 			// Now set translation = controller position + rotated model offset
-			handMatrix.value[M03] = gPlayerInfo.coord.x + vrInfoLeftHand.translationMatrix.value[M03]
+			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoLeftHand.translationMatrix.value[M03]
 				+ (handMatrix.value[M00] * handModelOffsetX
 					+ handMatrix.value[M01] * handModelOffsetY
 					+ handMatrix.value[M02] * handModelOffsetZ);
 
-			handMatrix.value[M13] = handVerticalOffset + gPlayerInfo.coord.y + vrInfoLeftHand.translationMatrix.value[M13]
+			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoLeftHand.translationMatrix.value[M13]
 				+ (handMatrix.value[M10] * handModelOffsetX
 					+ handMatrix.value[M11] * handModelOffsetY
 					+ handMatrix.value[M12] * handModelOffsetZ);
 
-			handMatrix.value[M23] = gPlayerInfo.coord.z + vrInfoLeftHand.translationMatrix.value[M23]
+			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoLeftHand.translationMatrix.value[M23]
 				+ (handMatrix.value[M20] * handModelOffsetX
 					+ handMatrix.value[M21] * handModelOffsetY
 					+ handMatrix.value[M22] * handModelOffsetZ);
@@ -2202,9 +2202,13 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 		// printf("\nROTATE X: %f                  ", VRcameraJoyPostionX);
 	}
 
-	// ! Not working
-	//// HMD rotation turns Otto:
-	theNode->Rot.y = vrInfoHMD.HMDYawCorrected;
+	// Player rotation combines HMD physical rotation with thumbstick rotation
+	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
+	float physicalYaw = atan2(vrInfoHMD.transformationMatrix.value[M20], 
+							vrInfoHMD.transformationMatrix.value[M00]);
+
+	theNode->Rot.y = -physicalYaw + vrInfoHMD.camThumbstickAccum;
+
 
 	float	strafe = 0.0f, movement = 0.0f;
 
@@ -2323,41 +2327,6 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 		gCoord.z += dz * fps;
 
 
-
-
-		/* DO VR HMD POSITION DELTA   (move Otto when you physically walk)  */
-
-		// Must do this last, because it is an addition to everything else,
-		// We want everything else to keep working (platforms etc) and just add this as a bonus
-
-		 /*gPlayerInfo stuff is in regards to the PLAYER, Z is always fore / back player, X is left / right player
-		 vrpos_hmdPos stuff is in regards to the ROOM, Z is fore/back ROOM, X is left/right ROOM*/
-
-
-		 // This works with stick yaw only (HMD yaw breaks it):
-		  //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
-		  //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
-		  //gCoord.x -= -sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected - PI / 2) * gVrHMDPosMovedeltaWorldspace.x * fps;
-		  //gCoord.z -= sin(vrInfoHMD.HMDYawCorrected - PI/2) * gVrHMDPosMovedeltaWorldspace.z * fps + sin(vrInfoHMD.HMDYawCorrected) * gVrHMDPosMovedeltaWorldspace.x * fps;
-
-		 // This works with HMD yaw only (stick breaks it):
-		  //gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768;
-		  //gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768;
-		  //gCoord.x += gVrHMDPosMovedeltaWorldspace.x * fps;
-		  //gCoord.z += gVrHMDPosMovedeltaWorldspace.z * fps;
-
-
-		 // Now to mix both together
-		 // Figure out the gVrHMDPosMovedeltaWorldspace, which is how much the HMD moved with the X and Z axies
-		 // corrected for the HMD rotation (including thumbstick)
-		// gVrHMDPosMovedeltaWorldspace.x = vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
-		// gVrHMDPosMovedeltaWorldspace.x += vrInfoHMD.posDelta.z * 32768 * -sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
-		// gVrHMDPosMovedeltaWorldspace.z = vrInfoHMD.posDelta.z * 32768 * sin(vrInfoHMD.HMDYawCorrected - PI / 2 - vrInfoHMD.rot.yaw);
-		// gVrHMDPosMovedeltaWorldspace.z += vrInfoHMD.posDelta.x * 32768 * sin(vrInfoHMD.HMDYawCorrected - vrInfoHMD.rot.yaw);
-
-		gCoord.x -= gVrHMDPosMovedeltaWorldspace.x * fps;
-		gCoord.z -= gVrHMDPosMovedeltaWorldspace.z * fps;
-
 		//printf("heading (yaw): %f\n", vrInfoHMD.rot.yaw);
 		//printf("HMDYawCorrected (yaw + stick): %f\n", vrInfoHMD.HMDYawCorrected);
 		//printf("vrHMDPosMovedeltaWorldspace.x: %f\n", gVrHMDPosMovedeltaWorldspace.x * fps);
@@ -2396,6 +2365,43 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	//	{
 	//		KillPlayer(PLAYER_DEATH_TYPE_FALL);
 	//	}
+
+
+
+	/******************************************/
+	/* MOVE OTTO TO MATCH HMD POSITION */
+	/******************************************/
+	static float lastHMDOffsetX = 0;
+	static float lastHMDOffsetZ = 0;
+
+	// Get UNCORRECTED HMD position (raw playspace coordinates)
+	float currentHMDOffsetX = vrInfoHMD.transformationMatrix.value[M03];
+	float currentHMDOffsetZ = vrInfoHMD.transformationMatrix.value[M23];
+
+	// Calculate how much you physically moved in playspace
+	float deltaX = currentHMDOffsetX - lastHMDOffsetX;
+	float deltaZ = currentHMDOffsetZ - lastHMDOffsetZ;
+
+	// Rotate this delta by the NEGATIVE thumbstick rotation
+	float thumbstickYaw = -vrInfoHMD.camThumbstickAccum;
+	float rotatedDeltaX = deltaX * cos(thumbstickYaw) - deltaZ * sin(thumbstickYaw);
+	float rotatedDeltaZ = deltaX * sin(thumbstickYaw) + deltaZ * cos(thumbstickYaw);
+
+	// Apply the rotated movement to Otto
+	gCoord.x += rotatedDeltaX;
+	gCoord.z += rotatedDeltaZ;
+
+	// Update playspace center
+	gVRPlayspaceCenter.x = gCoord.x - currentHMDOffsetX;
+	gVRPlayspaceCenter.z = gCoord.z - currentHMDOffsetZ;
+	gVRPlayspaceCenter.y = gCoord.y;
+
+	// Remember for next frame
+	lastHMDOffsetX = currentHMDOffsetX;
+	lastHMDOffsetZ = currentHMDOffsetZ;
+
+
+
 
 	return(killed);
 }
@@ -3055,7 +3061,7 @@ static void CheckPlayerActionControls(ObjNode *theNode)
 {
 	/* SEE IF DO CHEAT */
 
-	if (GetCheatKeyCombo())
+	if (GetCheatKeyCombo() || vrcpp_GetDigitalActionData(vrCheatButton, false))
 	{
 		if (gPlayerInfo.lives < 3)
 			gPlayerInfo.lives = 3;
