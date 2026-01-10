@@ -69,6 +69,13 @@ extern vr::TrackedDevicePose_t trackedDevices[vr::k_unMaxTrackedDeviceCount];
 OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
+// * VR Specific
+float gIpdScale = 150.0f; //Higher value makes the world appear smaller
+float gWorldScale = 1.00f;  //! 0.01f was used but probably a dangerous option
+float cameraYOffset = 0; // This affects everything seen through HMD (including main menu, not just levels)
+float VRroomDistanceToGameDistanceScale = 150.0f; // ! To measure known IRL unit vs in game unit
+
+
 float	gCurrentAspectRatio = 1;
 float	g2DLogicalWidth = 640.0f;
 float	g2DLogicalHeight = 480.0f;
@@ -571,12 +578,16 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
 
 	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
+	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
+
+	// Scale the entire world
+	glScalef(gWorldScale, gWorldScale, gWorldScale);
+
 
 	// Add camera position translation
 	glTranslatef(
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
 	);
 
@@ -598,12 +609,17 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
 
 	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.HMDgameYawCorrectionMatrix.value[M00]);
+	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
+
+
+	// Scale the entire world
+	glScalef(gWorldScale, gWorldScale, gWorldScale);
+
 
 	// Add camera position translation
 	glTranslatef(
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.y,
+		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
 		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
 	);
 

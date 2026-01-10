@@ -10,7 +10,6 @@
 #include "PommeFiles.h"
 #include "openvr.h"
 vr::IVRSystem *gIVRSystem;
-float gIpdScale = 100.0f; // A larger number makes the world appear smaller
 
 extern "C"
 {

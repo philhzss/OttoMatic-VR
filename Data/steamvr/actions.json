@@ -57,6 +57,11 @@
       "type": "boolean"
     },
     {
+      "name": "/actions/otto/in/CheatButton",
+      "requirement": "optional",
+      "type": "boolean"
+    },
+    {
       "name": "/actions/otto/out/Haptic",
       "type": "vibration"
     }

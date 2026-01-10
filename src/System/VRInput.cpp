@@ -21,6 +21,7 @@ struct VRActionHandlers // vrActions is an instance of this
 	vr::VRActionHandle_t PreviousWeapon;
 	vr::VRActionHandle_t NextWeapon;
 	vr::VRActionHandle_t EscapeMenu;
+	vr::VRActionHandle_t CheatButton; 
 	vr::VRActionHandle_t Vibration;
 };
 
@@ -44,6 +45,7 @@ static vr::InputDigitalActionData_t punchOrPickupAction{};
 static vr::InputDigitalActionData_t nextWeaponAction{};
 static vr::InputDigitalActionData_t previousWeaponAction{};
 static vr::InputDigitalActionData_t EscapeMenuAction{};
+static vr::InputDigitalActionData_t cheatButtonAction{};
 
 
 extern "C" void vrcpp_initSteamVRInput(void) {
@@ -77,6 +79,7 @@ extern "C" void vrcpp_initSteamVRInput(void) {
 	vr::VRInput()->GetActionHandle("/actions/otto/in/PreviousWeapon", &vrActions.PreviousWeapon);
 	vr::VRInput()->GetActionHandle("/actions/otto/in/NextWeapon", &vrActions.NextWeapon);
 	vr::VRInput()->GetActionHandle("/actions/otto/in/EscapeMenu", &vrActions.EscapeMenu);
+	vr::VRInput()->GetActionHandle("/actions/otto/in/CheatButton", &vrActions.CheatButton);  
 	vr::VRInput()->GetActionHandle("/actions/otto/out/Haptic", &vrActions.Vibration);
 
 	vr::VRInput()->GetInputSourceHandle("/user/hand/left", &leftHandOnly);
@@ -169,6 +172,10 @@ extern "C" bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndH
 	case playerActions::vrEscapeMenu:
 		actionHandler = vrActions.EscapeMenu;
 		actionDataStruct = EscapeMenuAction;
+		break;
+	case playerActions::vrCheatButton:
+		actionHandler = vrActions.CheatButton;
+		actionDataStruct = cheatButtonAction;
 		break;
 	default:
 		printf("vrcpp_GetDigitalActionData called incorrectly");

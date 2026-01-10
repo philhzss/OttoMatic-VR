@@ -241,12 +241,15 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.translationMatrix;
 		//FindJointFullMatrix(theNode,PLAYER_JOINT_LEFTHAND,&m);
 		// Get lefthand position from controller
 
-		OGLPoint3D_Transform(&gPlayerMuzzleTipOff, &rotOnly, &muzzleCoord); // Get controller pos + muzzle location
-		// Add offsets:
+		OGLPoint3D muzzleTip = gPlayerMuzzleTipOff; // copy
+		muzzleTip.y -= playerEyeHeight; // adjust local offset
+		// ! Trying to re-align, probably not working due to hand scale? or Z offset for model? to test
+
+		OGLPoint3D_Transform(&muzzleTip, &rotOnly, &muzzleCoord);
 		muzzleCoord.x += lhand->Coord.x;
 		muzzleCoord.y += lhand->Coord.y;
 		muzzleCoord.z += lhand->Coord.z;
-		OGLPoint3D_Transform(&muzzleCoord, &transOnly, &muzzleCoord); // Get controller pos + muzzle location
+
 
 		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &vrInfoLeftHand.rotationMatrixCorrected, &muzzleVector);
 
@@ -256,7 +259,9 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.translationMatrix;
 		printf("muzzleCoord.z: %f\n", muzzleCoord.z);
 		printf("muzzleVector.x: %f\n", muzzleVector.x);
 		printf("muzzleVector.y: %f\n", muzzleVector.y);
-		printf("muzzleVector.z: %f\n\n", muzzleVector.z);
+		printf("muzzleVector.z: %f\n", muzzleVector.z);
+		printf("Hand Y: %f | Muzzle Y: %f\n\n", lhand->Coord.y, muzzleCoord.y);
+
 	}
 
 

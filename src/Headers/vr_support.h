@@ -15,6 +15,7 @@ enum playerActions
 	vrPreviousWeapon,
 	vrNextWeapon,
 	vrEscapeMenu,
+	vrCheatButton,
 	vrLeftVibrate,
 	vrRightVibrate,
 	vrBothVibrate
@@ -25,7 +26,26 @@ enum playerActions
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
 // This number is APPROXIMATE and should be tweaked as playtesting happens
-#define VRroomDistanceToGameDistanceScale 250
+extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
+
+static OGLPoint3D gVRPlayspaceCenter = {0, 0, 0};  // World position of VR playspace center
+
+// Used for cam from.y
+#define playerEyeHeight -150 // ? 90
+
+// Virtual IPD
+extern float gIpdScale; // Defined in OGL support
+extern float gWorldScale; // Defined in OGL support
+
+
+typedef enum
+{
+	VR_DEVICE_UNKNOWN = 0,
+	VR_DEVICE_HMD,
+	VR_DEVICE_CONTROLLER,
+	VR_DEVICE_TRACKER,
+	VR_DEVICE_BASESTATION
+} vrDeviceType;
 
 typedef struct
 {
@@ -64,6 +84,7 @@ typedef struct
 typedef struct
 {
 	int deviceID;
+	vrDeviceType deviceType;
 	vrMatrix34 rawVRmatrix;
 	vrQuaternion quat;
 
@@ -82,15 +103,14 @@ typedef struct
 	double camThumbstickAccum; // Track camera rotation for just the thumbstick, no HMD
 	double HMDYawCorrected; // Only useful for HMD, use to correct yaw from thumbstick rotation
 	double HMDgameYawIgnoringHMD; // Corrects for the gameYaw (worldspace), the X & Z directions change with thumbstick
-	OGLMatrix4x4 HMDgameYawCorrectionMatrix; // Apply this to tracked devices BEFORE anything else
+	OGLMatrix4x4 gameYawCorrectionMatrix; // Apply this to tracked devices BEFORE anything else
 
 
 		/* POSITION (x, y, z) */
 	vrPosition pos; // Current actual position
 	vrPosition posDelta; // Position delta (dif since last frame/last check)
-	vrPosition posGameAxes; // Position based in the game worldspace
-	vrPosition posDeltaGameAxes; // Position based in the game worldspace delta
 
+	
 		/* HMD Projection View */
 	OGLMatrix4x4 HMDleftProj;
 	OGLMatrix4x4 HMDrightProj;

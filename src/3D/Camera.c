@@ -331,7 +331,10 @@ float		fps = gFramesPerSecondFrac;
 ObjNode		*playerObj = gPlayerInfo.objNode;
 SkeletonObjDataType	*skeleton;
 float			oldCamX,oldCamZ,oldCamY,oldPointOfInterestX,oldPointOfInterestZ,oldPointOfInterestY;
-int			firstPersonHeight = 100;
+
+// ! NOT USED FOR VR MODE, DEFINED LOWER:
+int			firstPersonHeight = VRroomDistanceToGameDistanceScale*2;
+
 
 // Calculate the HMD's corrected matrix
 OGLMatrix4x4 rotOnly = vrInfoHMD.rotationMatrixCorrected;
@@ -440,14 +443,14 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	else {
 		// VR HMD Controlled view
 		// Set FPS height to VR height
-		firstPersonHeight = vrInfoHMD.pos.y * VRroomDistanceToGameDistanceScale - 300; // seems to give reasonable height 
+		// seems to give reasonable height 
 													   // SLIGHTLY too low when standing? but too high when touching floor. To adjust
 		// firstPersonHeight to be tested / not sure where to apply this now
 		// Set initial to.xyz pos, x & y should be 0, and z -1 * "rotation resolution"
 		// Higher negative numbers (-10 or -100 or -1000) seem to provide way smoother rotation than -1
 		to.x = 0;
 		to.y = 0;
-		to.z = -1000;
+		to.z = -1000; // ? why
 
 		OGLPoint3D_Transform(&to, &rotOnly, &to);
 
@@ -465,21 +468,17 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 		}
 	}
 
-	// HMD rotation turns Otto:
-	// vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
-
-	// HMD rotation turns Otto:
-	// playerObj->Rot.y = vrInfoHMD.HMDYawCorrected;
 
 			/*************************************/
 			/* CALC FROM (camera location) POINT */
 			/*************************************/
 
 
-	from.x = playerObj->Coord.x; // ( + a few hundred if needed to see body for testing )
-	from.z = playerObj->Coord.z;	
-	from.y = playerObj->Coord.y + firstPersonHeight;
-
+	// playerObj->Coord now ALREADY includes the HMD XZ offset (from DoPlayerMovementAndCollision)
+	// So we only need to add the Y component here
+	from.x = playerObj->Coord.x;  // Already has HMD offset
+	from.z = playerObj->Coord.z;  // Already has HMD offset
+	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.transformationMatrixCorrected.value[M13];
 
 	// Calculate up vector
 	calculatedUpVector = globalUp;
