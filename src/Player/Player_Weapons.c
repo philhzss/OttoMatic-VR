@@ -221,8 +221,8 @@ static void ShootWeapon(ObjNode *theNode)
 {
 OGLPoint3D		muzzleCoord;
 OGLVector3D		muzzleVector;
-OGLMatrix4x4 rotOnly = vrInfoLeftHand.rotationMatrixCorrected;
-OGLMatrix4x4 transOnly = vrInfoLeftHand.translationMatrix;
+OGLMatrix4x4 rotOnly = vrInfoLeftHand.worldSpaceRotationMatrix;
+OGLMatrix4x4 transOnly = vrInfoLeftHand.scaledPlayspaceTranslationMatrix;
 
 
 	gTimeSinceLastShoot = 0;
@@ -248,7 +248,7 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.translationMatrix;
 		muzzleCoord.z += lhand->Coord.z;
 
 
-		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &vrInfoLeftHand.rotationMatrixCorrected, &muzzleVector);
+		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &vrInfoLeftHand.worldSpaceRotationMatrix, &muzzleVector);
 
 		printf("SHOT!!!\n");
 		printf("muzzleCoord.x: %f\n", muzzleCoord.x);

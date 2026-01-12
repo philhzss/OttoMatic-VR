@@ -1883,7 +1883,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			float handVerticalOffset = playerEyeHeight; // * -38 seems good
 
 			// Start with the rotation matrix (rotation around origin)
-			OGLMatrix4x4 handMatrix = vrInfoRightHand.rotationMatrixCorrected;
+			OGLMatrix4x4 handMatrix = vrInfoRightHand.worldSpaceRotationMatrix;
 
 			// Apply scale to ALL components of the rotation matrix
 			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
@@ -1892,17 +1892,17 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Now set translation = controller position + rotated model offset
 			// The rotation matrix rotates the offset so the hand stays in the right place
 			// regardless of controller orientation
-			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoRightHand.translationMatrix.value[M03]
+			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M03]
 				+ (handMatrix.value[M00] * handModelOffsetX
 					+ handMatrix.value[M01] * handModelOffsetY
 					+ handMatrix.value[M02] * handModelOffsetZ);
 
-			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoRightHand.translationMatrix.value[M13]
+			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13]
 				+ (handMatrix.value[M10] * handModelOffsetX
 					+ handMatrix.value[M11] * handModelOffsetY
 					+ handMatrix.value[M12] * handModelOffsetZ);
 
-			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoRightHand.translationMatrix.value[M23]
+			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M23]
 				+ (handMatrix.value[M20] * handModelOffsetX
 					+ handMatrix.value[M21] * handModelOffsetY
 					+ handMatrix.value[M22] * handModelOffsetZ);
@@ -1922,23 +1922,23 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Uses the same hand model offsets as right hand
 
 			// 1. Rotation matrix (rotation around origin)
-			handMatrix = vrInfoLeftHand.rotationMatrixCorrected;
+			handMatrix = vrInfoLeftHand.worldSpaceRotationMatrix;
 
 			// Apply scale to ALL components of the rotation matrix
 			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
 
 			// Now set translation = controller position + rotated model offset
-			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoLeftHand.translationMatrix.value[M03]
+			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoLeftHand.scaledPlayspaceTranslationMatrix.value[M03]
 				+ (handMatrix.value[M00] * handModelOffsetX
 					+ handMatrix.value[M01] * handModelOffsetY
 					+ handMatrix.value[M02] * handModelOffsetZ);
 
-			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoLeftHand.translationMatrix.value[M13]
+			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoLeftHand.scaledPlayspaceTranslationMatrix.value[M13]
 				+ (handMatrix.value[M10] * handModelOffsetX
 					+ handMatrix.value[M11] * handModelOffsetY
 					+ handMatrix.value[M12] * handModelOffsetZ);
 
-			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoLeftHand.translationMatrix.value[M23]
+			handMatrix.value[M23] = gVRPlayspaceCenter.z + vrInfoLeftHand.scaledPlayspaceTranslationMatrix.value[M23]
 				+ (handMatrix.value[M20] * handModelOffsetX
 					+ handMatrix.value[M21] * handModelOffsetY
 					+ handMatrix.value[M22] * handModelOffsetZ);
@@ -1958,9 +1958,9 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// printf("Controller on floor test:\n");
 			// printf("VR Hand Y (raw tracking): %.3f meters\n",
-			// 	vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+			// 	vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
 			// printf("VR Hand Y (game units): %.1f\n",
-			// 	vrInfoRightHand.translationMatrix.value[M13]);
+			// 	vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13]);
 			// printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
 			// printf("Final hand Y: %.1f\n", rhand->Coord.y);
 			// printf("---\n");
@@ -1979,19 +1979,19 @@ void UpdateRobotHands(ObjNode *theNode)
 			// logHandDebug("LHand", lhand);
 
 			// printf("[RHand] Raw Matrix Translation: %.2f, %.2f, %.2f\n",
-			// 	vrInfoRightHand.transformationMatrix.value[M03],
-			// 	vrInfoRightHand.transformationMatrix.value[M13],
-			// 	vrInfoRightHand.transformationMatrix.value[M23]);
+			// 	vrInfoRightHand.scaledPlayspaceTransformMatrix.value[M03],
+			// 	vrInfoRightHand.scaledPlayspaceTransformMatrix.value[M13],
+			// 	vrInfoRightHand.scaledPlayspaceTransformMatrix.value[M23]);
 
 			// printf("[RHand] Corrected Matrix Translation: %.2f, %.2f, %.2f\n",
-			// 	vrInfoRightHand.transformationMatrixCorrected.value[M03],
-			// 	vrInfoRightHand.transformationMatrixCorrected.value[M13],
-			// 	vrInfoRightHand.transformationMatrixCorrected.value[M23]);
+			// 	vrInfoRightHand.worldSpaceTransformMatrix.value[M03],
+			// 	vrInfoRightHand.worldSpaceTransformMatrix.value[M13],
+			// 	vrInfoRightHand.worldSpaceTransformMatrix.value[M23]);
 
 			// printf("[HMD] Corrected Pos: %.2f, %.2f, %.2f\n",
-			// 	vrInfoHMD.transformationMatrixCorrected.value[M03],
-			// 	vrInfoHMD.transformationMatrixCorrected.value[M13],
-			// 	vrInfoHMD.transformationMatrixCorrected.value[M23]);
+			// 	vrInfoHMD.worldSpaceTransformMatrix.value[M03],
+			// 	vrInfoHMD.worldSpaceTransformMatrix.value[M13],
+			// 	vrInfoHMD.worldSpaceTransformMatrix.value[M23]);
 			}
 		}
 	}
@@ -2018,18 +2018,18 @@ void DumpVRDebugInfo()
     
     printf("right hand:\n");
     printf("VR Hand Y (raw tracking): %.3f meters\n", 
-           vrInfoRightHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+           vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
     printf("VR Hand Y (game units): %.1f\n", 
-           vrInfoRightHand.translationMatrix.value[M13]);
+           vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13]);
     printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
     printf("Final hand Y: %.1f\n", gPlayerInfo.rightHandObj->Coord.y);
     printf("---\n");
 
 	printf("left hand:\n");
     printf("VR Hand Y (raw tracking): %.3f meters\n", 
-           vrInfoLeftHand.translationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
+           vrInfoLeftHand.scaledPlayspaceTranslationMatrix.value[M13] / VRroomDistanceToGameDistanceScale);
     printf("VR Hand Y (game units): %.1f\n", 
-           vrInfoLeftHand.translationMatrix.value[M13]);
+           vrInfoLeftHand.scaledPlayspaceTranslationMatrix.value[M13]);
     printf("Player feet Y: %.1f\n", gPlayerInfo.coord.y);
     printf("Final hand Y: %.1f\n", gPlayerInfo.leftHandObj->Coord.y);
     printf("---\n");
@@ -2213,8 +2213,8 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 	// Player rotation combines HMD physical rotation with thumbstick rotation
 	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
-	float physicalYaw = atan2(vrInfoHMD.transformationMatrix.value[M20], 
-							vrInfoHMD.transformationMatrix.value[M00]);
+	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20], 
+							vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
 
 	theNode->Rot.y = -physicalYaw + vrInfoHMD.camThumbstickAccum;
 
@@ -2384,8 +2384,8 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	static float lastHMDOffsetZ = 0;
 
 	// Get UNCORRECTED HMD position (raw playspace coordinates)
-	float currentHMDOffsetX = vrInfoHMD.transformationMatrix.value[M03];
-	float currentHMDOffsetZ = vrInfoHMD.transformationMatrix.value[M23];
+	float currentHMDOffsetX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
+	float currentHMDOffsetZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
 
 	// Calculate how much you physically moved in playspace
 	float deltaX = currentHMDOffsetX - lastHMDOffsetX;

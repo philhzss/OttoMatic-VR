@@ -84,18 +84,16 @@ typedef struct
 {
 	int deviceID;
 	vrDeviceType deviceType;
-	vrMatrix34 rawVRmatrix;
 	vrQuaternion quat;
 
 
 		/* ROTATION EULER (pitch, yaw, roll) (Probably should not use this, gimbal lock) */
 	vrEuler rot; // Current actual rotation
 	vrEuler rotDelta; // Rotation delta (dif since last frame/last check)
-	OGLMatrix4x4 transformationMatrix; // NOT corrected for gameYaw
-	OGLMatrix4x4 transformationMatrixInverted;
-	OGLMatrix4x4 transformationMatrixCorrected; // CORRECTED for gameYaw
-	OGLMatrix4x4 rotationMatrixCorrected; // CORRECTED for gameYaw
-	OGLMatrix4x4 translationMatrix; // NOT corrected for gameYaw
+	OGLMatrix4x4 scaledPlayspaceTransformMatrix; // NOT corrected for gameYaw
+	OGLMatrix4x4 worldSpaceTransformMatrix; // CORRECTED for gameYaw
+	OGLMatrix4x4 worldSpaceRotationMatrix; // CORRECTED for gameYaw
+	OGLMatrix4x4 scaledPlayspaceTranslationMatrix; // NOT corrected for gameYaw
 
 
 		// Rotation special

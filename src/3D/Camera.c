@@ -337,8 +337,8 @@ int			firstPersonHeight = VRroomDistanceToGameDistanceScale*2;
 
 
 // Calculate the HMD's corrected matrix
-OGLMatrix4x4 rotOnly = vrInfoHMD.rotationMatrixCorrected;
-OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
+OGLMatrix4x4 rotOnly = vrInfoHMD.worldSpaceRotationMatrix;
+OGLMatrix4x4 transOnly = vrInfoHMD.scaledPlayspaceTranslationMatrix;
 
 
 	// * Debug camera not attached to player
@@ -478,7 +478,7 @@ OGLMatrix4x4 transOnly = vrInfoHMD.translationMatrix;
 	// So we only need to add the Y component here
 	from.x = playerObj->Coord.x;  // Already has HMD offset
 	from.z = playerObj->Coord.z;  // Already has HMD offset
-	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.transformationMatrixCorrected.value[M13];
+	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.worldSpaceTransformMatrix.value[M13];
 
 	// Calculate up vector
 	calculatedUpVector = globalUp;

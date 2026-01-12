@@ -80,7 +80,7 @@ OGLMatrix4x4 hmdMatrix4x4_to_OGLMatrix4x4(vr::HmdMatrix44_t *vrMat) {
 
 
 void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
-    vr::HmdMatrix34_t trackedDeviceMatrix = trackedDevices[deviceToParse->deviceID].mDeviceToAbsoluteTracking;
+    vr::HmdMatrix34_t playspaceTransformMatrix = trackedDevices[deviceToParse->deviceID].mDeviceToAbsoluteTracking;
 
     // Store previous position for delta calculation
     double devicePosXSinceLastUpdate = deviceToParse->pos.x;
@@ -89,9 +89,9 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
     // Extract raw position from OpenVR and scale to game units
     vr::HmdVector3_t vector;
-    deviceToParse->pos.x = vector.v[0] = trackedDeviceMatrix.m[0][3] * VRroomDistanceToGameDistanceScale;
-    deviceToParse->pos.y = vector.v[1] = trackedDeviceMatrix.m[1][3] * VRroomDistanceToGameDistanceScale;
-    deviceToParse->pos.z = vector.v[2] = trackedDeviceMatrix.m[2][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->pos.x = vector.v[0] = playspaceTransformMatrix.m[0][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->pos.y = vector.v[1] = playspaceTransformMatrix.m[1][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->pos.z = vector.v[2] = playspaceTransformMatrix.m[2][3] * VRroomDistanceToGameDistanceScale;
 
     // Calculate position delta
     deviceToParse->posDelta.x = -(devicePosXSinceLastUpdate - deviceToParse->pos.x);
@@ -100,13 +100,13 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
     // Extract quaternion rotation from matrix
     vr::HmdQuaternion_t q;
-    deviceToParse->quat.w = q.w = sqrt(fmax(0, 1 + trackedDeviceMatrix.m[0][0] + trackedDeviceMatrix.m[1][1] + trackedDeviceMatrix.m[2][2])) / 2;
-    deviceToParse->quat.x = q.x = sqrt(fmax(0, 1 + trackedDeviceMatrix.m[0][0] - trackedDeviceMatrix.m[1][1] - trackedDeviceMatrix.m[2][2])) / 2;
-    deviceToParse->quat.y = q.y = sqrt(fmax(0, 1 - trackedDeviceMatrix.m[0][0] + trackedDeviceMatrix.m[1][1] - trackedDeviceMatrix.m[2][2])) / 2;
-    deviceToParse->quat.z = q.z = sqrt(fmax(0, 1 - trackedDeviceMatrix.m[0][0] - trackedDeviceMatrix.m[1][1] + trackedDeviceMatrix.m[2][2])) / 2;
-    deviceToParse->quat.x = q.x = copysign(q.x, trackedDeviceMatrix.m[2][1] - trackedDeviceMatrix.m[1][2]);
-    deviceToParse->quat.y = q.y = copysign(q.y, trackedDeviceMatrix.m[0][2] - trackedDeviceMatrix.m[2][0]);
-    deviceToParse->quat.z = q.z = copysign(q.z, trackedDeviceMatrix.m[1][0] - trackedDeviceMatrix.m[0][1]);
+    deviceToParse->quat.w = q.w = sqrt(fmax(0, 1 + playspaceTransformMatrix.m[0][0] + playspaceTransformMatrix.m[1][1] + playspaceTransformMatrix.m[2][2])) / 2;
+    deviceToParse->quat.x = q.x = sqrt(fmax(0, 1 + playspaceTransformMatrix.m[0][0] - playspaceTransformMatrix.m[1][1] - playspaceTransformMatrix.m[2][2])) / 2;
+    deviceToParse->quat.y = q.y = sqrt(fmax(0, 1 - playspaceTransformMatrix.m[0][0] + playspaceTransformMatrix.m[1][1] - playspaceTransformMatrix.m[2][2])) / 2;
+    deviceToParse->quat.z = q.z = sqrt(fmax(0, 1 - playspaceTransformMatrix.m[0][0] - playspaceTransformMatrix.m[1][1] + playspaceTransformMatrix.m[2][2])) / 2;
+    deviceToParse->quat.x = q.x = copysign(q.x, playspaceTransformMatrix.m[2][1] - playspaceTransformMatrix.m[1][2]);
+    deviceToParse->quat.y = q.y = copysign(q.y, playspaceTransformMatrix.m[0][2] - playspaceTransformMatrix.m[2][0]);
+    deviceToParse->quat.z = q.z = copysign(q.z, playspaceTransformMatrix.m[1][0] - playspaceTransformMatrix.m[0][1]);
 
     // Store previous rotation for delta calculation
     double devicePitchSinceLastUpdate = deviceToParse->rot.pitch;
@@ -124,40 +124,33 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
     deviceToParse->rotDelta.roll = deviceRollSinceLastUpdate - deviceToParse->rot.roll;
 
     // Convert OpenVR matrix (3x4) to OGL matrix (4x4) with scaling applied to translation
-    deviceToParse->transformationMatrix.value[M00] = trackedDeviceMatrix.m[0][0];
-    deviceToParse->transformationMatrix.value[M01] = trackedDeviceMatrix.m[0][1];
-    deviceToParse->transformationMatrix.value[M02] = trackedDeviceMatrix.m[0][2];
-    deviceToParse->transformationMatrix.value[M03] = trackedDeviceMatrix.m[0][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M00] = playspaceTransformMatrix.m[0][0];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M01] = playspaceTransformMatrix.m[0][1];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M02] = playspaceTransformMatrix.m[0][2];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M03] = playspaceTransformMatrix.m[0][3] * VRroomDistanceToGameDistanceScale;
 
-    deviceToParse->transformationMatrix.value[M10] = trackedDeviceMatrix.m[1][0];
-    deviceToParse->transformationMatrix.value[M11] = trackedDeviceMatrix.m[1][1];
-    deviceToParse->transformationMatrix.value[M12] = trackedDeviceMatrix.m[1][2];
-    deviceToParse->transformationMatrix.value[M13] = trackedDeviceMatrix.m[1][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M10] = playspaceTransformMatrix.m[1][0];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M11] = playspaceTransformMatrix.m[1][1];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M12] = playspaceTransformMatrix.m[1][2];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M13] = playspaceTransformMatrix.m[1][3] * VRroomDistanceToGameDistanceScale;
 
-    deviceToParse->transformationMatrix.value[M20] = trackedDeviceMatrix.m[2][0];
-    deviceToParse->transformationMatrix.value[M21] = trackedDeviceMatrix.m[2][1];
-    deviceToParse->transformationMatrix.value[M22] = trackedDeviceMatrix.m[2][2];
-    deviceToParse->transformationMatrix.value[M23] = trackedDeviceMatrix.m[2][3] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M20] = playspaceTransformMatrix.m[2][0];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M21] = playspaceTransformMatrix.m[2][1];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M22] = playspaceTransformMatrix.m[2][2];
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M23] = playspaceTransformMatrix.m[2][3] * VRroomDistanceToGameDistanceScale;
 
-    deviceToParse->transformationMatrix.value[M30] = 0;
-    deviceToParse->transformationMatrix.value[M31] = 0;
-    deviceToParse->transformationMatrix.value[M32] = 0;
-    deviceToParse->transformationMatrix.value[M33] = 1;
-
-
-
-
-
-
-
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M30] = 0;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M31] = 0;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M32] = 0;
+    deviceToParse->scaledPlayspaceTransformMatrix.value[M33] = 1;
 
 
 
 
 	// Get HMD's current position in playspace (BEFORE yaw correction)
-	float hmdX = vrInfoHMD.transformationMatrix.value[M03];
-	float hmdY = vrInfoHMD.transformationMatrix.value[M13];
-	float hmdZ = vrInfoHMD.transformationMatrix.value[M23];
+	float hmdX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
+	float hmdY = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M13];
+	float hmdZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
 
 	// Build rotation matrix
 	OGLMatrix4x4 rotationMatrix = { 0 };
@@ -194,46 +187,35 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
 
 	// Combine: translateBack * rotate * translateToOrigin
 	OGLMatrix4x4 temp;
-	OGLMatrix4x4_Multiply(&deviceToParse->transformationMatrix, &translateFromHMD, &temp);
+	OGLMatrix4x4_Multiply(&deviceToParse->scaledPlayspaceTransformMatrix, &translateFromHMD, &temp);
 	OGLMatrix4x4_Multiply(&temp, &rotationMatrix, &temp);
-	OGLMatrix4x4_Multiply(&temp, &translateToHMD, &deviceToParse->transformationMatrixCorrected);
-
-
-
-
-
-
-
-
+	OGLMatrix4x4_Multiply(&temp, &translateToHMD, &deviceToParse->worldSpaceTransformMatrix);
 
 
 
     // Extract rotation-only matrix (zero out translation)
-    OGLMatrix4x4 rotOnly = deviceToParse->transformationMatrixCorrected;
+    OGLMatrix4x4 rotOnly = deviceToParse->worldSpaceTransformMatrix;
     rotOnly.value[M03] = 0;
     rotOnly.value[M13] = 0;
     rotOnly.value[M23] = 0;
-    deviceToParse->rotationMatrixCorrected = rotOnly;
+    deviceToParse->worldSpaceRotationMatrix = rotOnly;
 
     // Extract translation-only matrix (identity rotation with translation)
     OGLMatrix4x4 transOnly = {0};
-    transOnly.value[M03] = deviceToParse->transformationMatrixCorrected.value[M03];
-    transOnly.value[M13] = deviceToParse->transformationMatrixCorrected.value[M13];
-    transOnly.value[M23] = deviceToParse->transformationMatrixCorrected.value[M23];
+    transOnly.value[M03] = deviceToParse->worldSpaceTransformMatrix.value[M03];
+    transOnly.value[M13] = deviceToParse->worldSpaceTransformMatrix.value[M13];
+    transOnly.value[M23] = deviceToParse->worldSpaceTransformMatrix.value[M23];
     transOnly.value[M00] = 1;
     transOnly.value[M11] = 1;
     transOnly.value[M22] = 1;
     transOnly.value[M33] = 1;
-    deviceToParse->translationMatrix = transOnly;
+    deviceToParse->scaledPlayspaceTranslationMatrix = transOnly;
 
     // Store the yaw correction matrix in the HMD struct for reference
     if (deviceToParse->deviceType == VR_DEVICE_HMD) {
         vrInfoHMD.HMDgameYawIgnoringHMD = gameYaw;
         vrInfoHMD.gameYawCorrectionMatrix = rotationMatrix;
     }
-
-    // Invert the transformation matrix for any reverse calculations needed
-    OGLMatrix4x4_Invert(&deviceToParse->transformationMatrix, &deviceToParse->transformationMatrixInverted);
 }
 
 
