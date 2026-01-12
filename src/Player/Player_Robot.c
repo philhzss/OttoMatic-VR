@@ -321,7 +321,7 @@ void InitPlayer_Robot(OGLPoint3D *where, float rotY)
 	gExplodePlayerAfterElectrocute = false;
 
 	// * Make player invisible: 
-	// ! Temporarily disabled to see robot to test
+	// ! Disable to see robot for debugging. Also hidden in ResetPlayerAtBestCheckpoint
 	newObj->StatusBits |= STATUS_BIT_HIDDEN;
 }
 

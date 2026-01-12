@@ -504,6 +504,9 @@ ObjNode	*player = gPlayerInfo.objNode;
 
 
 	PlayEffect_Parms(EFFECT_NEWLIFE, FULL_CHANNEL_VOLUME * 3, FULL_CHANNEL_VOLUME/3, NORMAL_CHANNEL_RATE / 1.5);
+
+	// Make sure robot hidden on respawn
+	player->StatusBits |= STATUS_BIT_HIDDEN;
 }
 
 
