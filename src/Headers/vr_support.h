@@ -24,14 +24,13 @@ enum playerActions
 #define VRminimumTriggerDefault 0.7f // How far the trigger has to be pulled for most trigger actions
 #define VRminimumThumbstickDefault 0.4f // How far you must move thumbstick for most menu actions
 
-// Multiply tracked VR device pos by this to get the equivalent game distance
-// This number is APPROXIMATE and should be tweaked as playtesting happens
+
 extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
+
+extern int playerEyeHeight; // Define in OGL support
 
 static OGLPoint3D gVRPlayspaceCenter = {0, 0, 0};  // World position of VR playspace center
 
-// Used for cam from.y
-#define playerEyeHeight -150 // ? 90
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support

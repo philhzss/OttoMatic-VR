@@ -188,23 +188,23 @@ void UpdateInput(void)
 				}
 				else if (event.key.scancode == SDL_SCANCODE_EQUALS)  // + key
 				{
-					gWorldScale += 0.001f;
+					gWorldScale += 0.1f;
 					// if (gWorldScale > 5.0f) gWorldScale = 5.0f;
 					printf("World Scale: %.2f\n", gWorldScale);
 				}
 				else if (event.key.scancode == SDL_SCANCODE_MINUS)  // - key
 				{
-					gWorldScale -= 0.001f;
+					gWorldScale -= 0.1f;
 					// if (gWorldScale < 0.1f) gWorldScale = 0.1f;
 					printf("World Scale: %.2f\n", gWorldScale);
 				}
-				else if (event.key.scancode == SDL_SCANCODE_APOSTROPHE)  // ' key
+				else if (event.key.scancode == SDL_SCANCODE_SLASH)  // / key
 				{
 					VRroomDistanceToGameDistanceScale -= 10.0f;
 					// if (VRroomDistanceToGameDistanceScale > 200.0f) VRroomDistanceToGameDistanceScale = 200.0f;
 					printf("VR Room Scale increased to: %.1f\n", VRroomDistanceToGameDistanceScale);
 				}
-				else if (event.key.scancode == SDL_SCANCODE_BACKSLASH)  // \ key
+				else if (event.key.scancode == SDL_SCANCODE_PERIOD)  // . key
 				{
 					VRroomDistanceToGameDistanceScale += 10.0f;
 					// if (VRroomDistanceToGameDistanceScale < 1.0f) VRroomDistanceToGameDistanceScale = 1.0f;
