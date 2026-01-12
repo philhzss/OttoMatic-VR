@@ -70,14 +70,15 @@ OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 // * VR Specific
-float gIpdScale = 140.0f; //Higher value makes the world appear smaller
+float gIpdScale = 150.0f; //Higher value makes the world appear smaller
 float gWorldScale = 1.00f;  //! 0.01f was used with 1.2Ipd but probably a dangerous option
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
-float VRroomDistanceToGameDistanceScale = 140.0f; // * Also effects gIpdScale
+float VRroomDistanceToGameDistanceScale = 160.0f; // * Also effects playerEyeHeight
 
 int cameraYOffset = 0; // This affects everything seen through HMD (including main menu, not just levels)
 
+// ? Player eye height, offset to make your head the same height as Otto's head. Affected by VRroomDistanceToGameDistanceScale
 // * Standing mode
 int playerEyeHeight = -140; // This affects the eye height in levels only
 // * Sitting mode

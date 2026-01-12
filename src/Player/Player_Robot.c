@@ -1869,7 +1869,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			}
 
 			// * Right hand
-			float handScale = 0.65f;
+			float handScale = 0.7f;
 
 			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
 			float handModelOffsetX = 0.0f;
