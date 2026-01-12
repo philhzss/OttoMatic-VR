@@ -79,9 +79,9 @@ float VRroomDistanceToGameDistanceScale = 140.0f; // * Also effects gIpdScale
 int cameraYOffset = 0; // This affects everything seen through HMD (including main menu, not just levels)
 
 // * Standing mode
-//int playerEyeHeight = -140; // This affects the eye height in levels only
+int playerEyeHeight = -140; // This affects the eye height in levels only
 // * Sitting mode
-int playerEyeHeight = -60; // This affects the eye height in levels only
+// int playerEyeHeight = -60; // This affects the eye height in levels only
 
 float	gCurrentAspectRatio = 1;
 float	g2DLogicalWidth = 640.0f;
