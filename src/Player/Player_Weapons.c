@@ -238,12 +238,9 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.translationMatrix;
 
 	if (gPlayerInfo.holdingGun)
 	{
-		//FindJointFullMatrix(theNode,PLAYER_JOINT_LEFTHAND,&m);
-		// Get lefthand position from controller
+		OGLPoint3D muzzleTip = gPlayerMuzzleTipOff;
+		OGLPoint3D_Transform(&muzzleTip, &lhand->BaseTransformMatrix, &muzzleCoord);
 
-		OGLPoint3D muzzleTip = gPlayerMuzzleTipOff; // copy
-		muzzleTip.y -= playerEyeHeight; // adjust local offset
-		// ! Trying to re-align, probably not working due to hand scale? or Z offset for model? to test
 
 		OGLPoint3D_Transform(&muzzleTip, &rotOnly, &muzzleCoord);
 		muzzleCoord.x += lhand->Coord.x;

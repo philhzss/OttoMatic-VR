@@ -80,6 +80,8 @@ static Boolean ShouldApplySlopesToPlayer(float newDistToFloor);
 /*    CONSTANTS             */
 /****************************/
 
+int debugShiftAccum = 0;
+
 #define	PUNCH_DAMAGE			.25f
 
 #define	MAX_BUBBLE_SPEED		400.0f
@@ -1858,14 +1860,21 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			/* CONTROLLER TRACKING */
 
+			
+
+			if (debugShiftAccum == 100){
+				debugShiftAccum = 0;
+			} else {
+				debugShiftAccum++;
+			}
 
 			// * Right hand
 			float handScale = 0.65f;
 
 			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
 			float handModelOffsetX = 0.0f;
-			float handModelOffsetY = 0.0f;
-			float handModelOffsetZ = 22.0f; // * 22 seems good, 25 was nicer with holding the gun but looks stranger with no gun
+			float handModelOffsetY = 12;
+			float handModelOffsetZ = 15; // * 22 seems good, 25 was nicer with holding the gun but looks stranger with no gun
 
 
 			// Calculate the vertical hand model offset for translation only
