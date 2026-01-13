@@ -110,8 +110,94 @@ Boolean		gMyState_Lighting;
 
 static ObjNode *gDebugText;
 
+// FBO Stuff
+PFNGLGENFRAMEBUFFERSEXTPROC glGenFramebuffersEXT = NULL;
+PFNGLBINDFRAMEBUFFEREXTPROC glBindFramebufferEXT = NULL;
+PFNGLFRAMEBUFFERTEXTURE2DEXTPROC glFramebufferTexture2DEXT = NULL;
+PFNGLGENRENDERBUFFERSEXTPROC glGenRenderbuffersEXT = NULL;
+PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT = NULL;
+PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT = NULL;
+PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = NULL;
+PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT = NULL;
+
+
 // Tmp log file
 std::ofstream gOGLLogFile;
+
+GLuint gLeftEyeFBO = 0;
+GLuint gRightEyeFBO = 0;
+GLuint gLeftEyeDepthBuffer = 0;
+GLuint gRightEyeDepthBuffer = 0;
+
+// In your init code - load the function pointers
+void LoadFBOExtension(void)
+{
+    glGenFramebuffersEXT = (PFNGLGENFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenFramebuffersEXT");
+    glBindFramebufferEXT = (PFNGLBINDFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindFramebufferEXT");
+    glFramebufferTexture2DEXT = (PFNGLFRAMEBUFFERTEXTURE2DEXTPROC)SDL_GL_GetProcAddress("glFramebufferTexture2DEXT");
+    glGenRenderbuffersEXT = (PFNGLGENRENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glGenRenderbuffersEXT");
+    glBindRenderbufferEXT = (PFNGLBINDRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glBindRenderbufferEXT");
+    glRenderbufferStorageEXT = (PFNGLRENDERBUFFERSTORAGEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageEXT");
+    glFramebufferRenderbufferEXT = (PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC)SDL_GL_GetProcAddress("glFramebufferRenderbufferEXT");
+    glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
+    
+    if (!glGenFramebuffersEXT || !glBindFramebufferEXT) {
+        printf("❌ Failed to load FBO extension functions!\n");
+    } else {
+        printf("✅ FBO extension functions loaded successfully!\n");
+    }
+}
+
+
+
+
+void CreateEyeFramebuffers(void)
+{
+    int eyeWidth = vrInfoHMD.gEyeTargetWidth;
+    int eyeHeight = vrInfoHMD.gEyeTargetHeight;
+    
+    printf("Creating FBOs: %dx%d\n", eyeWidth, eyeHeight);
+    
+    // LEFT EYE
+    glGenRenderbuffersEXT(1, &gLeftEyeDepthBuffer);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, gLeftEyeDepthBuffer);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, eyeWidth, eyeHeight);
+    
+    glGenFramebuffersEXT(1, &gLeftEyeFBO);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gLeftEyeFBO);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, gLeftEyeTexture, 0);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, gLeftEyeDepthBuffer);
+    
+    GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+        printf("Left FBO incomplete! Status: 0x%X\n", status);
+    } else {
+        printf("Left FBO created successfully!\n");
+    }
+    
+    // RIGHT EYE
+    glGenRenderbuffersEXT(1, &gRightEyeDepthBuffer);
+    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, gRightEyeDepthBuffer);
+    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, eyeWidth, eyeHeight);
+    
+    glGenFramebuffersEXT(1, &gRightEyeFBO);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gRightEyeFBO);
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, gRightEyeTexture, 0);
+    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, gRightEyeDepthBuffer);
+    
+    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+    if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+        printf("❌ Right FBO incomplete! Status: 0x%X\n", status);
+    } else {
+        printf("✅ Right FBO created successfully!\n");
+    }
+    
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+}
+
+
+
+
 
 /******************** OGL BOOT *****************/
 //
@@ -236,7 +322,7 @@ void OGL_SetupWindow(OGLSetupInputType *setupDefPtr)
 	OGL_CreateLights(&setupDefPtr->lights);
 	OGL_CheckError();
 
-	SDL_GL_SetSwapInterval((signed char)gGamePrefs.vsync);
+	SDL_GL_SetSwapInterval(0);
 
 
 
@@ -323,10 +409,22 @@ static void OGL_CreateDrawContext(void)
 		glGenTextures(1, &gLeftEyeTexture);
 		glGenTextures(1, &gRightEyeTexture);
 
-		glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
+		glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture); 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+
 		glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+
+		LoadFBOExtension();
+		CreateEyeFramebuffers();
 	}
 
 	/* ACTIVATE CONTEXT */
@@ -569,100 +667,146 @@ void vr_DoEyeProjection(OGLSetupOutputType *setupInfo) {
 
 /******************* OGL DRAW SCENE *********************/
 
+/******************* OGL DRAW SCENE *********************/
+
 void OGL_DrawScene(void (*drawRoutine)(void))
 {
-	vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    // Handle nil drawRoutine - just show black
+    if (drawRoutine == nil)
+    {
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        SDL_GL_SwapWindow(gSDLWindow);
+        return;
+    }
 
-	vrcpp_updateTrackedDevices();
+    vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    vrcpp_updateTrackedDevices();
 
-	// LEFT EYE
-	glPushMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glLoadMatrixf(&vrInfoHMD.HMDleftProj.value[M00]);
+    // LEFT EYE - Render to FBO
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gLeftEyeFBO);
+    glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
+    // CLEAR IMMEDIATELY AFTER BINDING FBO
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
+    glPushMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glLoadMatrixf(&vrInfoHMD.HMDleftProj.value[M00]);
 
-	// Scale the entire world
-	glScalef(gWorldScale, gWorldScale, gWorldScale);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadLeft.value[M00]);
 
+    // Apply game yaw (thumbstick turning)
+    glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
 
-	// Add camera position translation
-	glTranslatef(
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
-	);
+    // Scale the entire world
+    glScalef(gWorldScale, gWorldScale, gWorldScale);
 
-	gGameViewInfoPtr->renderLeftEye = true;
-	OGL_DrawEye(drawRoutine);
-	glPopMatrix();
+    // Add camera position translation
+    glTranslatef(
+        -gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+        -(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
+        -gGameViewInfoPtr->cameraPlacement.cameraLocation.z
+    );
 
-	glFinish();
-
-	// RIGHT EYE
-	glPushMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glLoadMatrixf(&vrInfoHMD.HMDrightProj.value[M00]);
-
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
-
-	// 2) APPLY GAME YAW (thumbstick turning)
-	glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
-
-
-	// Scale the entire world
-	glScalef(gWorldScale, gWorldScale, gWorldScale);
+    gGameViewInfoPtr->renderLeftEye = true;
+    OGL_DrawEye(drawRoutine);
+    glPopMatrix();
+    
+    // CHECK FOR ERRORS AFTER LEFT EYE
+    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after LEFT eye render\n");
 
 
-	// Add camera position translation
-	glTranslatef(
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
-		-(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
-		-gGameViewInfoPtr->cameraPlacement.cameraLocation.z
-	);
+    // RIGHT EYE - Render to FBO
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gRightEyeFBO);
+    glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
-	gGameViewInfoPtr->renderLeftEye = false;
-	OGL_DrawEye(drawRoutine);
-	glPopMatrix();
+    // CLEAR IMMEDIATELY AFTER BINDING FBO
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glFinish();
+    glPushMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glLoadMatrixf(&vrInfoHMD.HMDrightProj.value[M00]);
 
-	// lights and listenerLocation, cleanup and put elsewhere?:
-	OGL_Camera_SetPlacementAndUpdateMatrices();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
 
+    // Apply game yaw (thumbstick turning)
+    glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
 
+    // Scale the entire world
+    glScalef(gWorldScale, gWorldScale, gWorldScale);
 
-	if (glGetError() != GL_NO_ERROR)
-		throw std::runtime_error("GL ERROR AFTER CALLLL");
+    // Add camera position translation
+    glTranslatef(
+        -gGameViewInfoPtr->cameraPlacement.cameraLocation.x,
+        -(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
+        -gGameViewInfoPtr->cameraPlacement.cameraLocation.z
+    );
 
-	if (gIVRSystem)
-	{
-		vr::VRTextureBounds_t bounds = {
-			0.0f, // left
-			0.0f, // top
-			static_cast<float>(vrInfoHMD.gEyeTargetWidth) / gEyeTextureSize, // right
-			static_cast<float>(vrInfoHMD.gEyeTargetHeight) / gEyeTextureSize, // bottom
-		};
+    gGameViewInfoPtr->renderLeftEye = false;
+    OGL_DrawEye(drawRoutine);
+    glPopMatrix();
 
-		vr::Texture_t leftEyeTexture = { (void *)(uintptr_t)gLeftEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-		vr::Texture_t rightEyeTexture = { (void *)(uintptr_t)gRightEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-		vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
-		vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
-	}
+    // CHECK FOR ERRORS AFTER RIGHT EYE
+    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after RIGHT eye render\n");
 
-	glFlush();
-	glFinish();
-	SDL_GL_SwapWindow(gSDLWindow);
+    // Done, unbind FBO
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    
+    // CHECK FOR ERRORS AFTER UNBIND
+    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after FBO unbind\n");
+
+    // lights and listenerLocation, cleanup and put elsewhere?:
+    OGL_Camera_SetPlacementAndUpdateMatrices();
+    
+
+    // ========================================
+    // RENDER TO DESKTOP WINDOW FOR MONITORING
+    // ========================================
+    glViewport(0, 0, gGameWindowWidth, gGameWindowHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-1, 1, -1, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 1); glVertex2f(-1, -1);
+    glTexCoord2f(1, 1); glVertex2f( 1, -1);
+    glTexCoord2f(1, 0); glVertex2f( 1,  1);
+    glTexCoord2f(0, 0); glVertex2f(-1,  1);
+    glEnd();
+
+    // ========================================
+    // SWAP WINDOW *BEFORE* VR SUBMIT
+    // ========================================
+    SDL_GL_SwapWindow(gSDLWindow);
+
+    // ========================================
+    // NOW SUBMIT TO VR COMPOSITOR
+    // ========================================
+    if (gIVRSystem)
+    {
+        vr::Texture_t leftEyeTexture = { (void *)(uintptr_t)gLeftEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t rightEyeTexture = { (void *)(uintptr_t)gRightEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
+        vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
+    }
 }
 
 /******************* OGL DRAW EYE *********************/
@@ -703,16 +847,16 @@ void OGL_DrawEye(void (*drawRoutine)(void))
 	// Bringing up dialogs can write into green channel, so always be sure it's clear
 	//
 
-	if (gGameViewInfoPtr->clearBackBuffer || (gDebugMode == 3))
-	{
-		if (gGamePrefs.anaglyphMode == ANAGLYPH_COLOR)
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Green/Blue channels
-		else if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
-			glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Blue channels
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
-	else
-		glClear(GL_DEPTH_BUFFER_BIT);
+	// if (gGameViewInfoPtr->clearBackBuffer || (gDebugMode == 3))
+	// {
+	// 	if (gGamePrefs.anaglyphMode == ANAGLYPH_COLOR)
+	// 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Green/Blue channels
+	// 	else if (gGamePrefs.anaglyphMode == ANAGLYPH_MONO)
+	// 		glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_TRUE);		// make sure clearing Red/Blue channels
+	// 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// }
+	// else
+	// 	glClear(GL_DEPTH_BUFFER_BIT);
 
 
 	/*************************/
@@ -748,10 +892,9 @@ do_anaglyph:
 		/* SET VIEWPORT */
 
 		{
-			int x, y, w, h;
-			int windowWidth, windowHeight;
-			SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
-			glViewport(0, 0, windowWidth, windowHeight);
+			// Viewport is already set in OGL_DrawScene when binding FBO
+			// Don't call glViewport here - it would override the FBO viewport!
+
 			gCurrentAspectRatio = (float)vrInfoHMD.gEyeTargetWidth / (float)(vrInfoHMD.gEyeTargetHeight == 0 ? 1 : vrInfoHMD.gEyeTargetHeight);
 
 			// Compute logical width & height for 2D elements
@@ -772,30 +915,11 @@ do_anaglyph:
 
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		if (drawRoutine != nil)
 			drawRoutine();
 
 		OGL_CheckError();
-
-		/********************************/
-		/* READ AND COPY RENDERED SCENE */
-		/********************************/
-		GLint oldTexture;
-		glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
-
-		if (gGameViewInfoPtr->renderLeftEye)
-			glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture);
-		else
-			glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-		int windowWidth, windowHeight;
-		SDL_GetWindowSize(gSDLWindow, &windowWidth, &windowHeight);
-		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, windowWidth, windowHeight, 0);
-		glBindTexture(GL_TEXTURE_2D, oldTexture);
 
 
 		/**************************/
@@ -1359,6 +1483,9 @@ static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short 
 
 void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 {
+	    // Clear any existing errors first
+    glGetError();  // ← ADD THIS - clears error queue
+
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	if (OGL_CheckError())
 		DoFatalAlert("OGL_Texture_SetOpenGLTexture: glPixelStorei failed!");
