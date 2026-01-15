@@ -1250,8 +1250,11 @@ OGLPoint3D	base;
 			/* SEE WHAT WE'RE GOING TO ZAP */
 			/*******************************/
 
-	if (gPlayerInfo.superNovaCharge < .4f)			// see if not enough charge to bother
+	if (gPlayerInfo.superNovaCharge < .5f)			// see if not enough charge to bother
 	{
+		
+		Rumble(0, 0.1, 0, vrBothVibrate); // Stop charge vibration if shot is cancelled
+		
 		if (novaObj)								// get rid of the discharge obj
 			DeleteObject(novaObj);
 
@@ -1603,6 +1606,7 @@ static MOTriangleIndecies triangles[6*2] =
 		theNode->EffectChannel = PlayEffect(EFFECT_NOVACHARGE);
 	else
 		ChangeChannelRate(theNode->EffectChannel, NORMAL_CHANNEL_RATE * (.8f + gPlayerInfo.superNovaCharge));
+		Rumble(0.25, 20, 20 + 100 * gPlayerInfo.superNovaCharge, vrBothVibrate);
 
 }
 
