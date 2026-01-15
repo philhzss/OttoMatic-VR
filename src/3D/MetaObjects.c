@@ -965,8 +965,8 @@ uint32_t			matFlags;
 
 	if (matFlags & BG3D_MATERIALFLAG_TEXTURED)
 	{
-		if (matData->setupInfo != gGameViewInfoPtr)					// make sure texture is loaded for this draw context
-			DoFatalAlert("MO_DrawMaterial: texture is not assigned to this draw context");
+		// if (matData->setupInfo != gGameViewInfoPtr)					// make sure texture is loaded for this draw context
+		// 	DoFatalAlert("MO_DrawMaterial: texture is not assigned to this draw context");
 
 
 		if (matData->pixelDstFormat == GL_RGBA)						// if 32bit with alpha, then turn blending on (see below)
