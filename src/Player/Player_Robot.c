@@ -1399,7 +1399,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 
 	if (gPlayerInfo.superNovaStatic)						// if this obj exists then we're still charging
 	{
-		if (!GetNeedState(kNeed_Shoot))
+		if (vrcpp_GetAnalogActionData(vrShoot).x <= 0.2)
 		{
 			DischargeSuperNova();							// attempt to discharge it
 		}

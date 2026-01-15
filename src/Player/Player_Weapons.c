@@ -1592,7 +1592,7 @@ static MOTriangleIndecies triangles[6*2] =
 
 		/* AND INCREASE CHARGE */
 
-	gPlayerInfo.superNovaCharge += gFramesPerSecondFrac * .33f;
+	gPlayerInfo.superNovaCharge += gFramesPerSecondFrac * .33f / 2;
 	if (gPlayerInfo.superNovaCharge > 1.0f)
 		gPlayerInfo.superNovaCharge = 1.0f;
 
