@@ -121,11 +121,6 @@ PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = NULL;
 PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT = NULL;
 PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = NULL;
 
-static SDL_Thread* gMirrorThread = nullptr;
-static SDL_GLContext gMirrorContext = nullptr;
-static bool gMirrorThreadRunning = false;
-static SDL_Mutex* gMirrorMutex = nullptr;
-
 // Tmp log file
 std::ofstream gOGLLogFile;
 
@@ -147,117 +142,18 @@ void LoadFBOExtension(void)
     glCheckFramebufferStatusEXT = (PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC)SDL_GL_GetProcAddress("glCheckFramebufferStatusEXT");
     
     if (!glGenFramebuffersEXT || !glBindFramebufferEXT) {
-        printf("❌ Failed to load FBO extension functions!\n");
+        printf("Failed to load FBO extension functions!\n");
     } else {
-        printf("✅ FBO extension functions loaded successfully!\n");
+        printf("FBO extension functions loaded successfully!\n");
     }
 
 	glBlitFramebufferEXT = (PFNGLBLITFRAMEBUFFEREXTPROC)SDL_GL_GetProcAddress("glBlitFramebufferEXT");
     
     if (!glBlitFramebufferEXT) {
-        printf("⚠️ glBlitFramebufferEXT not available!\n");
+        printf("glBlitFramebufferEXT not available!\n");
     }
 }
 
-
-
-
-
-
-
-// Mirror thread function
-static int MirrorThreadFunc(void* data)
-{
-    printf("Mirror thread started\n");
-    
-    while (gMirrorThreadRunning)
-    {
-        // Safety check first (no lock needed)
-        if (gLeftEyeFBO == 0 || gRightEyeFBO == 0)
-        {
-            SDL_Delay(16);
-            continue;
-        }
-        
-        // Lock ONLY for the critical section
-        SDL_LockMutex(gMirrorMutex);
-        
-        SDL_GL_MakeCurrent(gSDLWindow, gMirrorContext);
-        
-        int winW, winH;
-        SDL_GetWindowSize(gSDLWindow, &winW, &winH);
-        
-        glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, gLeftEyeFBO);
-        glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
-        
-        glBlitFramebufferEXT(
-            0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight,
-            0, 0, winW, winH,
-            GL_COLOR_BUFFER_BIT,
-            GL_LINEAR
-        );
-        
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-        
-        // Unlock BEFORE the blocking swap
-        SDL_UnlockMutex(gMirrorMutex);
-        
-        // Swap happens outside the lock (this is the slow part)
-        SDL_GL_SwapWindow(gSDLWindow);
-    }
-    
-    printf("Mirror thread stopped\n");
-    return 0;
-}
-
-// Call this in your init code (after creating the main GL context)
-void StartMirrorThread(void)
-{
-    // Create a shared GL context
-    SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-    gMirrorContext = SDL_GL_CreateContext(gSDLWindow);
-    
-    if (!gMirrorContext)
-    {
-        printf("Failed to create mirror context: %s\n", SDL_GetError());
-        return;
-    }
-    
-    // Switch back to main context
-    SDL_GL_MakeCurrent(gSDLWindow, gAGLContext);
-    
-    // Create mutex for thread safety
-    gMirrorMutex = SDL_CreateMutex();
-    
-    // Start the thread
-    gMirrorThreadRunning = true;
-    gMirrorThread = SDL_CreateThread(MirrorThreadFunc, "MirrorThread", nullptr);
-    
-    printf("Mirror thread created\n");
-}
-
-// Call this on shutdown
-void StopMirrorThread(void)
-{
-    if (gMirrorThread)
-    {
-        gMirrorThreadRunning = false;
-        SDL_WaitThread(gMirrorThread, nullptr);
-        gMirrorThread = nullptr;
-    }
-    
-    if (gMirrorContext)
-    {
-        SDL_GL_DestroyContext(gMirrorContext);
-        gMirrorContext = nullptr;
-    }
-    
-    if (gMirrorMutex)
-    {
-        SDL_DestroyMutex(gMirrorMutex);
-        gMirrorMutex = nullptr;
-    }
-}
 
 
 void CreateEyeFramebuffers(void)
@@ -296,9 +192,9 @@ void CreateEyeFramebuffers(void)
     
     status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
     if (status != GL_FRAMEBUFFER_COMPLETE_EXT) {
-        printf("❌ Right FBO incomplete! Status: 0x%X\n", status);
+        printf("Right FBO incomplete! Status: 0x%X\n", status);
     } else {
-        printf("✅ Right FBO created successfully!\n");
+        printf("Right FBO created successfully!\n");
     }
     
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -348,7 +244,6 @@ void OGL_Boot(void)
 
 void OGL_Shutdown(void)
 {
-	StopMirrorThread(); 
 	OGL_DisposeDrawContext();
 }
 
@@ -521,21 +416,20 @@ static void OGL_CreateDrawContext(void)
 
 		glBindTexture(GL_TEXTURE_2D, gLeftEyeTexture); 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
 
 		glBindTexture(GL_TEXTURE_2D, gRightEyeTexture);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // ← ADD THIS
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  // ← ADD THIS
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
 
 		LoadFBOExtension();
 		CreateEyeFramebuffers();
-		StartMirrorThread();
 	}
 
 	/* ACTIVATE CONTEXT */
@@ -778,8 +672,6 @@ void vr_DoEyeProjection(OGLSetupOutputType *setupInfo) {
 
 /******************* OGL DRAW SCENE *********************/
 
-/******************* OGL DRAW SCENE *********************/
-
 void OGL_DrawScene(void (*drawRoutine)(void))
 {
     // Handle nil drawRoutine - just show black
@@ -798,7 +690,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gLeftEyeFBO);
     glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
-    // CLEAR IMMEDIATELY AFTER BINDING FBO
+	// CLEAR IMMEDIATELY AFTER BINDING FBO
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -816,6 +708,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 
     // Scale the entire world
     glScalef(gWorldScale, gWorldScale, gWorldScale);
+
 
     // Add camera position translation
     glTranslatef(
@@ -845,6 +738,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     glLoadIdentity();
     glLoadMatrixf(&vrInfoHMD.HMDrightProj.value[M00]);
 
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glLoadMatrixf(&vrInfoHMD.HMDeyeToHeadRight.value[M00]);
@@ -852,8 +746,10 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     // Apply game yaw (thumbstick turning)
     glMultMatrixf(&vrInfoHMD.gameYawCorrectionMatrix.value[M00]);
 
+
     // Scale the entire world
     glScalef(gWorldScale, gWorldScale, gWorldScale);
+
 
     // Add camera position translation
     glTranslatef(
@@ -867,20 +763,23 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     glPopMatrix();
 
     // CHECK FOR ERRORS AFTER RIGHT EYE
-    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after RIGHT eye render\n");
+    if (glGetError() != GL_NO_ERROR) printf("Error after RIGHT eye render\n");
 
     // Done, unbind FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     
     // CHECK FOR ERRORS AFTER UNBIND
-    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after FBO unbind\n");
+    if (glGetError() != GL_NO_ERROR) printf("Error after FBO unbind\n");
 
     // lights and listenerLocation, cleanup and put elsewhere?:
     OGL_Camera_SetPlacementAndUpdateMatrices();
-    
+
+	// Important: restore state
+	glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
+
 
     // ========================================
-    // NOW SUBMIT TO VR COMPOSITOR
+    // 		SUBMIT TO VR COMPOSITOR
     // ========================================
     if (gIVRSystem)
     {
@@ -889,6 +788,29 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
         vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
     }
+
+	    // ========================================
+    // BLIT LEFT EYE TO MIRROR WINDOW
+    // ========================================
+    
+    glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, gLeftEyeFBO);
+    glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
+
+    int winWidth, winHeight;
+    SDL_GetWindowSize(gSDLWindow, &winWidth, &winHeight);
+
+    glBlitFramebufferEXT(
+        0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 
+        0, 0, winWidth, winHeight,
+        GL_COLOR_BUFFER_BIT,
+        GL_LINEAR
+    );
+
+	    // Restore state
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+
+    // Swap the window to show the mirror
+    SDL_GL_SwapWindow(gSDLWindow);
 }
 
 /******************* OGL DRAW EYE *********************/
@@ -1564,8 +1486,8 @@ static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short 
 
 void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 {
-	    // Clear any existing errors first
-    glGetError();  // ← ADD THIS - clears error queue
+	// Clear any existing errors first
+    glGetError();  // Clears error queue -> (Bad idea?)
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	if (OGL_CheckError())

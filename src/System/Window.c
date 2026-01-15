@@ -357,6 +357,6 @@ void SetFullscreenMode(bool enforceDisplayPref)
 		SDL_SyncWindow(gSDLWindow);
 	}
 
-	SDL_GL_SetSwapInterval(gGamePrefs.vsync);
+	SDL_GL_SetSwapInterval(0); // Disable for VR, always
 	EatMouseEvents();
 }
