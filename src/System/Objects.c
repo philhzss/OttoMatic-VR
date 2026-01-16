@@ -791,7 +791,8 @@ short			skelType;
 					if (theNode->BaseGroup)
 					{
 						OGL_PushState();								// keep state
-						SetInfobarSpriteState(true);
+						if (theNode->Slot != MENU_SLOT)
+							SetInfobarSpriteState(true);
 						MO_DrawObject(theNode->BaseGroup);
 
 						if (gDebugMode == 2)

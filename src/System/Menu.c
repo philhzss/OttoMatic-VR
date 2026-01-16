@@ -1021,10 +1021,42 @@ static ObjNode* MakeTextAtRowCol(const char* text, int row, int col)
 	}
 	else
 	{
-		float startX = gMenuStyle->centeredText ? 0 : -170;
-		gNewObjectDefinition.coord = (OGLPoint3D) { startX + gMenuColXs[col], gMenuRowYs[row], 0 };
+		float offsetZ = -150; // * Change distance between face and menu here
+		float menuScale = 0.3f;  // Shrink menu
+
+		float startX = gMenuStyle->centeredText ? 0 : -120;
+		float offsetX = (startX + gMenuColXs[col]) * menuScale;
+		float offsetY = (-gMenuRowYs[row] - 100) * menuScale;
+
+
+		// Rotate the offset by game yaw
+		float gameYaw = -vrInfoHMD.HMDgameYawIgnoringHMD;
+		float hmdYaw = -vrInfoHMD.rot.yaw;  // HMD's actual head rotation
+		float totalYaw = gameYaw + hmdYaw;  // Combine both
+
+		float rotatedX = offsetX * cos(totalYaw) - offsetZ * sin(totalYaw);
+		float rotatedZ = offsetX * sin(totalYaw) + offsetZ * cos(totalYaw);
+
+		// Position menu in front of camera for VR
+		OGLPoint3D menuPosition;
+		// Camera-relative positioning
+		menuPosition.x = gGameViewInfoPtr->cameraPlacement.cameraLocation.x + rotatedX;
+		menuPosition.y = gGameViewInfoPtr->cameraPlacement.cameraLocation.y + offsetY;  // Y doesn't rotate
+		menuPosition.z = gGameViewInfoPtr->cameraPlacement.cameraLocation.z + rotatedZ;
+
+		gNewObjectDefinition.coord = menuPosition;
+
 		int alignment = gMenuStyle->centeredText? kTextMeshAlignCenter: kTextMeshAlignLeft;
 		node = TextMesh_New(text, alignment, &gNewObjectDefinition);
+
+		node->Scale.x *= menuScale; 
+		node->Scale.y *= menuScale;
+		node->Scale.z *= menuScale;
+		
+		node->Rot.y = totalYaw;
+		node->Rot.z = PI; // Rotate the menu so its not upside down
+		node->Scale.x = -node->Scale.x;  // Mirror the text horizontally
+
 		node->SpecialRow = row;
 		node->SpecialCol = col;
 		node->StatusBits |= STATUS_BIT_MOVEINPAUSE;

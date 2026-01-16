@@ -43,7 +43,7 @@ void DoPaused(void)
 	menuStyle.rowHeight = 24;
 	menuStyle.uniformXExtent = 100;
 	menuStyle.darkenPane = true;
-	menuStyle.darkenPaneScaleY = 64;
+	menuStyle.darkenPaneScaleY = 480;
 	menuStyle.darkenPaneOpacity = .3f;
 	menuStyle.playMenuChangeSounds = false;
 	menuStyle.startButtonExits = true;
