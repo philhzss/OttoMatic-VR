@@ -1606,7 +1606,7 @@ static MOTriangleIndecies triangles[6*2] =
 		theNode->EffectChannel = PlayEffect(EFFECT_NOVACHARGE);
 	else
 		ChangeChannelRate(theNode->EffectChannel, NORMAL_CHANNEL_RATE * (.8f + gPlayerInfo.superNovaCharge));
-		Rumble(0.25, 20, 20 + 100 * gPlayerInfo.superNovaCharge, vrBothVibrate);
+		Rumble(0.07, 0.5, 20 + 100 * gPlayerInfo.superNovaCharge, vrBothVibrate);
 
 }
 
