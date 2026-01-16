@@ -3494,8 +3494,7 @@ static void DoPlayerMagnetSkiing(ObjNode *player)
 
 
 	/* ROTATE BASED ON PLAYER INPUT */
-
-	OGLMatrix3x3_SetRotate(&m, gPlayerInfo.analogControlX * .5f);
+	OGLMatrix3x3_SetRotate(&m, vrcpp_GetAnalogActionData(vrMoveXY).x * .5f);
 	OGLVector2D_Transform(&v, &m, &v);
 
 
