@@ -596,6 +596,9 @@ SDL_Gamepad* TryOpenGamepad(bool showMessage)
 
 void Rumble(float amplitude, float durationSeconds, float frequency, int handToVibrate)
 {
+	
+	printf("Rumbling with amplitude %f, duration %f, frequency %f, hand-int %i\n", amplitude, durationSeconds, frequency, handToVibrate);
+	
 	vrcpp_DoVibrationHaptics(handToVibrate, durationSeconds, frequency, amplitude);
 
 

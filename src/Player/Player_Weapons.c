@@ -1250,8 +1250,11 @@ OGLPoint3D	base;
 			/* SEE WHAT WE'RE GOING TO ZAP */
 			/*******************************/
 
-	if (gPlayerInfo.superNovaCharge < .4f)			// see if not enough charge to bother
+	if (gPlayerInfo.superNovaCharge < .5f)			// see if not enough charge to bother
 	{
+		
+		Rumble(0, 0.1, 0, vrBothVibrate); // Stop charge vibration if shot is cancelled
+		
 		if (novaObj)								// get rid of the discharge obj
 			DeleteObject(novaObj);
 
@@ -1592,19 +1595,6 @@ static MOTriangleIndecies triangles[6*2] =
 
 		/* AND INCREASE CHARGE */
 
-static int frameCount = 0;
-printf("Frame %d: superNovaCharge=%.3f, adding %.5f\n", 
-       frameCount++, 
-       gPlayerInfo.superNovaCharge, 
-       gFramesPerSecondFracVR * .33f);
-
-
-printf("with orig Frame %d: superNovaCharge=%.3f, adding %.5f\n", 
-       frameCount++, 
-       gPlayerInfo.superNovaCharge, 
-       gFramesPerSecondFrac * .33f);
-
-
 	gPlayerInfo.superNovaCharge += gFramesPerSecondFracVR * .33f;
 	if (gPlayerInfo.superNovaCharge > 1.0f)
 		gPlayerInfo.superNovaCharge = 1.0f;
@@ -1616,6 +1606,7 @@ printf("with orig Frame %d: superNovaCharge=%.3f, adding %.5f\n",
 		theNode->EffectChannel = PlayEffect(EFFECT_NOVACHARGE);
 	else
 		ChangeChannelRate(theNode->EffectChannel, NORMAL_CHANNEL_RATE * (.8f + gPlayerInfo.superNovaCharge));
+		Rumble(0.07, 0.5, 20 + 100 * gPlayerInfo.superNovaCharge, vrBothVibrate);
 
 }
 

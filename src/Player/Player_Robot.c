@@ -1399,7 +1399,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 
 	if (gPlayerInfo.superNovaStatic)						// if this obj exists then we're still charging
 	{
-		if (!GetNeedState(kNeed_Shoot))
+		if (vrcpp_GetAnalogActionData(vrShoot).x <= 0.2)
 		{
 			DischargeSuperNova();							// attempt to discharge it
 		}
@@ -3494,8 +3494,7 @@ static void DoPlayerMagnetSkiing(ObjNode *player)
 
 
 	/* ROTATE BASED ON PLAYER INPUT */
-
-	OGLMatrix3x3_SetRotate(&m, gPlayerInfo.analogControlX * .5f);
+	OGLMatrix3x3_SetRotate(&m, vrcpp_GetAnalogActionData(vrMoveXY).x * .5f);
 	OGLVector2D_Transform(&v, &m, &v);
 
 

@@ -291,11 +291,11 @@ static const EffectDef kEffectsTable[] =
 
 static const AutoRumbleDef kAutoRumbleTable[] =
 {
-	// Amplitude, duration, frequency
+	// Amplitude, duration, frequency, hand (vr____Vibrate (Left, Right, Both))
 	[EFFECT_BADSELECT]        = {0,0},
 	[EFFECT_SAUCER]           = {0,0},
 	[EFFECT_STUNGUN]          = {0,0},//{0.2f, 150}, // --no auto rumble for this one because lv9 uses it all over the place
-	[EFFECT_ZAP]              = {1.0f, .1000},
+	[EFFECT_ZAP]              = {1.0f, 2.0, 150}, // tweaked VR
 	[EFFECT_ROCKET]           = {0,0},
 	[EFFECT_ROCKETLANDED]     = {0,0},
 	[EFFECT_JUMPJET]          = {0.07f, 1, 100}, // tweaked VR
@@ -315,7 +315,7 @@ static const AutoRumbleDef kAutoRumbleTable[] =
 	[EFFECT_SERVO]            = {0,0},
 	[EFFECT_LEFTFOOT]         = {0,0},
 	[EFFECT_RIGHTFOOT]        = {0,0},
-	[EFFECT_NOVACHARGE]       = {0,0},
+	[EFFECT_NOVACHARGE]       = {0,0}, // tweaked VR -> Use dynamic values in DrawSupernovaCharge
 	[EFFECT_TELEPORTHUMAN]    = {0.1f, .800, 80}, // tweaked VR
 	[EFFECT_CHECKPOINTHIT]    = {0,0},
 	[EFFECT_CHECKPOINTLOOP]   = {0,0},
@@ -1250,9 +1250,6 @@ uint32_t			lv2,rv2;
 		// If no hand is specificed, default to both
 		if (!kAutoRumbleTable[effectNum].handToRumble)
 			handToVibrate = vrBothVibrate;
-
-		printf("Rumbling with amplitude %f, frequency %f, duration %f\n", amplitudeToRumble, frequencyToRumble, durationToRumble);
-	
 
 		Rumble(amplitudeToRumble, durationToRumble, frequencyToRumble, handToVibrate);
 	}
