@@ -29,7 +29,7 @@ long	gPrefsFolderDirID;
 
 static uint32_t seed0 = 0x2a80ce30, seed1 = 0, seed2 = 0;
 
-float	gFramesPerSecond, gFramesPerSecondFrac;
+float	gFramesPerSecond, gFramesPerSecondFrac, gFramesPerSecondFracVR;
 
 
 
@@ -305,6 +305,8 @@ slow_down:
 #endif
 
 	gFramesPerSecondFrac = 1.0f / gFramesPerSecond;		// calc fractional for multiplication
+	gFramesPerSecondFracVR = gFramesPerSecondFrac / 2;
+	// ? Since DrawObjects is called once per eye, this is needed to avoid playing some animations 2x faster
 
 	prevTime = currTime;								// reset for next time interval
 }

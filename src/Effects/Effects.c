@@ -1471,7 +1471,7 @@ float	s = 2.0;
 	if (!gDoDeathExit)
 		return;
 
-	gDeathExitDelay -= gFramesPerSecondFrac;					// see if still in delay
+	gDeathExitDelay -= gFramesPerSecondFracVR;					// see if still in delay
 	if (gDeathExitDelay > 0.0f)
 		return;
 
@@ -1482,7 +1482,7 @@ float	s = 2.0;
 	switch(gDeathExitMode)
 	{
 		case	DEATH_EXIT_MODE_CLOSE:
-				gDeathExitX += gFramesPerSecondFrac * 300.0f;
+				gDeathExitX += gFramesPerSecondFracVR * 300.0f;
 				if (gDeathExitX > 320.0f)
 				{
 					gDeathExitX = 320.0f;

@@ -192,8 +192,8 @@ static void DrawSky(ObjNode *theNode)
 	/* ANIMATE & CALCULATE UVS */
 	/***************************/
 
-	u = gSkyScrollX += gFramesPerSecondFrac * .03f;
-	v = gSkyScrollZ += gFramesPerSecondFrac * .03f;
+	u = gSkyScrollX += gFramesPerSecondFracVR * .03f;
+	v = gSkyScrollZ += gFramesPerSecondFracVR * .03f;
 
 	u += gPlayerInfo.camera.cameraLocation.x * .0003f;
 	v += gPlayerInfo.camera.cameraLocation.z * .0003f;

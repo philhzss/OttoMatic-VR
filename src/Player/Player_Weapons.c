@@ -1592,7 +1592,20 @@ static MOTriangleIndecies triangles[6*2] =
 
 		/* AND INCREASE CHARGE */
 
-	gPlayerInfo.superNovaCharge += gFramesPerSecondFrac * .33f;
+static int frameCount = 0;
+printf("Frame %d: superNovaCharge=%.3f, adding %.5f\n", 
+       frameCount++, 
+       gPlayerInfo.superNovaCharge, 
+       gFramesPerSecondFracVR * .33f);
+
+
+printf("with orig Frame %d: superNovaCharge=%.3f, adding %.5f\n", 
+       frameCount++, 
+       gPlayerInfo.superNovaCharge, 
+       gFramesPerSecondFrac * .33f);
+
+
+	gPlayerInfo.superNovaCharge += gFramesPerSecondFracVR * .33f;
 	if (gPlayerInfo.superNovaCharge > 1.0f)
 		gPlayerInfo.superNovaCharge = 1.0f;
 
@@ -1611,7 +1624,7 @@ static MOTriangleIndecies triangles[6*2] =
 
 void DrawSuperNovaDischarge(ObjNode *theNode)
 {
-float	fps = gFramesPerSecondFrac;
+float	fps = gFramesPerSecondFracVR;
 OGLPoint3D	targetCoord,points[10*2],base;
 float		dx,dy,dz,u;
 int			i,j,n;

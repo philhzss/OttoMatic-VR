@@ -229,6 +229,7 @@ extern	float					gDeathTimer;
 extern	float					gDischargeTimer;
 extern	float					gFramesPerSecond;
 extern	float					gFramesPerSecondFrac;
+extern  float					gFramesPerSecondFracVR; // Same as above but /2 because Drawxxxx runs once per eye
 extern	float					gGammaFadeFrac;
 extern	float					gGlobalTransparency;
 extern	float					gGravity;
