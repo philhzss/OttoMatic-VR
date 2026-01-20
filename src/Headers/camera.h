@@ -15,3 +15,5 @@ void UpdateCamera(void);
 void PrepAnaglyphCameras(void);
 void RestoreCamerasFromAnaglyph(void);
 void CalcAnaglyphCameraOffset(Byte pass);
+
+void updateCameraAnchorHMD(OGLPoint3D* cameraAnchor, bool updatePlayspaceCoord);

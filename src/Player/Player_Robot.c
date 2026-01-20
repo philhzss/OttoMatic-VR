@@ -170,6 +170,9 @@ float	gCurrentMaxSpeed = PLAYER_NORMAL_MAX_SPEED;
 
 OGLPoint3D gVrHMDPosMovedeltaWorldspace = { 0,0 };
 
+OGLPoint3D gVRPlayspaceCenter = {0, 0, 0};
+
+
 int debugInfoCounter = 1;
 
 
@@ -1892,9 +1895,9 @@ void UpdateRobotHands(ObjNode *theNode)
 			// Now set translation = controller position + rotated model offset
 			// The rotation matrix rotates the offset so the hand stays in the right place
 			// regardless of controller orientation
-			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M03]
+   			handMatrix.value[M03] = gVRPlayspaceCenter.x + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M03]
 				+ (handMatrix.value[M00] * handModelOffsetX
-					+ handMatrix.value[M01] * handModelOffsetY
+     					+ handMatrix.value[M01] * handModelOffsetY
 					+ handMatrix.value[M02] * handModelOffsetZ);
 
 			handMatrix.value[M13] = handVerticalOffset + gVRPlayspaceCenter.y + vrInfoRightHand.scaledPlayspaceTranslationMatrix.value[M13]
@@ -2174,19 +2177,6 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	float	mouseRotationPlayer;
 	float   VRcameraJoyPostionX;
 
-
-
-	//// Initial alignment
-	//if (!gInitVRYawAlignDone) {
-	//	theNode->Rot.y = vrInfoHMD.rot.yaw;
-	//	vrInfoHMD.HMDYawCorrected = vrInfoHMD.rot.yaw;
-	//	gInitVRYawAlignDone = true;
-	//}
-
-	// ! Not working
-	//// HMD rotation turns Otto:
-	//vrInfoHMD.HMDYawCorrected -= vrInfoHMD.rotDelta.yaw;
-
 	if (vrcpp_GetAnalogActionData(vrCameraXY).x == 0) {
 		// Only do mouse movement if not moving VR joystick
 		// analogControlX is mouse only now, no keyboard (controls where player is looking / where he is facing)
@@ -2380,37 +2370,30 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	/******************************************/
 	/* MOVE OTTO TO MATCH HMD POSITION */
 	/******************************************/
-	static float lastHMDOffsetX = 0;
-	static float lastHMDOffsetZ = 0;
 
 	// Get UNCORRECTED HMD position (raw playspace coordinates)
-	float currentHMDOffsetX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
-	float currentHMDOffsetZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
+	// float currentHMDOffsetX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
+	// float currentHMDOffsetZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
 
-	// Calculate how much you physically moved in playspace
-	float deltaX = currentHMDOffsetX - lastHMDOffsetX;
-	float deltaZ = currentHMDOffsetZ - lastHMDOffsetZ;
+	// // Calculate how much you physically moved in playspace
+	// float deltaX = vrInfoHMD.posDelta.x;
+	// float deltaZ = vrInfoHMD.posDelta.z;
 
-	// Rotate this delta by the NEGATIVE thumbstick rotation
-	float thumbstickYaw = -vrInfoHMD.camThumbstickAccum;
-	float rotatedDeltaX = deltaX * cos(thumbstickYaw) - deltaZ * sin(thumbstickYaw);
-	float rotatedDeltaZ = deltaX * sin(thumbstickYaw) + deltaZ * cos(thumbstickYaw);
+	// // Rotate this delta by the NEGATIVE thumbstick rotation
+	// float thumbstickYaw = -vrInfoHMD.camThumbstickAccum;
+	// float rotatedDeltaX = deltaX * cos(thumbstickYaw) - deltaZ * sin(thumbstickYaw);
+	// float rotatedDeltaZ = deltaX * sin(thumbstickYaw) + deltaZ * cos(thumbstickYaw);
 
-	// Apply the rotated movement to Otto
-	gCoord.x += rotatedDeltaX;
-	gCoord.z += rotatedDeltaZ;
+	// // Apply the rotated movement to Otto
+	// gCoord.x += rotatedDeltaX;
+	// gCoord.z += rotatedDeltaZ;
 
-	// Update playspace center
-	gVRPlayspaceCenter.x = gCoord.x - currentHMDOffsetX;
-	gVRPlayspaceCenter.z = gCoord.z - currentHMDOffsetZ;
-	gVRPlayspaceCenter.y = gCoord.y;
+	// // Update playspace center
+	// gVRPlayspaceCenter.x = gCoord.x - currentHMDOffsetX;
+	// gVRPlayspaceCenter.z = gCoord.z - currentHMDOffsetZ;
+	// gVRPlayspaceCenter.y = gCoord.y;
 
-	// Remember for next frame
-	lastHMDOffsetX = currentHMDOffsetX;
-	lastHMDOffsetZ = currentHMDOffsetZ;
-
-
-
+	updateCameraAnchorHMD(&gCoord, true);
 
 	return(killed);
 }

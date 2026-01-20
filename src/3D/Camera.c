@@ -10,6 +10,7 @@
 /****************************/
 
 #include "game.h"
+#include "vr_support.h"
 
 /****************************/
 /*    PROTOTYPES            */
@@ -85,6 +86,35 @@ static const Byte	gFlareImageTable[]=
 	PARTICLE_SObjType_LensFlare2,
 	PARTICLE_SObjType_LensFlare1
 };
+
+void updateCameraAnchorHMD(OGLPoint3D* cameraAnchor, bool updatePlayspaceCoord)
+{
+	// Calculate how much you physically moved in playspace
+	float deltaX = vrInfoHMD.posDelta.x;
+	float deltaZ = vrInfoHMD.posDelta.z;
+
+	// Rotate this delta by the NEGATIVE thumbstick rotation
+	float thumbstickYaw = -vrInfoHMD.camThumbstickAccum;
+	float rotatedDeltaX = deltaX * cos(thumbstickYaw) - deltaZ * sin(thumbstickYaw);
+	float rotatedDeltaZ = deltaX * sin(thumbstickYaw) + deltaZ * cos(thumbstickYaw);
+
+	// Apply the rotated movement to Otto
+	cameraAnchor->x += rotatedDeltaX;
+	cameraAnchor->z += rotatedDeltaZ;
+
+	if (updatePlayspaceCoord){
+	// Get UNCORRECTED HMD position (raw playspace coordinates)
+	float currentHMDOffsetX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
+	float currentHMDOffsetZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
+
+	// Update playspace center
+	gVRPlayspaceCenter.x = cameraAnchor->x - currentHMDOffsetX;
+	gVRPlayspaceCenter.z = cameraAnchor->z - currentHMDOffsetZ;
+	gVRPlayspaceCenter.y = cameraAnchor->y;
+	}
+
+}
+
 
 
 
@@ -474,11 +504,25 @@ OGLMatrix4x4 transOnly = vrInfoHMD.scaledPlayspaceTranslationMatrix;
 			/*************************************/
 
 
-	// playerObj->Coord now ALREADY includes the HMD XZ offset (from DoPlayerMovementAndCollision)
+	// playerObj->Coord ALREADY includes the HMD XZ offset (from DoPlayerMovementAndCollision)
 	// So we only need to add the Y component here
-	from.x = playerObj->Coord.x;  // Already has HMD offset
-	from.z = playerObj->Coord.z;  // Already has HMD offset
 	from.y = playerObj->Coord.y + playerEyeHeight + vrInfoHMD.worldSpaceTransformMatrix.value[M13];
+
+	if (!gGamePaused)
+	{
+		from.x = playerObj->Coord.x;  // Already has HMD offset
+		from.z = playerObj->Coord.z;  // Already has HMD offset
+	}
+	else
+	{
+		// Get camera position from last unpaused loop
+		from.x = gPlayerInfo.camera.cameraLocation.x;
+		from.z = gPlayerInfo.camera.cameraLocation.z;
+
+		// Update camera position without Robot-Player tracking
+		updateCameraAnchorHMD(&from, false);
+
+	}
 
 	// Calculate up vector
 	calculatedUpVector = globalUp;

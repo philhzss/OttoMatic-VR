@@ -29,7 +29,6 @@ TrackedVrDeviceInfo vrInfoRightHand;
 
 
 
-
 OGLMatrix4x4 hmdMatrix3x4_to_OGLMatrix4x4(vr::HmdMatrix34_t *vrMat) {
 	OGLMatrix4x4 oglMat;
 	oglMat.value[M00] = vrMat->m[0][0];
@@ -74,6 +73,16 @@ OGLMatrix4x4 hmdMatrix4x4_to_OGLMatrix4x4(vr::HmdMatrix44_t *vrMat) {
 }
 
 
+float RotateOffsetByTotalYaw(float offsetX, float offsetZ, float* outX, float* outZ) {
+    float gameYaw = -vrInfoHMD.HMDgameYawIgnoringHMD;
+    float hmdYaw = -vrInfoHMD.rot.yaw;
+    float totalYaw = gameYaw + hmdYaw;
+    
+    *outX = offsetX * cos(totalYaw) - offsetZ * sin(totalYaw);
+    *outZ = offsetX * sin(totalYaw) + offsetZ * cos(totalYaw);
+    
+    return totalYaw;
+}
 
 
 

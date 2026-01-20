@@ -29,7 +29,6 @@ extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
 
 extern int playerEyeHeight; // Define in OGL support
 
-static OGLPoint3D gVRPlayspaceCenter = {0, 0, 0};  // World position of VR playspace center
 
 
 // Virtual IPD
@@ -125,6 +124,8 @@ extern "C" {
 	extern TrackedVrDeviceInfo vrInfoHMD;
 	extern TrackedVrDeviceInfo vrInfoLeftHand;
 	extern TrackedVrDeviceInfo vrInfoRightHand;
+	extern OGLPoint3D gVRPlayspaceCenter;
+	extern float RotateOffsetByTotalYaw(float offsetX, float offsetZ, float* outX, float* outZ);
 #ifdef __cplusplus
 }
 #endif

@@ -7,6 +7,7 @@
 /****************************/
 
 #include "game.h"
+#include "vr_support.h"
 
 /****************************/
 /*    PROTOTYPES            */
@@ -1021,27 +1022,26 @@ static ObjNode* MakeTextAtRowCol(const char* text, int row, int col)
 	}
 	else
 	{
-		float offsetZ = -150; // * Change distance between face and menu here
-		float menuScale = 0.3f;  // Shrink menu
+		// Get HMD position in playspace
+		float hmdPlayspaceX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
+		float hmdPlayspaceY = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M13];
+		float hmdPlayspaceZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
 
+		float offsetZ = -80; // Distance in front of face
+		float menuScale = 0.15f;
 		float startX = gMenuStyle->centeredText ? 0 : -120;
 		float offsetX = (startX + gMenuColXs[col]) * menuScale;
 		float offsetY = (-gMenuRowYs[row] - 100) * menuScale;
 
+		// Rotate the offset by TOTAL yaw (thumbstick + HMD physical rotation)
+		float rotatedX, rotatedZ;
+		float totalYaw = RotateOffsetByTotalYaw(offsetX, offsetZ, &rotatedX, &rotatedZ);
 
-		// Rotate the offset by game yaw
-		float gameYaw = -vrInfoHMD.HMDgameYawIgnoringHMD;
-		float hmdYaw = -vrInfoHMD.rot.yaw;  // HMD's actual head rotation
-		float totalYaw = gameYaw + hmdYaw;  // Combine both
-
-		float rotatedX = offsetX * cos(totalYaw) - offsetZ * sin(totalYaw);
-		float rotatedZ = offsetX * sin(totalYaw) + offsetZ * cos(totalYaw);
-
-		// Position menu in front of camera for VR
+		// Position menu in front of camera
 		OGLPoint3D menuPosition;
-		// Camera-relative positioning
+		// Camera location already IS at your HMD position - don't add offset again!
 		menuPosition.x = gGameViewInfoPtr->cameraPlacement.cameraLocation.x + rotatedX;
-		menuPosition.y = gGameViewInfoPtr->cameraPlacement.cameraLocation.y + offsetY;  // Y doesn't rotate
+		menuPosition.y = gGameViewInfoPtr->cameraPlacement.cameraLocation.y + offsetY;
 		menuPosition.z = gGameViewInfoPtr->cameraPlacement.cameraLocation.z + rotatedZ;
 
 		gNewObjectDefinition.coord = menuPosition;
@@ -1427,6 +1427,7 @@ int StartMenu(
 
 		CalcFramesPerSecond();
 		MoveObjects();
+		UpdateCamera(); // * Needed for HMD tracking in pause
 		if (updateRoutine)
 			updateRoutine();
 		OGL_DrawScene(backgroundDrawRoutine);
