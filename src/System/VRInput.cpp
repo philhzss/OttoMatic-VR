@@ -231,3 +231,18 @@ extern "C" void vrcpp_DoVibrationHaptics(int handToVibrate,
 	vr::VRInput()->TriggerHapticVibrationAction(vrActions.Vibration, 0, fDurationSeconds, fFrequency, fAmplitude, deviceRestriction);
 
 }
+
+// Speed default 3
+extern "C" void vrcpp_DoVRthumbstickCamera(float rotationSpeed) {
+		float  VRcameraJoyPostionX = vrcpp_GetAnalogActionData(vrCameraXY).x;
+		// ? VRcameraJoyPostionX /= 30; // Reduce for sensitivty
+
+		// MULTIPLY by frame time for smooth rotation!
+		float deltaTime = gFramesPerSecondFrac;  // Frame time in seconds
+
+		vrInfoHMD.camThumbstickAccum -= VRcameraJoyPostionX * rotationSpeed * deltaTime;
+
+
+		vrInfoHMD.HMDYawCorrected = vrInfoHMD.camThumbstickAccum;
+		// printf("\nROTATE X: %f                  ", VRcameraJoyPostionX);
+	}

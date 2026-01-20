@@ -2175,7 +2175,6 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 			/* VR MOVEMENT */
 
 	float	mouseRotationPlayer;
-	float   VRcameraJoyPostionX;
 
 	if (vrcpp_GetAnalogActionData(vrCameraXY).x == 0) {
 		// Only do mouse movement if not moving VR joystick
@@ -2184,22 +2183,8 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 		theNode->Rot.y -= mouseRotationPlayer; // Set rotate view (view follows robot rot) with analogControl (mouse)
 	}
-	else {
-		// If here, VR joystick is moving
-		// Get joystick input
-		VRcameraJoyPostionX = vrcpp_GetAnalogActionData(vrCameraXY).x;
-		// ? VRcameraJoyPostionX /= 30; // Reduce for sensitivty
 
-		// MULTIPLY by frame time for smooth rotation!
-		float rotationSpeed = 3.0f;  // Degrees per second
-		float deltaTime = gFramesPerSecondFrac;  // Frame time in seconds
-
-		vrInfoHMD.camThumbstickAccum -= VRcameraJoyPostionX * rotationSpeed * deltaTime;
-
-
-		vrInfoHMD.HMDYawCorrected = vrInfoHMD.camThumbstickAccum;
-		// printf("\nROTATE X: %f                  ", VRcameraJoyPostionX);
-	}
+	vrcpp_DoVRthumbstickCamera(3.0f);
 
 	// Player rotation combines HMD physical rotation with thumbstick rotation
 	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
@@ -2371,29 +2356,16 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 	/* MOVE OTTO TO MATCH HMD POSITION */
 	/******************************************/
 
-	// Get UNCORRECTED HMD position (raw playspace coordinates)
-	// float currentHMDOffsetX = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M03];
-	// float currentHMDOffsetZ = vrInfoHMD.scaledPlayspaceTransformMatrix.value[M23];
-
-	// // Calculate how much you physically moved in playspace
-	// float deltaX = vrInfoHMD.posDelta.x;
-	// float deltaZ = vrInfoHMD.posDelta.z;
-
-	// // Rotate this delta by the NEGATIVE thumbstick rotation
-	// float thumbstickYaw = -vrInfoHMD.camThumbstickAccum;
-	// float rotatedDeltaX = deltaX * cos(thumbstickYaw) - deltaZ * sin(thumbstickYaw);
-	// float rotatedDeltaZ = deltaX * sin(thumbstickYaw) + deltaZ * cos(thumbstickYaw);
-
-	// // Apply the rotated movement to Otto
-	// gCoord.x += rotatedDeltaX;
-	// gCoord.z += rotatedDeltaZ;
-
-	// // Update playspace center
-	// gVRPlayspaceCenter.x = gCoord.x - currentHMDOffsetX;
-	// gVRPlayspaceCenter.z = gCoord.z - currentHMDOffsetZ;
-	// gVRPlayspaceCenter.y = gCoord.y;
-
 	updateCameraAnchorHMD(&gCoord, true);
+
+	// Overwrite coords if teleporting (for testing)
+	if (GetKeyState(SDL_SCANCODE_END))
+	{
+		printf("TELEPORTING TO COORDS\n");
+		gCoord.x = 14162.0f;
+		gCoord.y = 2100.0f;
+		gCoord.z = 16550.0f;
+	}
 
 	return(killed);
 }
@@ -2609,6 +2581,7 @@ static void DoPlayerMovementAndCollision_Bubble(ObjNode *theNode)
 	else
 	{
 
+		vrcpp_DoVRthumbstickCamera(3.0f);
 
 		/* ROTATE ANALOG ACCELERATION VECTOR BASED ON CAMERA POS & APPLY TO DELTA */
 
@@ -3477,10 +3450,10 @@ static void DoPlayerMagnetSkiing(ObjNode *player)
 
 
 	/* ROTATE BASED ON PLAYER INPUT */
-	OGLMatrix3x3_SetRotate(&m, vrcpp_GetAnalogActionData(vrMoveXY).x * .5f);
+	OGLMatrix3x3_SetRotate(&m, gPlayerInfo.strafeControlX * .5f);
 	OGLVector2D_Transform(&v, &m, &v);
 
-
+	vrcpp_DoVRthumbstickCamera(2.0f);
 
 	/* CALC ACCELERATION */
 

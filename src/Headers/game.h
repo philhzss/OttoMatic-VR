@@ -105,7 +105,9 @@ void vrcpp_DoVibrationHaptics(int handToVibrate,
 
 
 void vrcpp_updateTrackedDevices(void);
-void vrpp_updateGameSpacePositions(); // Updates the gameSpace coordinate members within the vrInfo Structs
+
+void vrcpp_DoVRthumbstickCamera(float rotationSpeed); 
+
 
 
 
