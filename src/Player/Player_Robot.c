@@ -2188,44 +2188,25 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 	// Player rotation combines HMD physical rotation with thumbstick rotation
 	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
-	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20], 
-							vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
-
-	theNode->Rot.y = -physicalYaw + vrInfoHMD.camThumbstickAccum;
+	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20],
+		vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
 
 
+	float playerMovementDirection = -physicalYaw + vrInfoHMD.camThumbstickAccum;
 	float	strafe = 0.0f, movement = 0.0f;
 
-	// We are using the A or D keys (strafing):
-	if (gPlayerInfo.strafeControlX) {
-		// We are only strafing (no forward nor backward):
-		if (gPlayerInfo.analogControlZ == 0) {
-			strafe = theNode->Rot.y + PI / 2;
-		}
-		// We are moving forward:
-		else if (gPlayerInfo.analogControlZ < 0) {
-			strafe = theNode->Rot.y - sin(gPlayerInfo.strafeControlX);
-		}
-		// We are moving backward:
-		else if (gPlayerInfo.analogControlZ > 0) {
-			strafe = theNode->Rot.y + sin(gPlayerInfo.strafeControlX);
-		}
-	}
-	// We are just moving with W or S, no strafing:
-	else {
-		strafe = theNode->Rot.y;
-	}
+	// Rotate stick vector by movement direction
+	float stickX = gPlayerInfo.strafeControlX;
+	float stickZ = gPlayerInfo.analogControlZ;
+	float sinYaw = sin(playerMovementDirection);
+	float cosYaw = cos(playerMovementDirection);
 
-	theNode->AccelVector.x = sin(strafe);
-	theNode->AccelVector.y = cos(strafe);
+	theNode->AccelVector.x = stickX * cosYaw + stickZ * sinYaw;
+	theNode->AccelVector.y = -stickX * sinYaw + stickZ * cosYaw;
 
-
-	if (!gPlayerInfo.analogControlZ) {
-		movement = gPlayerInfo.strafeControlX;
-	}
-	else {
-		movement = gPlayerInfo.analogControlZ;
-	}
+	// Movement magnitude
+	movement = sqrtf(stickX * stickX + stickZ * stickZ);
+	movement = fminf(movement, 1.0f);
 
 
 	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
