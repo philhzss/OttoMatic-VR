@@ -1069,7 +1069,7 @@ static void MovePlayerRobot_JumpJet(ObjNode *theNode)
 	}
 	/* SEE IF DONE WITH JUMP-JET ANIM */
 	else
-		if (theNode->Skeleton->AnimHasStopped || GetNewNeedState(kNeed_Jump))
+		if (theNode->Skeleton->AnimHasStopped || GetNewNeedState(kNeed_Jump) || vrcpp_GetDigitalActionData(vrJump, false))	
 		{
 			MorphToSkeletonAnim(theNode->Skeleton, PLAYER_ANIM_FALL, 4.0);		// make fall anim
 		}
