@@ -1274,7 +1274,8 @@ OGLPoint3D	base;
 	DecWeaponQuantity(WEAPON_TYPE_SUPERNOVA);	// dec quantity
 
 	PlayEffect3D(EFFECT_ZAP, &gCoord);
-
+	printf("ZAP Effect & vibration triggered");
+	
 
 	return(false);
 }
@@ -1600,14 +1601,36 @@ static MOTriangleIndecies triangles[6*2] =
 		gPlayerInfo.superNovaCharge = 1.0f;
 
 
-			/* UPDATE AUDIO */
+			/* UPDATE AUDIO & VIBRATION */
+
+	static float rumbleTimer = 0.0f;
+
+	rumbleTimer += gFramesPerSecondFracVR;
+
+	const float kRumbleInterval = 1.0f / 5.0f;   // * Hz of haptic updates
+	static float smoothedCharge = 0.0f;
+
+	float target = gPlayerInfo.superNovaCharge;
+	float smoothingSpeed = 17.0f; // higher = snappier
+
+	smoothedCharge += (target - smoothedCharge) * smoothingSpeed * gFramesPerSecondFracVR;
+
+	if (rumbleTimer >= kRumbleInterval)
+	{
+		rumbleTimer -= kRumbleInterval;
+
+		Rumble(
+			0.02f + 0.2f * smoothedCharge,
+			kRumbleInterval+0.1f,
+			20.0f + 100.0f * smoothedCharge,
+			vrBothVibrate
+		);
+	}
 
 	if (theNode->EffectChannel == -1)
 		theNode->EffectChannel = PlayEffect(EFFECT_NOVACHARGE);
 	else
 		ChangeChannelRate(theNode->EffectChannel, NORMAL_CHANNEL_RATE * (.8f + gPlayerInfo.superNovaCharge));
-		Rumble(0.07, 0.5, 20 + 100 * gPlayerInfo.superNovaCharge, vrBothVibrate);
-
 }
 
 

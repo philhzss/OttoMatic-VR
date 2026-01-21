@@ -214,6 +214,32 @@ void logHandDebug(const char* name, ObjNode* hand)
 }
 
 
+float calMoveAccelVector(ObjNode *node){
+	float movement;
+
+	// Player rotation combines HMD physical rotation with thumbstick rotation
+	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
+	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20],
+		vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
+
+	float playerMovementDirection = node->Rot.y = -physicalYaw + vrInfoHMD.camThumbstickAccum;
+
+	// Rotate stick vector by movement direction
+	float stickX = gPlayerInfo.strafeControlX;
+	float stickZ = gPlayerInfo.analogControlZ;
+	float sinYaw = sin(playerMovementDirection);
+	float cosYaw = cos(playerMovementDirection);
+
+	node->AccelVector.x = stickX * cosYaw + stickZ * sinYaw;
+	node->AccelVector.y = -stickX * sinYaw + stickZ * cosYaw;
+
+	// Movement magnitude
+	movement = sqrtf(stickX * stickX + stickZ * stickZ);
+	movement = fminf(movement, 1.0f);
+
+	return movement;
+}
+
 
 
 /*************************** INIT PLAYER: ROBOT ****************************/
@@ -2186,27 +2212,7 @@ static Boolean DoPlayerMovementAndCollision(ObjNode *theNode, Byte aimMode, Bool
 
 	vrcpp_DoVRthumbstickCamera(3.0f);
 
-	// Player rotation combines HMD physical rotation with thumbstick rotation
-	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
-	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20],
-		vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
-
-
-	float playerMovementDirection = -physicalYaw + vrInfoHMD.camThumbstickAccum;
-	float	strafe = 0.0f, movement = 0.0f;
-
-	// Rotate stick vector by movement direction
-	float stickX = gPlayerInfo.strafeControlX;
-	float stickZ = gPlayerInfo.analogControlZ;
-	float sinYaw = sin(playerMovementDirection);
-	float cosYaw = cos(playerMovementDirection);
-
-	theNode->AccelVector.x = stickX * cosYaw + stickZ * sinYaw;
-	theNode->AccelVector.y = -stickX * sinYaw + stickZ * cosYaw;
-
-	// Movement magnitude
-	movement = sqrtf(stickX * stickX + stickZ * stickZ);
-	movement = fminf(movement, 1.0f);
+	float movement = calMoveAccelVector(theNode);
 
 
 	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
@@ -2533,67 +2539,22 @@ static void DoPlayerMovementAndCollision_Bubble(ObjNode *theNode)
 	/* DO PLAYER-RELATIVE CONTROLS */
 	/*******************************/
 
-	if (gGamePrefs.playerRelControls)
+	vrcpp_DoVRthumbstickCamera(3.0f);
+
+	float movement = calMoveAccelVector(theNode);
+
+
+	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
 	{
-		float	r;
-
-		r = theNode->Rot.y -= gPlayerInfo.analogControlX * fps * CONTROL_SENSITIVITY_PR_TURN;			// use x to rotate
-
-		theNode->AccelVector.x = sin(r);
-		theNode->AccelVector.y = cos(r);
-
-		if (theNode->StatusBits & STATUS_BIT_ONGROUND)
-		{
-			gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_PR * gPlayerInfo.analogControlZ) * (1.1f - gPlayerSlipperyFactor);
-			gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_PR * gPlayerInfo.analogControlZ) * (1.1f - gPlayerSlipperyFactor);
-		}
-		else
-		{
-			gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_AIR_PR * gPlayerInfo.analogControlZ);
-			gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_AIR_PR * gPlayerInfo.analogControlZ);
-		}
-
+		gDelta.x += theNode->AccelVector.x * ((CONTROL_SENSITIVITY_PR * movement) * (1.1f - gPlayerSlipperyFactor) * fps);
+		gDelta.z += theNode->AccelVector.y * ((CONTROL_SENSITIVITY_PR * movement) * (1.1f - gPlayerSlipperyFactor) * fps);
 	}
-
-	/*******************************/
-	/* DO CAMERA-RELATIVE CONTROLS */
-	/*******************************/
-
 	else
 	{
-
-		vrcpp_DoVRthumbstickCamera(3.0f);
-
-		/* ROTATE ANALOG ACCELERATION VECTOR BASED ON CAMERA POS & APPLY TO DELTA */
-
-		OGLMatrix3x3_SetRotateAboutPoint(&m, &origin, gPlayerToCameraAngle);			// make a 2D rotation matrix camera-rel
-		theNode->AccelVector.x = gPlayerInfo.analogControlX;
-		theNode->AccelVector.y = gPlayerInfo.analogControlZ;
-		OGLVector2D_Transform(&theNode->AccelVector, &m, &theNode->AccelVector);		// rotate the acceleration vector
-
-
-		/* APPLY ACCELERATION TO DELTAS */
-
-		gDelta.x += theNode->AccelVector.x * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
-		gDelta.z += theNode->AccelVector.y * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
-
-		/**********************************************************/
-		/* TURN PLAYER TO AIM DIRECTION OF ACCELERATION OR MOTION */
-		/**********************************************************/
-		//
-		// Depending on how slippery the terrain is, we aim toward the direction
-		// of motion or the direction of acceleration.  We'll use the gPlayerSlipperyFactor value
-		// to average an aim vector between the two.
-		//
-
-		FastNormalizeVector2D(gDelta.x, gDelta.z, &deltaVec, true);
-		FastNormalizeVector2D(theNode->AccelVector.x, theNode->AccelVector.y, &accVec, true);
-
-		aimVec.x = deltaVec.x * (1.0f - gPlayerSlipperyFactor) + (accVec.x * gPlayerSlipperyFactor);
-		aimVec.y = deltaVec.y * (1.0f - gPlayerSlipperyFactor) + (accVec.y * gPlayerSlipperyFactor);
-
-		TurnObjectTowardTarget(theNode, &gCoord, gCoord.x + aimVec.x, gCoord.z + aimVec.y, 8.0f, false);
+		gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_AIR_PR * movement * fps);
+		gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_AIR_PR * movement * fps);
 	}
+
 
 	/* CALC SPEED */
 

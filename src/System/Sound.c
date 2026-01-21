@@ -294,7 +294,7 @@ static const AutoRumbleDef kAutoRumbleTable[] =
 	// Amplitude, duration, frequency, hand (vr____Vibrate (Left, Right, Both))
 	[EFFECT_BADSELECT]        = {0,0},
 	[EFFECT_SAUCER]           = {0,0},
-	[EFFECT_STUNGUN]          = {0,0},//{0.2f, 150}, // --no auto rumble for this one because lv9 uses it all over the place
+	[EFFECT_STUNGUN]          = {0,0}, // tweaked VR Defined in ShootStunPulse in Player_Weapons.c
 	[EFFECT_ZAP]              = {1.0f, 2.0, 150}, // tweaked VR
 	[EFFECT_ROCKET]           = {0,0},
 	[EFFECT_ROCKETLANDED]     = {0,0},
@@ -303,7 +303,7 @@ static const AutoRumbleDef kAutoRumbleTable[] =
 	[EFFECT_WEAPONCLICK]      = {0,0},
 	[EFFECT_WEAPONWHIR]       = {0,0},
 	[EFFECT_NEWLIFE]          = {0,0},
-	[EFFECT_FREEZEGUN]        = {0.2f, .150},
+	[EFFECT_FREEZEGUN]        = {0.2f, .150, 200, vrLeftVibrate},
 	[EFFECT_PUNCHHIT]         = {0.5f, .300},
 	[EFFECT_PLAYERCRASH]      = {1.0f, .1000},
 	[EFFECT_NOJUMPJET]        = {0.4f, 0.3, 100}, // tweaked VR
@@ -1235,6 +1235,7 @@ uint32_t			lv2,rv2;
 
 			/* AUTO-RUMBLE */
 	
+	// Only use the table if not amplitude not 0
 	if (kAutoRumbleTable[effectNum].amplitude > 0)
 	{
 		float amplitudeToRumble = kAutoRumbleTable[effectNum].amplitude;
