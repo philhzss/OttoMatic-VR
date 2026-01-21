@@ -431,10 +431,10 @@ float	fps = gFramesPerSecondFrac;
 
 		case	TELEPORT_MODE_DEMATERIALIZE:
 				player->Scale.x = player->Scale.z -= fps * 2.5f;
-				if (player->Scale.x <= 0.0f)							// once completely faded, move to target location
+				if (player->Scale.x <= 0.1f)							// once completely faded, move to target location
 				{
 					float r= player->Rot.y;
-					player->Scale.x = player->Scale.z = 0;
+					player->Scale.x = player->Scale.z = 0.1;
 					gPlayerInfo.coord.x = player->Coord.x = player->OldCoord.x = gTeleporterTargetCoords.x - sin(r) * 30.0f;
 					gPlayerInfo.coord.z = player->Coord.z = player->OldCoord.z = gTeleporterTargetCoords.z - cos(r) * 30.0f;
 					gPlayerInfo.coord.y = player->Coord.y = player->OldCoord.y = GetTerrainY(gPlayerInfo.coord.x, gPlayerInfo.coord.z) - player->BottomOff;
