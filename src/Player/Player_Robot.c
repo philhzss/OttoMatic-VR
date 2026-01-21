@@ -2533,67 +2533,62 @@ static void DoPlayerMovementAndCollision_Bubble(ObjNode *theNode)
 	/* DO PLAYER-RELATIVE CONTROLS */
 	/*******************************/
 
-	if (gGamePrefs.playerRelControls)
-	{
-		float	r;
+	vrcpp_DoVRthumbstickCamera(3.0f);
 
-		r = theNode->Rot.y -= gPlayerInfo.analogControlX * fps * CONTROL_SENSITIVITY_PR_TURN;			// use x to rotate
+	// Player rotation combines HMD physical rotation with thumbstick rotation
+	// Extract yaw from the UNCORRECTED HMD matrix (physical rotation only)
+	float physicalYaw = atan2(vrInfoHMD.scaledPlayspaceTransformMatrix.value[M20], 
+							vrInfoHMD.scaledPlayspaceTransformMatrix.value[M00]);
 
-		theNode->AccelVector.x = sin(r);
-		theNode->AccelVector.y = cos(r);
+	theNode->Rot.y = -physicalYaw + vrInfoHMD.camThumbstickAccum;
 
-		if (theNode->StatusBits & STATUS_BIT_ONGROUND)
-		{
-			gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_PR * gPlayerInfo.analogControlZ) * (1.1f - gPlayerSlipperyFactor);
-			gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_PR * gPlayerInfo.analogControlZ) * (1.1f - gPlayerSlipperyFactor);
+
+	float	strafe = 0.0f, movement = 0.0f;
+
+	// We are using the A or D keys (strafing):
+	if (gPlayerInfo.strafeControlX) {
+		// We are only strafing (no forward nor backward):
+		if (gPlayerInfo.analogControlZ == 0) {
+			strafe = theNode->Rot.y + PI / 2;
 		}
-		else
-		{
-			gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_AIR_PR * gPlayerInfo.analogControlZ);
-			gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_AIR_PR * gPlayerInfo.analogControlZ);
+		// We are moving forward:
+		else if (gPlayerInfo.analogControlZ < 0) {
+			strafe = theNode->Rot.y - sin(gPlayerInfo.strafeControlX);
 		}
-
+		// We are moving backward:
+		else if (gPlayerInfo.analogControlZ > 0) {
+			strafe = theNode->Rot.y + sin(gPlayerInfo.strafeControlX);
+		}
+	}
+	// We are just moving with W or S, no strafing:
+	else {
+		strafe = theNode->Rot.y;
 	}
 
-	/*******************************/
-	/* DO CAMERA-RELATIVE CONTROLS */
-	/*******************************/
+	theNode->AccelVector.x = sin(strafe);
+	theNode->AccelVector.y = cos(strafe);
 
+
+	if (!gPlayerInfo.analogControlZ) {
+		movement = gPlayerInfo.strafeControlX;
+	}
+	else {
+		movement = gPlayerInfo.analogControlZ;
+	}
+
+
+	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
+	{
+		gDelta.x += theNode->AccelVector.x * ((CONTROL_SENSITIVITY_PR * movement) * (1.1f - gPlayerSlipperyFactor) * fps);
+		gDelta.z += theNode->AccelVector.y * ((CONTROL_SENSITIVITY_PR * movement) * (1.1f - gPlayerSlipperyFactor) * fps);
+	}
 	else
 	{
-
-		vrcpp_DoVRthumbstickCamera(3.0f);
-
-		/* ROTATE ANALOG ACCELERATION VECTOR BASED ON CAMERA POS & APPLY TO DELTA */
-
-		OGLMatrix3x3_SetRotateAboutPoint(&m, &origin, gPlayerToCameraAngle);			// make a 2D rotation matrix camera-rel
-		theNode->AccelVector.x = gPlayerInfo.analogControlX;
-		theNode->AccelVector.y = gPlayerInfo.analogControlZ;
-		OGLVector2D_Transform(&theNode->AccelVector, &m, &theNode->AccelVector);		// rotate the acceleration vector
-
-
-		/* APPLY ACCELERATION TO DELTAS */
-
-		gDelta.x += theNode->AccelVector.x * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
-		gDelta.z += theNode->AccelVector.y * CONTROL_SENSITIVITY * (1.1f - gPlayerSlipperyFactor);
-
-		/**********************************************************/
-		/* TURN PLAYER TO AIM DIRECTION OF ACCELERATION OR MOTION */
-		/**********************************************************/
-		//
-		// Depending on how slippery the terrain is, we aim toward the direction
-		// of motion or the direction of acceleration.  We'll use the gPlayerSlipperyFactor value
-		// to average an aim vector between the two.
-		//
-
-		FastNormalizeVector2D(gDelta.x, gDelta.z, &deltaVec, true);
-		FastNormalizeVector2D(theNode->AccelVector.x, theNode->AccelVector.y, &accVec, true);
-
-		aimVec.x = deltaVec.x * (1.0f - gPlayerSlipperyFactor) + (accVec.x * gPlayerSlipperyFactor);
-		aimVec.y = deltaVec.y * (1.0f - gPlayerSlipperyFactor) + (accVec.y * gPlayerSlipperyFactor);
-
-		TurnObjectTowardTarget(theNode, &gCoord, gCoord.x + aimVec.x, gCoord.z + aimVec.y, 8.0f, false);
+		gDelta.x += theNode->AccelVector.x * (CONTROL_SENSITIVITY_AIR_PR * movement * fps);
+		gDelta.z += theNode->AccelVector.y * (CONTROL_SENSITIVITY_AIR_PR * movement * fps);
 	}
+
+	vrcpp_DoVRthumbstickCamera(3.0f);
 
 	/* CALC SPEED */
 
