@@ -1899,6 +1899,11 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// * Right hand
 			float handScale = 0.7f;
+			int scaleDamping = 2.5;
+
+			if (gPlayerInfo.scale  >= 1.3){
+				handScale *= (gPlayerInfo.scale + 1)/scaleDamping;
+			}
 
 			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
 			float handModelOffsetX = 0.0f;

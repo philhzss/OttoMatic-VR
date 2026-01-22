@@ -1538,6 +1538,17 @@ void UpdatePlayerGrowth(ObjNode *player)
 OGLBoundingBox	*bBox;
 ObjNode		*shadowObj;
 
+// Calculate the scale progress (0.0 to 1.0)
+float scaleProgress = (gPlayerInfo.scale - 1.2f) / (3.6f - 1.2f);  // (current - min) / range
+
+// Apply to gIpdScale
+float ipdMin = gIpdScaleDEFAULT;
+float ipdMax = 260.0f;  // Max IPD
+
+// Apply to VRroomDistanceToGameDistanceScale
+float roomDistanceMin = VRroomDistanceToGameDistanceScaleDEFAULT;
+float roomDistanceMax = 260.0f;  // Max roomscale
+
 	switch(gPlayerInfo.growMode )
 	{
 		case	GROWTH_MODE_NONE:											// if none, then bail
@@ -1550,10 +1561,13 @@ ObjNode		*shadowObj;
 		case	GROWTH_MODE_GROW:
 
 				gPlayerInfo.scale += gFramesPerSecondFrac;
+				
+				gIpdScale = ipdMin + (ipdMax - ipdMin) * scaleProgress;
+				VRroomDistanceToGameDistanceScale = roomDistanceMin + (roomDistanceMax - roomDistanceMin) * scaleProgress;
+
 				if (gPlayerInfo.scale > PLAYER_GIANT_SCALE)					// keep pinned at max scale
 				{
 					gPlayerInfo.scale = PLAYER_GIANT_SCALE;
-
 					gPlayerInfo.giantTimer -= gFramesPerSecondFrac;			// see if time to shrink
 					if (gPlayerInfo.giantTimer <= 0.0f)
 					{
@@ -1569,6 +1583,10 @@ ObjNode		*shadowObj;
 
 		case	GROWTH_MODE_SHRINK:
 				gPlayerInfo.scale -= gFramesPerSecondFrac;
+				
+				gIpdScale = ipdMin + (ipdMax - ipdMin) * scaleProgress;
+				VRroomDistanceToGameDistanceScale = roomDistanceMin + (roomDistanceMax - roomDistanceMin) * scaleProgress;
+
 				if (gPlayerInfo.scale <= PLAYER_DEFAULT_SCALE)				// see if back to normal
 				{
 					gPlayerInfo.scale = PLAYER_DEFAULT_SCALE;

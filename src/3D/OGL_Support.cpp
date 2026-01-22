@@ -70,11 +70,13 @@ OGLMatrix4x4	gViewToFrustumMatrix, gWorldToViewMatrix, gWorldToFrustumMatrix;
 OGLMatrix4x4	gWorldToWindowMatrix, gFrustumToWindowMatrix;
 
 // * VR Specific
-float gIpdScale = 150.0f; //Higher value makes the world appear smaller
+float gIpdScaleDEFAULT = 150.0f; //Higher value makes the world appear smaller
+float gIpdScale = gIpdScaleDEFAULT;
 float gWorldScale = 1.00f;  //! 0.01f was used with 1.2Ipd but probably a dangerous option
 
 // Multiply tracked VR device pos by this to get the equivalent game distance
-float VRroomDistanceToGameDistanceScale = 160.0f; // * Also effects playerEyeHeight
+float VRroomDistanceToGameDistanceScaleDEFAULT = 160.0f; // * Also effects playerEyeHeight
+float VRroomDistanceToGameDistanceScale = VRroomDistanceToGameDistanceScaleDEFAULT;
 
 int cameraYOffset = 0; // This affects everything seen through HMD (including main menu, not just levels)
 

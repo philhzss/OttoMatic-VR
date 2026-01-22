@@ -26,13 +26,14 @@ enum playerActions
 
 
 extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
-
+extern float VRroomDistanceToGameDistanceScaleDEFAULT; // Defined in  OGL support, what to return to
 extern int playerEyeHeight; // Define in OGL support
 
 
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support
+extern float gIpdScaleDEFAULT; // Defined in OGL support, what to return to
 extern float gWorldScale; // Defined in OGL support
 
 
