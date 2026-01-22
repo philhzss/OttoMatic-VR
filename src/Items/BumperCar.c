@@ -491,7 +491,12 @@ float	fps = gFramesPerSecondFrac;
 
 			/* CHECK USER CONTROLS FOR ROTATION */
 
-	if (gPlayerInfo.analogControlX != 0.0f)																// see if spin
+	
+		vrcpp_DoVRthumbstickCamera(3.0f);
+
+		float movement = calMoveAccelVector(car);
+	
+			if (gPlayerInfo.analogControlX != 0.0f)																// see if spin
 	{
 		car->DeltaRot.y -= gPlayerInfo.analogControlX * fps * CONTROL_SENSITIVITY_BUMPERCAR_TURN;			// use x to rotate
 		if (car->DeltaRot.y > PI2)																			// limit spin speed
