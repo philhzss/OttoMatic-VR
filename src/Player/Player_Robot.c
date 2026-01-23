@@ -611,7 +611,7 @@ static void MovePlayerRobot_PickupAndDeposit(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -714,7 +714,7 @@ static void MovePlayerRobot_PickupAndHoldGun(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -783,7 +783,7 @@ static void MovePlayerRobot_PickupAndHoldMagnet(ObjNode *theNode)
 
 		/* MOVE PLAYER */
 
-		gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+		gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 		DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 		if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 			goto update;
@@ -869,7 +869,7 @@ static void MovePlayerRobot_ChangeWeapon(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
@@ -910,7 +910,7 @@ static void MovePlayerRobot_SuckedIntoWell(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;				// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;				// no user control during this anim
 	gCoord.y = GetTerrainY(gCoord.x, gCoord.z) - theNode->BBox.min.y - 40.0f;	// just keep stuck to ground
 
 	/* UPDATE IT */
@@ -935,7 +935,8 @@ static void MovePlayerRobot_Punch(ObjNode *theNode)
 
 	TurnPlayerTowardPunchable(theNode);										// aim at punchable
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	// * In VR it would be nicer if you CAN move during punch, especially if/when we integrate motion control punching
+	// gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
@@ -971,7 +972,7 @@ static void MovePlayerRobot_Throw(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
@@ -1194,7 +1195,7 @@ static void MovePlayerRobot_Fall_BottomlessPit(ObjNode *theNode)
 {
 	float	fps = gFramesPerSecondFrac;
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;
 	gDelta.x = gDelta.z = 0;
 
 	/* SEE IF TIME FOR DEATH EXIT TRANSITION */
@@ -1355,7 +1356,7 @@ static void MovePlayerRobot_Flattened(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -1391,7 +1392,7 @@ static void MovePlayerRobot_BellySlide(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -1418,7 +1419,7 @@ static void MovePlayerRobot_Charging(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, false))
 		goto update;
@@ -1450,7 +1451,7 @@ static void MovePlayerRobot_GotHit(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 
 	if (theNode->StatusBits & STATUS_BIT_ONGROUND)
 		f = PLAYER_HEAVY_FRICTION;
@@ -1490,7 +1491,7 @@ static void MovePlayerRobot_Accordian(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_HEAVY_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -1556,7 +1557,7 @@ static void MovePlayerRobot_Drink(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	DoRobotFrictionAndGravity(theNode, PLAYER_DEFAULT_FRICTION);
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
@@ -1604,7 +1605,7 @@ static void MovePlayerRobot_ClimbInto(ObjNode *theNode)
 
 	/* MOVE PLAYER */
 
-	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;			// no user control during this anim
+	gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;			// no user control during this anim
 	gDelta.x = gDelta.y = gDelta.z = 0.0f;
 	if (DoPlayerMovementAndCollision(theNode, AIM_MODE_NONE, true))
 		goto update;
