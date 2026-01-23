@@ -1586,7 +1586,8 @@ static void MovePlayerRobot_RideZip(ObjNode *theNode)
 
 	gCoord = gCurrentZip->Coord;		// get pully coord
 
-	gCoord.y -= 110.0f + playerEyeHeight;		// offset y + offset it even more for VR HMD to not be in the handlebar
+	gCoord.y += playerEyeHeight - 90.0f;		// offset y + offset it even more for VR HMD to not be in the handlebar
+	// * This is tuned for standing play, 
 
 	gCoord.x += sin(r) * 25.0f;			// move back a little to align it
 	gCoord.z += cos(r) * 25.0f;
