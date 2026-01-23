@@ -23,6 +23,7 @@ static void ShootStunPulse(ObjNode *theNode, OGLPoint3D *where, OGLVector3D *aim
 static void MoveStunPulseRipple(ObjNode *theNode);
 static Boolean DoWeaponCollisionDetect(ObjNode *theNode);
 static void	WeaponAutoTarget(OGLPoint3D *where, OGLVector3D *aim);
+static Boolean DetectPunchMotion(ObjNode *theNode);
 static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID);
 static Boolean SeeIfDoPickup(ObjNode *player);
 static void MoveDisposedWeapon(ObjNode *theNode);
@@ -196,6 +197,11 @@ void CheckPOWControls(ObjNode *theNode)
 		wasGrippingLeft = true;
 	}
 
+	/* SEE IF VR PUNCH MOTION */
+	if (DetectPunchMotion(theNode) && vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f) // Right hand only, no punching with left ---> Will have to flip if we flip gun hand though!
+	{
+		StartPunch(theNode);
+	}
 
 
 		/* SEE IF PUNCH / PICKUP */
@@ -1082,6 +1088,59 @@ explode_weapon:
 	return(false);
 }
 
+
+/********************** SEE IF DO VR PUNCH MOTION *****************************/
+static Boolean DetectPunchMotion(ObjNode *theNode)
+{
+    static bool wasPunching = false;
+    
+    float vx = vrInfoRightHand.velocity.x;
+    float vy = vrInfoRightHand.velocity.y;
+    float vz = vrInfoRightHand.velocity.z;
+    
+    // Calculate speed
+    float speed = sqrt(vx*vx + vy*vy + vz*vz);
+    
+    // Threshold
+    float punchThreshold = 3.5f * VRroomDistanceToGameDistanceScale;
+    
+    if (speed < punchThreshold)
+    {
+        wasPunching = false;
+        return false;  // Not moving fast enough
+    }
+    
+    // Check if moving forward (relative to HMD facing direction)
+    // Get HMD forward vector (negative Z axis of rotation matrix)
+    float forwardX = -vrInfoHMD.worldSpaceRotationMatrix.value[M02];
+    float forwardY = -vrInfoHMD.worldSpaceRotationMatrix.value[M12];
+    float forwardZ = -vrInfoHMD.worldSpaceRotationMatrix.value[M22];
+    
+    // Normalize velocity to get direction
+    float velDirX = vx / speed;
+    float velDirY = vy / speed;
+    float velDirZ = vz / speed;
+    
+    // Dot product: positive = same direction (forward), negative = opposite (backward)
+    float dotProduct = velDirX * forwardX + velDirY * forwardY + velDirZ * forwardZ;
+    
+    // Only punch if moving forward (dot > 0.5 means mostly forward, tune this)
+    if (dotProduct < 0.5f)
+    {
+        wasPunching = false;
+        return false;  // Moving backward or sideways
+    }
+    
+    // Edge detection
+    bool isPunching = true;
+    if (isPunching && !wasPunching)
+    {
+        wasPunching = true;
+        return true;  // Trigger punch!
+    }
+    
+    return false;
+}
 
 
 /********************** SEE IF DO VR PICKUP *****************************/

@@ -96,6 +96,12 @@ void parseTrackingData(TrackedVrDeviceInfo *deviceToParse) {
     double devicePosYSinceLastUpdate = deviceToParse->pos.y;
     double devicePosZSinceLastUpdate = deviceToParse->pos.z;
 
+	// Extract velocity and scale to game units
+    vr::HmdVector3_t rawVelocity = trackedDevices[deviceToParse->deviceID].vVelocity;
+    deviceToParse->velocity.x = rawVelocity.v[0] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->velocity.y = rawVelocity.v[1] * VRroomDistanceToGameDistanceScale;
+    deviceToParse->velocity.z = rawVelocity.v[2] * VRroomDistanceToGameDistanceScale;
+
     // Extract raw position from OpenVR and scale to game units
     vr::HmdVector3_t vector;
     deviceToParse->pos.x = vector.v[0] = playspaceTransformMatrix.m[0][3] * VRroomDistanceToGameDistanceScale;

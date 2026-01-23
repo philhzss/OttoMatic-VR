@@ -116,7 +116,8 @@ typedef struct
 	uint32_t gEyeTargetWidth;
 	uint32_t gEyeTargetHeight;
 
-
+	OGLVector3D velocity;
+	
 }TrackedVrDeviceInfo;
 
 #ifdef __cplusplus
