@@ -166,9 +166,7 @@ int		playerCar = itemPtr->parm[3] & 1;
 
 	id = itemPtr->parm[0];											// get car ID #
 
-#if 0	// source port: always do fewer cars
-	if (!gG4)														// on slow machines, add fewer cars
-#endif
+
 	{
 		if (id > 3)
 			return(true);
@@ -464,11 +462,11 @@ float	fps = gFramesPerSecondFrac;
 
 	if (gBumperCarGateBlown[car->AreaNum])				// if power blown, then no control
 	{
-		gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = 0;
+		gPlayerInfo.analogControlX = gPlayerInfo.analogControlZ = gPlayerInfo.strafeControlX = 0;
 	}
 	else
 	{
-		if (gPlayerInfo.analogControlX || gPlayerInfo.analogControlZ)	// if player is attempting some control then reset this timer
+		if (gPlayerInfo.analogControlX || gPlayerInfo.analogControlZ || gPlayerInfo.strafeControlX)	// if player is attempting some control then reset this timer
 		{
 			gTimeSinceLastThrust = 0;
 			gForceCameraAlignment = true;								// keep camera behind the car!
@@ -479,12 +477,12 @@ float	fps = gFramesPerSecondFrac;
 			/* SNAP ANALOG ANGLE AGGRESSIVELY */
 
 	{
-		float angle = atan2f(gPlayerInfo.analogControlZ, gPlayerInfo.analogControlX);
-		float magnitude = sqrtf(gPlayerInfo.analogControlZ*gPlayerInfo.analogControlZ + gPlayerInfo.analogControlX*gPlayerInfo.analogControlX);
+		float angle = atan2f(gPlayerInfo.analogControlZ, gPlayerInfo.strafeControlX);
+		float magnitude = sqrtf(gPlayerInfo.analogControlZ*gPlayerInfo.analogControlZ + gPlayerInfo.strafeControlX*gPlayerInfo.strafeControlX);
 
 		angle = SnapAngle(angle, OGLMath_DegreesToRadians(45/2.0f));
 
-		gPlayerInfo.analogControlX = cosf(angle) * magnitude;
+		gPlayerInfo.strafeControlX = cosf(angle) * magnitude;
 		gPlayerInfo.analogControlZ = sinf(angle) * magnitude;
 	}
 
@@ -496,9 +494,9 @@ float	fps = gFramesPerSecondFrac;
 
 		float movement = calMoveAccelVector(car);
 	
-			if (gPlayerInfo.analogControlX != 0.0f)																// see if spin
+			if (gPlayerInfo.strafeControlX != 0.0f)																// see if spin
 	{
-		car->DeltaRot.y -= gPlayerInfo.analogControlX * fps * CONTROL_SENSITIVITY_BUMPERCAR_TURN;			// use x to rotate
+		car->DeltaRot.y -= gPlayerInfo.strafeControlX * fps * CONTROL_SENSITIVITY_BUMPERCAR_TURN;			// use x to rotate
 		if (car->DeltaRot.y > PI2)																			// limit spin speed
 			car->DeltaRot.y = PI2;
 		else
@@ -575,7 +573,7 @@ float	fps = gFramesPerSecondFrac;
 		/* SEE IF PLAYER WANTS OUT */
 		/***************************/
 
-	if (GetNewNeedState(kNeed_Jump))
+	if (GetNewNeedState(kNeed_Jump) || vrcpp_GetDigitalActionData(vrJump, false))
 	{
 		UpdateInput();				// NOTE:  we do this to clear out the jump key since the player's jump move call will be called on same frame and we don't want to jump-jet accidentally
 		MorphToSkeletonAnim(gPlayerInfo.objNode->Skeleton, PLAYER_ANIM_JUMP, 5.0f);
