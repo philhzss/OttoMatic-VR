@@ -23,6 +23,7 @@ static void ShootStunPulse(ObjNode *theNode, OGLPoint3D *where, OGLVector3D *aim
 static void MoveStunPulseRipple(ObjNode *theNode);
 static Boolean DoWeaponCollisionDetect(ObjNode *theNode);
 static void	WeaponAutoTarget(OGLPoint3D *where, OGLVector3D *aim);
+static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID);
 static Boolean SeeIfDoPickup(ObjNode *player);
 static void MoveDisposedWeapon(ObjNode *theNode);
 static void ChangeWeapons(int startIndex, int delta, bool tryStartSlotFirst);
@@ -151,6 +152,10 @@ void CheckWeaponChangeControls(ObjNode* theNode)
 
 void CheckPOWControls(ObjNode *theNode)
 {
+
+    static bool wasGrippingRight = false; 
+    static bool wasGrippingLeft = false;
+
 		/* SEE IF SHOOT GUN */
 
 	// Prevent multi-fire while trigger is held
@@ -173,6 +178,26 @@ void CheckPOWControls(ObjNode *theNode)
 		gunShotVRblocked = true; // Prevent double fire
 	}
 
+	/* SEE IF VR GRIP PICKUP */
+	else if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f)
+	{
+		if (!wasGrippingRight)  // Edge detection
+		{
+			SeeIfDoVRGripPickup(theNode, vrFistRight);
+		}
+		wasGrippingRight = true;
+	}
+	else if (vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f)
+	{
+		if (!wasGrippingLeft)  // Edge detection
+		{
+			SeeIfDoVRGripPickup(theNode, vrFistLeft);
+		}
+		wasGrippingLeft = true;
+	}
+
+
+
 		/* SEE IF PUNCH / PICKUP */
 
 	else
@@ -190,6 +215,16 @@ void CheckPOWControls(ObjNode *theNode)
 	{
 		CheckWeaponChangeControls(theNode);
 	}
+
+	// Reset grip state if not pressed
+    if (!vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f)
+    {
+        wasGrippingRight = false;
+    }
+	    if (!vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f)
+    {
+        wasGrippingLeft = false;
+    }
 }
 
 
@@ -1046,6 +1081,90 @@ explode_weapon:
 
 	return(false);
 }
+
+
+
+/********************** SEE IF DO VR PICKUP *****************************/
+
+static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID)
+{
+    ObjNode *thisNode, *nearest;
+    float bestDist;
+	ObjNode *hand;
+
+	if (vrFistID == vrFistRight){
+		hand = gPlayerInfo.rightHandObj;
+	} else {
+		hand = gPlayerInfo.leftHandObj;
+	}
+    
+    // Get hand position directly from hand object
+    float handX = hand->Coord.x;
+    float handY = hand->Coord.y;
+    float handZ = hand->Coord.z;
+    
+    bestDist = 10000000;
+    nearest = nil;
+    
+    /* SCAN FOR NEAREST PICKUP IN REACH */
+    thisNode = gFirstNodePtr;
+    do
+    {
+        if (!(thisNode->CType & CTYPE_POWERUP))
+            goto next;
+        if (thisNode->StatusBits & STATUS_BIT_HIDDEN)
+            goto next;
+        
+        // Calculate 3D distance to item
+        float dx = thisNode->Coord.x - handX;
+        float dy = thisNode->Coord.y - handY;
+        float dz = thisNode->Coord.z - handZ;
+        float dist = sqrt(dx*dx + dy*dy + dz*dz);
+        
+        // Check if within reach (tune this value to allow grabbing from further or closer)
+        if ((dist < bestDist) && (dist < 75.0f))
+        {
+            bestDist = dist;
+            nearest = thisNode;
+        }
+next:
+        thisNode = thisNode->NextNode;
+    } while(thisNode != nil);
+    
+    /* PICK UP IMMEDIATELY (no animation) */
+    if (nearest)
+    {
+        gTargetPickup = nearest;
+        player->IsHoldingPickup = true;
+        
+        // Add to inventory
+        AddPowerupToInventory(nearest);
+        
+        // Play sound at hand location
+        OGLPoint3D handPos;
+        handPos.x = handX;
+        handPos.y = handY;
+        handPos.z = handZ;
+        PlayEffect3D(EFFECT_WEAPONDEPOSIT, &handPos);
+        
+        // Handle item (regenerate or delete)
+        if (nearest->POWRegenerate) {
+            nearest->StatusBits |= STATUS_BIT_HIDDEN;
+            if (nearest->ShadowNode)
+                nearest->ShadowNode->StatusBits |= STATUS_BIT_HIDDEN;
+            nearest->CType = 0;
+        } else {
+            DeleteObject(nearest);
+        }
+        
+        gTargetPickup = nil;
+        return true;
+    }
+    
+    return false;
+}
+
+
 
 
 /********************** SEE IF DO PICKUP *****************************/
