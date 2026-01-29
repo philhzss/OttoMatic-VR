@@ -23,7 +23,7 @@ static void ShootStunPulse(ObjNode *theNode, OGLPoint3D *where, OGLVector3D *aim
 static void MoveStunPulseRipple(ObjNode *theNode);
 static Boolean DoWeaponCollisionDetect(ObjNode *theNode);
 static void	WeaponAutoTarget(OGLPoint3D *where, OGLVector3D *aim);
-static Boolean DetectPunchMotion(ObjNode *theNode);
+static Boolean DetectAndExecuteVRPunch(ObjNode *player);
 static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID);
 static Boolean SeeIfDoPickup(ObjNode *player);
 static void MoveDisposedWeapon(ObjNode *theNode);
@@ -197,12 +197,17 @@ void CheckPOWControls(ObjNode *theNode)
 		wasGrippingLeft = true;
 	}
 
-	/* SEE IF VR PUNCH MOTION */
-	if (DetectPunchMotion(theNode) && vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f) // Right hand only, no punching with left ---> Will have to flip if we flip gun hand though!
+	/* SEE IF VR PUNCH MOTION - Right hand */
+	if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f && DetectAndExecuteVRPunch(theNode, vrFistRight))
 	{
 		StartPunch(theNode);
 	}
 
+	/* SEE IF VR PUNCH MOTION - Left hand */
+	if (vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f && DetectAndExecuteVRPunch(theNode, vrFistLeft))
+	{
+		StartPunch(theNode);
+	}
 
 		/* SEE IF PUNCH / PICKUP */
 
@@ -1089,58 +1094,93 @@ explode_weapon:
 }
 
 
-/********************** SEE IF DO VR PUNCH MOTION *****************************/
-static Boolean DetectPunchMotion(ObjNode *theNode)
+
+/********************** SEE IF DO VR PUNCH *****************************/
+static Boolean DetectAndExecuteVRPunch(ObjNode *player, int whichHand)
 {
-    static bool wasPunching = false;
+    // Separate static bool for each hand!
+    static bool wasPunchingRight = false;
+    static bool wasPunchingLeft = false;
     
-    float vx = vrInfoRightHand.velocity.x;
-    float vy = vrInfoRightHand.velocity.y;
-    float vz = vrInfoRightHand.velocity.z;
+    // Select which hand we're checking
+    TrackedVrDeviceInfo *handInfo;
+    ObjNode *handObj;
+    bool *wasPunching;
     
-    // Calculate speed
+    if (whichHand == vrFistRight)
+    {
+        handInfo = &vrInfoRightHand;
+        handObj = gPlayerInfo.rightHandObj;
+        wasPunching = &wasPunchingRight;
+    }
+    else  // vrFistLeft
+    {
+        handInfo = &vrInfoLeftHand;
+        handObj = gPlayerInfo.leftHandObj;
+        wasPunching = &wasPunchingLeft;
+    }
+    
+    // Check hand speed
+    float vx = handInfo->velocity.x;
+    float vy = handInfo->velocity.y;
+    float vz = handInfo->velocity.z;
     float speed = sqrt(vx*vx + vy*vy + vz*vz);
-    
-    // Threshold
     float punchThreshold = 3.5f * VRroomDistanceToGameDistanceScale;
     
     if (speed < punchThreshold)
     {
-        wasPunching = false;
-        return false;  // Not moving fast enough
+        *wasPunching = false;
+        return false;
     }
     
-    // Check if moving forward (relative to HMD facing direction)
-    // Get HMD forward vector (negative Z axis of rotation matrix)
-    float forwardX = -vrInfoHMD.worldSpaceRotationMatrix.value[M02];
-    float forwardY = -vrInfoHMD.worldSpaceRotationMatrix.value[M12];
-    float forwardZ = -vrInfoHMD.worldSpaceRotationMatrix.value[M22];
+    // Get hand position
+    OGLPoint3D fistCoord;
+    fistCoord.x = handObj->Coord.x;
+    fistCoord.y = handObj->Coord.y;
+    fistCoord.z = handObj->Coord.z;
     
-    // Normalize velocity to get direction
-    float velDirX = vx / speed;
-    float velDirY = vy / speed;
-    float velDirZ = vz / speed;
+    float fistSize = 30.0f * gPlayerInfo.scale;
     
-    // Dot product: positive = same direction (forward), negative = opposite (backward)
-    float dotProduct = velDirX * forwardX + velDirY * forwardY + velDirZ * forwardZ;
-    
-    // Only punch if moving forward (dot > 0.5 means mostly forward, tune this)
-    if (dotProduct < 0.5f)
+    if (DoSimpleBoxCollision(fistCoord.y + fistSize, fistCoord.y - fistSize,
+                             fistCoord.x - fistSize, fistCoord.x + fistSize,
+                             fistCoord.z + fistSize, fistCoord.z - fistSize,
+                             CTYPE_MISC | CTYPE_ENEMY | CTYPE_TRIGGER | CTYPE_POWERUP))
     {
-        wasPunching = false;
-        return false;  // Moving backward or sideways
-    }
-    
-    // Edge detection
-    bool isPunching = true;
-    if (isPunching && !wasPunching)
-    {
-        wasPunching = true;
-        return true;  // Trigger punch!
+        // Only damage if we haven't already punched this swing
+        if (!(*wasPunching))
+        {
+            for (int i = 0; i < gNumCollisions; i++)
+            {
+                ObjNode *hitObj = gCollisionList[i].objectPtr;
+                
+                if (hitObj && hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])
+                {
+                    Boolean endPunch = (hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])(
+                        handObj,  // Use the selected hand object
+                        hitObj, 
+                        &fistCoord, 
+                        nil
+                    );
+                    
+                    if (endPunch)
+                    {
+						if (whichHand == vrFistRight) {
+							PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
+						}
+						else {
+							PlayEffect3D(EFFECT_PUNCHHIT_LEFT, &fistCoord);
+						}
+                        *wasPunching = true;  // Mark that we punched
+                        return true;
+                    }
+                }
+            }
+        }
     }
     
     return false;
 }
+
 
 
 /********************** SEE IF DO VR PICKUP *****************************/

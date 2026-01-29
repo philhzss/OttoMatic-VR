@@ -2952,7 +2952,7 @@ static void CheckPunchCollision(ObjNode *player)
 					if (endPunch)
 					{
 						player->PunchCanHurt = false;
-						PlayEffect3D(EFFECT_PUNCHHIT, &fistCoord);
+						PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
 					}
 				}
 			}
