@@ -23,6 +23,8 @@ static void ShootStunPulse(ObjNode *theNode, OGLPoint3D *where, OGLVector3D *aim
 static void MoveStunPulseRipple(ObjNode *theNode);
 static Boolean DoWeaponCollisionDetect(ObjNode *theNode);
 static void	WeaponAutoTarget(OGLPoint3D *where, OGLVector3D *aim);
+static Boolean DetectAndExecuteVRPunch(ObjNode *player);
+static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID);
 static Boolean SeeIfDoPickup(ObjNode *player);
 static void MoveDisposedWeapon(ObjNode *theNode);
 static void ChangeWeapons(int startIndex, int delta, bool tryStartSlotFirst);
@@ -151,6 +153,10 @@ void CheckWeaponChangeControls(ObjNode* theNode)
 
 void CheckPOWControls(ObjNode *theNode)
 {
+
+    static bool wasGrippingRight = false; 
+    static bool wasGrippingLeft = false;
+
 		/* SEE IF SHOOT GUN */
 
 	// Prevent multi-fire while trigger is held
@@ -173,6 +179,36 @@ void CheckPOWControls(ObjNode *theNode)
 		gunShotVRblocked = true; // Prevent double fire
 	}
 
+	/* SEE IF VR GRIP PICKUP */
+	else if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f)
+	{
+		if (!wasGrippingRight)  // Edge detection
+		{
+			SeeIfDoVRGripPickup(theNode, vrFistRight);
+		}
+		wasGrippingRight = true;
+	}
+	else if (vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f)
+	{
+		if (!wasGrippingLeft)  // Edge detection
+		{
+			SeeIfDoVRGripPickup(theNode, vrFistLeft);
+		}
+		wasGrippingLeft = true;
+	}
+
+	/* SEE IF VR PUNCH MOTION - Right hand */
+	if (vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f && DetectAndExecuteVRPunch(theNode, vrFistRight))
+	{
+		StartPunch(theNode);
+	}
+
+	/* SEE IF VR PUNCH MOTION - Left hand */
+	if (vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f && DetectAndExecuteVRPunch(theNode, vrFistLeft))
+	{
+		StartPunch(theNode);
+	}
+
 		/* SEE IF PUNCH / PICKUP */
 
 	else
@@ -190,6 +226,16 @@ void CheckPOWControls(ObjNode *theNode)
 	{
 		CheckWeaponChangeControls(theNode);
 	}
+
+	// Reset grip state if not pressed
+    if (!vrcpp_GetAnalogActionData(vrFistRight).x >= 0.4f)
+    {
+        wasGrippingRight = false;
+    }
+	    if (!vrcpp_GetAnalogActionData(vrFistLeft).x >= 0.4f)
+    {
+        wasGrippingLeft = false;
+    }
 }
 
 
@@ -221,7 +267,7 @@ static void ShootWeapon(ObjNode *theNode)
 {
 OGLPoint3D		muzzleCoord;
 OGLVector3D		muzzleVector;
-OGLMatrix4x4 rotOnly = vrInfoLeftHand.worldSpaceRotationMatrix;
+OGLMatrix4x4 rotOnly = vrInfoLeftHand.gameplayRotationMatrix; // Includes pitch correction 
 OGLMatrix4x4 transOnly = vrInfoLeftHand.scaledPlayspaceTranslationMatrix;
 
 
@@ -248,7 +294,7 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.scaledPlayspaceTranslationMatrix;
 		muzzleCoord.z += lhand->Coord.z;
 
 
-		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &vrInfoLeftHand.worldSpaceRotationMatrix, &muzzleVector);
+		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &rotOnly, &muzzleVector);
 
 		printf("SHOT!!!\n");
 		printf("muzzleCoord.x: %f\n", muzzleCoord.x);
@@ -1046,6 +1092,180 @@ explode_weapon:
 
 	return(false);
 }
+
+
+
+/********************** SEE IF DO VR PUNCH *****************************/
+static Boolean DetectAndExecuteVRPunch(ObjNode *player, int whichHand)
+{
+    // Separate static bool for each hand!
+    static bool wasPunchingRight = false;
+    static bool wasPunchingLeft = false;
+    
+    // Select which hand we're checking
+    TrackedVrDeviceInfo *handInfo;
+    ObjNode *handObj;
+    bool *wasPunching;
+    
+    if (whichHand == vrFistRight)
+    {
+        handInfo = &vrInfoRightHand;
+        handObj = gPlayerInfo.rightHandObj;
+        wasPunching = &wasPunchingRight;
+    }
+    else  // vrFistLeft
+    {
+        handInfo = &vrInfoLeftHand;
+        handObj = gPlayerInfo.leftHandObj;
+        wasPunching = &wasPunchingLeft;
+    }
+    
+    // Check hand speed
+    float vx = handInfo->velocity.x;
+    float vy = handInfo->velocity.y;
+    float vz = handInfo->velocity.z;
+    float speed = sqrt(vx*vx + vy*vy + vz*vz);
+    float punchThreshold = 3.5f * VRroomDistanceToGameDistanceScale;
+    
+    if (speed < punchThreshold)
+    {
+        *wasPunching = false;
+        return false;
+    }
+    
+    // Get hand position
+    OGLPoint3D fistCoord;
+    fistCoord.x = handObj->Coord.x;
+    fistCoord.y = handObj->Coord.y;
+    fistCoord.z = handObj->Coord.z;
+    
+    float fistSize = 30.0f * gPlayerInfo.scale;
+    
+    if (DoSimpleBoxCollision(fistCoord.y + fistSize, fistCoord.y - fistSize,
+                             fistCoord.x - fistSize, fistCoord.x + fistSize,
+                             fistCoord.z + fistSize, fistCoord.z - fistSize,
+                             CTYPE_MISC | CTYPE_ENEMY | CTYPE_TRIGGER | CTYPE_POWERUP))
+    {
+		// Only damage if we haven't already punched this swing
+		if (!(*wasPunching))
+		{
+			for (int i = 0; i < gNumCollisions; i++)
+			{
+				ObjNode *hitObj = gCollisionList[i].objectPtr;
+
+				if (hitObj && hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])
+				{
+					Boolean endPunch = (hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])(
+						handObj, hitObj, &fistCoord, nil
+						);
+
+					// Always play haptics if we hit something with a handler
+					if (whichHand == vrFistRight) {
+						PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
+					}
+					else {
+						PlayEffect3D(EFFECT_PUNCHHIT_LEFT, &fistCoord);
+					}
+
+					// Mark as punched (prevents spam) - do this regardless of endPunch
+					*wasPunching = true;
+
+					// Only return true (end punch early) if handler says so
+					if (endPunch)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+    
+    return false;
+}
+
+
+
+/********************** SEE IF DO VR PICKUP *****************************/
+
+static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID)
+{
+    ObjNode *thisNode, *nearest;
+    float bestDist;
+	ObjNode *hand;
+
+	if (vrFistID == vrFistRight){
+		hand = gPlayerInfo.rightHandObj;
+	} else {
+		hand = gPlayerInfo.leftHandObj;
+	}
+    
+    // Get hand position directly from hand object
+    float handX = hand->Coord.x;
+    float handY = hand->Coord.y;
+    float handZ = hand->Coord.z;
+    
+    bestDist = 10000000;
+    nearest = nil;
+    
+    /* SCAN FOR NEAREST PICKUP IN REACH */
+    thisNode = gFirstNodePtr;
+    do
+    {
+        if (!(thisNode->CType & CTYPE_POWERUP))
+            goto next;
+        if (thisNode->StatusBits & STATUS_BIT_HIDDEN)
+            goto next;
+        
+        // Calculate 3D distance to item
+        float dx = thisNode->Coord.x - handX;
+        float dy = thisNode->Coord.y - handY;
+        float dz = thisNode->Coord.z - handZ;
+        float dist = sqrt(dx*dx + dy*dy + dz*dz);
+        
+        // Check if within reach (tune this value to allow grabbing from further or closer)
+        if ((dist < bestDist) && (dist < 75.0f))
+        {
+            bestDist = dist;
+            nearest = thisNode;
+        }
+next:
+        thisNode = thisNode->NextNode;
+    } while(thisNode != nil);
+    
+    /* PICK UP IMMEDIATELY (no animation) */
+    if (nearest)
+    {
+        gTargetPickup = nearest;
+        player->IsHoldingPickup = true;
+        
+        // Add to inventory
+        AddPowerupToInventory(nearest);
+        
+        // Play sound at hand location
+        OGLPoint3D handPos;
+        handPos.x = handX;
+        handPos.y = handY;
+        handPos.z = handZ;
+        PlayEffect3D(EFFECT_WEAPONDEPOSIT, &handPos);
+        
+        // Handle item (regenerate or delete)
+        if (nearest->POWRegenerate) {
+            nearest->StatusBits |= STATUS_BIT_HIDDEN;
+            if (nearest->ShadowNode)
+                nearest->ShadowNode->StatusBits |= STATUS_BIT_HIDDEN;
+            nearest->CType = 0;
+        } else {
+            DeleteObject(nearest);
+        }
+        
+        gTargetPickup = nil;
+        return true;
+    }
+    
+    return false;
+}
+
+
 
 
 /********************** SEE IF DO PICKUP *****************************/

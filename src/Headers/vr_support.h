@@ -94,6 +94,7 @@ typedef struct
 	OGLMatrix4x4 worldSpaceTransformMatrix; // CORRECTED for gameYaw
 	OGLMatrix4x4 worldSpaceRotationMatrix; // CORRECTED for gameYaw
 	OGLMatrix4x4 scaledPlayspaceTranslationMatrix; // NOT corrected for gameYaw
+	OGLMatrix4x4 gameplayRotationMatrix; // For hands, includes pitch correction, needed for muzzle alignment
 
 
 		// Rotation special
@@ -116,6 +117,7 @@ typedef struct
 	uint32_t gEyeTargetWidth;
 	uint32_t gEyeTargetHeight;
 
+	OGLVector3D velocity;
 
 }TrackedVrDeviceInfo;
 

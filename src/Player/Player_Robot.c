@@ -1899,8 +1899,22 @@ void UpdateRobotHands(ObjNode *theNode)
 				debugShiftAccum++;
 			}
 
-			// * Right hand
-			float handScale = 0.7f;
+			// * HANDS 
+
+			// Rotation model offsets in degrees
+			float handPitchOffset = 8.0f;
+			float handYawOffset = 0.0f;     // If used, must reverse for other hand
+			float handRollOffset = 0.0f;	// If used, must reverse for other hand
+
+			OGLMatrix4x4 localHandRotation;
+			OGLMatrix4x4_SetRotate_XYZ(&localHandRotation,
+				OGLMath_DegreesToRadians(handPitchOffset),
+				OGLMath_DegreesToRadians(handYawOffset),
+				OGLMath_DegreesToRadians(handRollOffset));
+			
+
+
+			float handScale = 0.75f;
 			int scaleDamping = 2.5;
 
 			if (gPlayerInfo.scale  >= 1.3){
@@ -1909,8 +1923,8 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// Local hand model offsets - changes the "pivot point" for rotation relative to controller
 			float handModelOffsetX = 0.0f;
-			float handModelOffsetY = 12;
-			float handModelOffsetZ = 15; // * 22 seems good, 25 was nicer with holding the gun but looks stranger with no gun
+			float handModelOffsetY = 10;
+			float handModelOffsetZ = 22; // * 22 seems good, 25 was nicer with holding the gun but looks stranger with no gun
 
 
 			// Calculate the vertical hand model offset for translation only
@@ -1918,8 +1932,15 @@ void UpdateRobotHands(ObjNode *theNode)
 			// we must compensate for that or the hands are too low
 			float handVerticalOffset = playerEyeHeight; // * -38 seems good
 
+
+			// * Right hand
 			// Start with the rotation matrix (rotation around origin)
 			OGLMatrix4x4 handMatrix = vrInfoRightHand.worldSpaceRotationMatrix;
+
+			// Apply rotation offset
+			OGLMatrix4x4_Multiply(&localHandRotation, &handMatrix, &handMatrix);
+			vrInfoRightHand.gameplayRotationMatrix = handMatrix; // Needed for muzzle - gun
+
 
 			// Apply scale to ALL components of the rotation matrix
 			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
@@ -1959,6 +1980,12 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// 1. Rotation matrix (rotation around origin)
 			handMatrix = vrInfoLeftHand.worldSpaceRotationMatrix;
+
+			// Apply rotation offset
+			OGLMatrix4x4_Multiply(&localHandRotation, &handMatrix, &handMatrix);
+			vrInfoLeftHand.gameplayRotationMatrix = handMatrix; // Needed for muzzle - gun
+
+
 
 			// Apply scale to ALL components of the rotation matrix
 			OGLMatrix4x4_ApplyUniformScale(&handMatrix, handScale);
@@ -2952,7 +2979,7 @@ static void CheckPunchCollision(ObjNode *player)
 					if (endPunch)
 					{
 						player->PunchCanHurt = false;
-						PlayEffect3D(EFFECT_PUNCHHIT, &fistCoord);
+						PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
 					}
 				}
 			}
