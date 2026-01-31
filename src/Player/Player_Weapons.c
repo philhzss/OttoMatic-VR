@@ -267,7 +267,7 @@ static void ShootWeapon(ObjNode *theNode)
 {
 OGLPoint3D		muzzleCoord;
 OGLVector3D		muzzleVector;
-OGLMatrix4x4 rotOnly = vrInfoLeftHand.worldSpaceRotationMatrix;
+OGLMatrix4x4 rotOnly = vrInfoLeftHand.gameplayRotationMatrix; // Includes pitch correction 
 OGLMatrix4x4 transOnly = vrInfoLeftHand.scaledPlayspaceTranslationMatrix;
 
 
@@ -294,7 +294,7 @@ OGLMatrix4x4 transOnly = vrInfoLeftHand.scaledPlayspaceTranslationMatrix;
 		muzzleCoord.z += lhand->Coord.z;
 
 
-		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &vrInfoLeftHand.worldSpaceRotationMatrix, &muzzleVector);
+		OGLVector3D_Transform(&gPlayerMuzzleTipAim, &rotOnly, &muzzleVector);
 
 		printf("SHOT!!!\n");
 		printf("muzzleCoord.x: %f\n", muzzleCoord.x);
@@ -1146,37 +1146,39 @@ static Boolean DetectAndExecuteVRPunch(ObjNode *player, int whichHand)
                              fistCoord.z + fistSize, fistCoord.z - fistSize,
                              CTYPE_MISC | CTYPE_ENEMY | CTYPE_TRIGGER | CTYPE_POWERUP))
     {
-        // Only damage if we haven't already punched this swing
-        if (!(*wasPunching))
-        {
-            for (int i = 0; i < gNumCollisions; i++)
-            {
-                ObjNode *hitObj = gCollisionList[i].objectPtr;
-                
-                if (hitObj && hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])
-                {
-                    Boolean endPunch = (hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])(
-                        handObj,  // Use the selected hand object
-                        hitObj, 
-                        &fistCoord, 
-                        nil
-                    );
-                    
-                    if (endPunch)
-                    {
-						if (whichHand == vrFistRight) {
-							PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
-						}
-						else {
-							PlayEffect3D(EFFECT_PUNCHHIT_LEFT, &fistCoord);
-						}
-                        *wasPunching = true;  // Mark that we punched
-                        return true;
-                    }
-                }
-            }
-        }
-    }
+		// Only damage if we haven't already punched this swing
+		if (!(*wasPunching))
+		{
+			for (int i = 0; i < gNumCollisions; i++)
+			{
+				ObjNode *hitObj = gCollisionList[i].objectPtr;
+
+				if (hitObj && hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])
+				{
+					Boolean endPunch = (hitObj->HitByWeaponHandler[WEAPON_TYPE_FIST])(
+						handObj, hitObj, &fistCoord, nil
+						);
+
+					// Always play haptics if we hit something with a handler
+					if (whichHand == vrFistRight) {
+						PlayEffect3D(EFFECT_PUNCHHIT_RIGHT, &fistCoord);
+					}
+					else {
+						PlayEffect3D(EFFECT_PUNCHHIT_LEFT, &fistCoord);
+					}
+
+					// Mark as punched (prevents spam) - do this regardless of endPunch
+					*wasPunching = true;
+
+					// Only return true (end punch early) if handler says so
+					if (endPunch)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
     
     return false;
 }

@@ -1902,7 +1902,7 @@ void UpdateRobotHands(ObjNode *theNode)
 			// * HANDS 
 
 			// Rotation model offsets in degrees
-			float handPitchOffset = 0.0f;
+			float handPitchOffset = 8.0f;
 			float handYawOffset = 0.0f;     // If used, must reverse for other hand
 			float handRollOffset = 0.0f;	// If used, must reverse for other hand
 
@@ -1939,6 +1939,7 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// Apply rotation offset
 			OGLMatrix4x4_Multiply(&localHandRotation, &handMatrix, &handMatrix);
+			vrInfoRightHand.gameplayRotationMatrix = handMatrix; // Needed for muzzle - gun
 
 
 			// Apply scale to ALL components of the rotation matrix
@@ -1982,6 +1983,8 @@ void UpdateRobotHands(ObjNode *theNode)
 
 			// Apply rotation offset
 			OGLMatrix4x4_Multiply(&localHandRotation, &handMatrix, &handMatrix);
+			vrInfoLeftHand.gameplayRotationMatrix = handMatrix; // Needed for muzzle - gun
+
 
 
 			// Apply scale to ALL components of the rotation matrix
