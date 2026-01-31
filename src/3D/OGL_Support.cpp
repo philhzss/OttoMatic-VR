@@ -83,8 +83,10 @@ int cameraYOffset = 0; // This affects everything seen through HMD (including ma
 // ? Player eye height, offset to make your head the same height as Otto's head. Affected by VRroomDistanceToGameDistanceScale
 // * Standing mode
 int playerEyeHeight = -140; // This affects the eye height in levels only
+
 // * Sitting mode -> Must be tested more, we should probably have a calibrate height feature (issue philhzss/OttoMatic-VR#55) instead of this method
 // int playerEyeHeight = -60; // This affects the eye height in levels only
+
 
 float	gCurrentAspectRatio = 1;
 float	g2DLogicalWidth = 640.0f;
