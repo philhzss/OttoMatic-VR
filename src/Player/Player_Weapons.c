@@ -23,7 +23,7 @@ static void ShootStunPulse(ObjNode *theNode, OGLPoint3D *where, OGLVector3D *aim
 static void MoveStunPulseRipple(ObjNode *theNode);
 static Boolean DoWeaponCollisionDetect(ObjNode *theNode);
 static void	WeaponAutoTarget(OGLPoint3D *where, OGLVector3D *aim);
-static Boolean DetectAndExecuteVRPunch(ObjNode *player);
+static Boolean DetectAndExecuteVRPunch(ObjNode *player, int whichHand);
 static Boolean SeeIfDoVRGripPickup(ObjNode *player, int vrFistID);
 static Boolean SeeIfDoPickup(ObjNode *player);
 static void MoveDisposedWeapon(ObjNode *theNode);

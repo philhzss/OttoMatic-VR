@@ -2108,7 +2108,7 @@ void DumpVRDebugInfo()
     printf("VRroomDistanceToGameDistanceScale: %.1f\n", VRroomDistanceToGameDistanceScale);
     printf("gWorldScale: %.3f\n", gWorldScale);
     printf("gIpdScale: %.1f\n", gIpdScale);
-    printf("playerEyeHeight: %.1f\n", playerEyeHeight);
+    printf("playerEyeHeight: %i\n", playerEyeHeight);
     
     printf("=====================================\n\n");
 	debugInfoCounter++;

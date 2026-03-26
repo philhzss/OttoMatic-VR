@@ -129,6 +129,7 @@ extern "C" {
 	extern TrackedVrDeviceInfo vrInfoRightHand;
 	extern OGLPoint3D gVRPlayspaceCenter;
 	extern float RotateOffsetByTotalYaw(float offsetX, float offsetZ, float* outX, float* outZ);
+	extern float calMoveAccelVector(ObjNode *node);
 #ifdef __cplusplus
 }
 #endif

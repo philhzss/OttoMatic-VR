@@ -76,6 +76,7 @@ extern "C"
 #include "tga.h"
 #include "menu.h"
 #include "vr_support.h"
+#include <stdio.h>
 
 
 		/* VR (C Code only) */
