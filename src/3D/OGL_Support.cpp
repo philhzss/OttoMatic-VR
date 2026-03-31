@@ -687,7 +687,14 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         return;
     }
 
-    vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    {
+        uint64_t wgp_start = SDL_GetPerformanceCounter();
+        vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+        uint64_t wgp_end = SDL_GetPerformanceCounter();
+        float wgp_ms = (float)(wgp_end - wgp_start) * 1000.0f / (float)SDL_GetPerformanceFrequency();
+        if (wgp_ms > 0.5f)
+            printf("[VR] WaitGetPoses blocked: %.2f ms\n", wgp_ms);
+    }
     vrcpp_updateTrackedDevices();
 
     // LEFT EYE - Render to FBO
