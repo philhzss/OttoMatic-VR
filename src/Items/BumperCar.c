@@ -81,6 +81,8 @@ static ObjNode	*gCarList[MAX_AREAS][MAX_CARS];
 
 static OGLPoint3D	gGeneratorCoords[MAX_AREAS][MAX_GENERATORS];
 static	Byte		gGeneratorBlownMode[MAX_AREAS][MAX_GENERATORS];
+static float   sBeamYO[MAX_AREAS][MAX_GENERATORS];
+static float   sBeamU[MAX_AREAS][MAX_GENERATORS];
 
 static	short		gNumGenerators[MAX_AREAS];
 
@@ -1174,10 +1176,14 @@ short	a;
 			if ((gGeneratorBlownMode[a][i] != GENERATOR_MODE_BLOWN) && (gGeneratorBlownMode[a][i2] != GENERATOR_MODE_BLOWN))	// if either post is blown then skip
 			{
 					/* DRAW A QUAD */
-
-				yo = 20.0f + RandomFloat() * 10.0f;
-
-				u = RandomFloat() * 5.0f;
+				// But cache the RandomFloats because both eyes need the same value
+				if (gGameViewInfoPtr->renderLeftEye)
+				{
+					sBeamYO[a][i] = 20.0f + RandomFloat() * 10.0f;
+					sBeamU[a][i] = RandomFloat() * 5.0f;
+				}
+				yo = sBeamYO[a][i];
+				u = sBeamU[a][i];
 				u2 = u + 5.0f;
 
 				MO_DrawMaterial(gSpriteGroupList[SPRITE_GROUP_LEVELSPECIFIC][CLOUD_SObjType_BlueBeam].materialObject);
