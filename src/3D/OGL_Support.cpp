@@ -109,6 +109,7 @@ int			gStateStackIndex = 0;
 
 int			gPolysThisFrame;
 int			gVRAMUsedThisFrame = 0;
+float		gVRDrawRoutineMs = 0;		// accumulated drawRoutine() time across both eyes, reset each stats report
 
 Boolean		gMyState_Lighting;
 
@@ -687,17 +688,28 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         return;
     }
 
+    // ---- FRAME TIMING STATS (rolling average printed every 90 frames) ----
+    static float s_leftMs = 0, s_rightMs = 0, s_submitMs = 0, s_mirrorMs = 0, s_totalMs = 0;
+    static int   s_frameCount = 0;
+    uint64_t freq = SDL_GetPerformanceFrequency();
+
+    // WaitGetPoses: ~10ms blocking is normal (it's compositor-imposed idle time).
+    // Only log when SHORT -- that means the previous frame ran over budget.
     {
-        uint64_t wgp_start = SDL_GetPerformanceCounter();
+        uint64_t t0 = SDL_GetPerformanceCounter();
         vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
-        uint64_t wgp_end = SDL_GetPerformanceCounter();
-        float wgp_ms = (float)(wgp_end - wgp_start) * 1000.0f / (float)SDL_GetPerformanceFrequency();
-        if (wgp_ms > 0.5f)
-            printf("[VR] WaitGetPoses blocked: %.2f ms\n", wgp_ms);
+        float wgp_ms = (float)(SDL_GetPerformanceCounter() - t0) * 1000.0f / (float)freq;
+        if (wgp_ms < 5.0f)
+            printf("[VR] Late frame! WaitGetPoses only blocked %.2f ms (prev frame over budget)\n", wgp_ms);
     }
+
+    uint64_t t_work_start = SDL_GetPerformanceCounter();
+
     vrcpp_updateTrackedDevices();
 
     // LEFT EYE - Render to FBO
+    uint64_t t_left_start = SDL_GetPerformanceCounter();
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gLeftEyeFBO);
     glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
@@ -731,10 +743,11 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     gGameViewInfoPtr->renderLeftEye = true;
     OGL_DrawEye(drawRoutine);
     glPopMatrix();
-    
+
     // CHECK FOR ERRORS AFTER LEFT EYE
     if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after LEFT eye render\n");
 
+    uint64_t t_left_end = SDL_GetPerformanceCounter();
 
     // RIGHT EYE - Render to FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gRightEyeFBO);
@@ -782,28 +795,32 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     // CHECK FOR ERRORS AFTER UNBIND
     if (glGetError() != GL_NO_ERROR) printf("Error after FBO unbind\n");
 
+    uint64_t t_right_end = SDL_GetPerformanceCounter();
     // lights and listenerLocation, cleanup and put elsewhere?:
     OGL_Camera_SetPlacementAndUpdateMatrices();
 
 	// Important: restore state
-	glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
-
+    glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
 
     // ========================================
     // 		SUBMIT TO VR COMPOSITOR
     // ========================================
+    // Submit() forces a GPU sync so this time reflects actual GPU render cost.
+    uint64_t t_submit_start = SDL_GetPerformanceCounter();
     if (gIVRSystem)
     {
-        vr::Texture_t leftEyeTexture = { (void *)(uintptr_t)gLeftEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t leftEyeTexture  = { (void *)(uintptr_t)gLeftEyeTexture,  vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
         vr::Texture_t rightEyeTexture = { (void *)(uintptr_t)gRightEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-        vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
+        vr::VRCompositor()->Submit(vr::Eye_Left,  &leftEyeTexture,  nullptr);
         vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
     }
+    uint64_t t_submit_end = SDL_GetPerformanceCounter();
 
-	    // ========================================
+   	// ========================================
     // BLIT LEFT EYE TO MIRROR WINDOW
     // ========================================
-    
+    uint64_t t_mirror_start = SDL_GetPerformanceCounter();
+
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, gLeftEyeFBO);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
 
@@ -811,7 +828,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     SDL_GetWindowSize(gSDLWindow, &winWidth, &winHeight);
 
     glBlitFramebufferEXT(
-        0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 
+        0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight,
         0, 0, winWidth, winHeight,
         GL_COLOR_BUFFER_BIT,
         GL_LINEAR
@@ -822,6 +839,31 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 
     // Swap the window to show the mirror
     SDL_GL_SwapWindow(gSDLWindow);
+
+    uint64_t t_mirror_end = SDL_GetPerformanceCounter();
+
+    // ---- ACCUMULATE & REPORT ----
+    static float s_drawMs = 0;
+    static int   s_polyCount = 0;
+    s_leftMs   += (float)(t_left_end    - t_left_start)   * 1000.0f / freq;
+    s_rightMs  += (float)(t_right_end   - t_left_end)     * 1000.0f / freq;
+    s_submitMs += (float)(t_submit_end  - t_submit_start) * 1000.0f / freq;
+    s_mirrorMs += (float)(t_mirror_end  - t_mirror_start) * 1000.0f / freq;
+    s_totalMs  += (float)(t_mirror_end  - t_work_start)   * 1000.0f / freq;
+    s_drawMs   += gVRDrawRoutineMs;
+    s_polyCount += gPolysThisFrame;
+    gVRDrawRoutineMs = 0;
+    s_frameCount++;
+
+    if (s_frameCount >= 90)
+    {
+        float n = (float)s_frameCount;
+        printf("[VR render] avg/frame: draw=%.2f(both eyes)  left=%.2f  right=%.2f  submit=%.2f  mirror=%.2f  TOTAL=%.2f ms  polys=%d\n",
+               s_drawMs/n, s_leftMs/n, s_rightMs/n, s_submitMs/n, s_mirrorMs/n, s_totalMs/n, s_polyCount/s_frameCount);
+        s_leftMs = s_rightMs = s_submitMs = s_mirrorMs = s_totalMs = s_drawMs = 0;
+        s_polyCount = 0;
+        s_frameCount = 0;
+    }
 }
 
 /******************* OGL DRAW EYE *********************/
@@ -832,10 +874,6 @@ void OGL_DrawEye(void (*drawRoutine)(void))
 		DoFatalAlert("OGL_DrawEye gGameViewInfoPtr == nil");
 	if (!gGameViewInfoPtr->isActive)
 		DoFatalAlert("OGL_DrawEye isActive == false");
-
-	bool didMakeCurrent = SDL_GL_MakeCurrent(gSDLWindow, gAGLContext);		// make context active
-	GAME_ASSERT_MESSAGE(didMakeCurrent, SDL_GetError());
-
 
 	if (gGammaFadeFrac <= 0)							// if we just finished fading out and haven't started fading in yet, just show black
 	{
@@ -931,7 +969,12 @@ do_anaglyph:
 		glDepthMask(GL_TRUE);
 
 		if (drawRoutine != nil)
+		{
+			uint64_t t_draw_start = SDL_GetPerformanceCounter();
 			drawRoutine();
+			uint64_t t_draw_end = SDL_GetPerformanceCounter();
+			gVRDrawRoutineMs += (float)(t_draw_end - t_draw_start) * 1000.0f / (float)SDL_GetPerformanceFrequency();
+		}
 
 		OGL_CheckError();
 

@@ -331,6 +331,17 @@ int	i;
 
 	geoObj->objectData = *data;									// copy from input data
 
+			/* INIT VBO FIELDS TO 0 */
+
+	geoObj->objectData.vbo_points = 0;
+	geoObj->objectData.vbo_normals = 0;
+	for (i = 0; i < MAX_MATERIAL_LAYERS; i++)
+		geoObj->objectData.vbo_uvs[i] = 0;
+	geoObj->objectData.vbo_colors_byte = 0;
+	geoObj->objectData.vbo_colors_float = 0;
+	geoObj->objectData.ebo_triangles = 0;
+	geoObj->objectData.lastSeenFrame = 0;
+
 
 		/* INCREASE MATERIAL REFERENCE COUNTS */
 
@@ -587,10 +598,87 @@ int	numChildren,i;
 
 /******************** MO: DRAW GEOMETRY - VERTEX ARRAY *************************/
 
-void MO_DrawGeometry_VertexArray(const MOVertexArrayData *data)
+void MO_DrawGeometry_VertexArray(MOVertexArrayData *data)
 {
 Boolean		useTexture = false, multiTexture = false;
 uint32_t 	materialFlags;
+
+
+			/**********************/
+			/* LAZY VBO CREATION  */
+			/**********************/
+			//
+			// After a mesh survives its first frame we know it's persistent,
+			// so upload all arrays to the GPU once (GL_STATIC_DRAW).
+			// isDynamic=true meshes (animated/per-frame) skip this entirely.
+			//
+
+	if (!data->isDynamic)
+	{
+		if (data->vbo_points == 0 &&
+			data->lastSeenFrame > 0 &&
+			data->lastSeenFrame != (uint32_t)gGameFrameNum)
+		{
+			if (data->numPoints <= 0 || data->numTriangles <= 0)
+			{
+				DoFatalAlert("Invalid mesh data: numPoints or numTriangles <= 0");
+			}
+			if (data->numPoints > 100000 || data->numTriangles > 100000)
+			{
+				DoFatalAlert("Mesh too large: numPoints or numTriangles > 100000");
+			}
+			printf("Creating VBOs for mesh: numPoints=%d, numTriangles=%d\n", data->numPoints, data->numTriangles);
+			glGenBuffers(1, &data->vbo_points);
+			glBindBuffer(GL_ARRAY_BUFFER, data->vbo_points);
+			glBufferData(GL_ARRAY_BUFFER, data->numPoints * sizeof(OGLPoint3D), data->points, GL_STATIC_DRAW);
+			if (OGL_CheckError()) DoFatalAlert("VBO points allocation failed");
+
+			if (data->normals)
+			{
+				glGenBuffers(1, &data->vbo_normals);
+				glBindBuffer(GL_ARRAY_BUFFER, data->vbo_normals);
+				glBufferData(GL_ARRAY_BUFFER, data->numPoints * sizeof(OGLVector3D), data->normals, GL_STATIC_DRAW);
+				if (OGL_CheckError()) DoFatalAlert("VBO normals allocation failed");
+			}
+
+			for (int vi = 0; vi < MAX_MATERIAL_LAYERS; vi++)
+			{
+				if (data->uvs[vi])
+				{
+					glGenBuffers(1, &data->vbo_uvs[vi]);
+					glBindBuffer(GL_ARRAY_BUFFER, data->vbo_uvs[vi]);
+					glBufferData(GL_ARRAY_BUFFER, data->numPoints * sizeof(OGLTextureCoord), data->uvs[vi], GL_STATIC_DRAW);
+					if (OGL_CheckError()) DoFatalAlert("VBO UVs allocation failed");
+				}
+			}
+
+			if (data->colorsByte)
+			{
+				glGenBuffers(1, &data->vbo_colors_byte);
+				glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_byte);
+				glBufferData(GL_ARRAY_BUFFER, data->numPoints * sizeof(OGLColorRGBA_Byte), data->colorsByte, GL_STATIC_DRAW);
+				if (OGL_CheckError()) DoFatalAlert("VBO colors byte allocation failed");
+			}
+
+			if (data->colorsFloat)
+			{
+				glGenBuffers(1, &data->vbo_colors_float);
+				glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_float);
+				glBufferData(GL_ARRAY_BUFFER, data->numPoints * sizeof(OGLColorRGBA), data->colorsFloat, GL_STATIC_DRAW);
+				if (OGL_CheckError()) DoFatalAlert("VBO colors float allocation failed");
+			}
+
+			glGenBuffers(1, &data->ebo_triangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data->ebo_triangles);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->numTriangles * 3 * sizeof(GLuint), data->triangles, GL_STATIC_DRAW);
+			if (OGL_CheckError()) DoFatalAlert("EBO triangles allocation failed");
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
+
+		data->lastSeenFrame = (uint32_t)gGameFrameNum;
+	}
 
 
 			/**********************/
@@ -598,7 +686,13 @@ uint32_t 	materialFlags;
 			/**********************/
 
 	glEnableClientState(GL_VERTEX_ARRAY);				// enable vertex arrays
-	glVertexPointer(3, GL_FLOAT, 0, data->points);		// point to point array
+	if (data->vbo_points) {
+		glBindBuffer(GL_ARRAY_BUFFER, data->vbo_points);
+		glVertexPointer(3, GL_FLOAT, 0, NULL);			// VBO offset 0
+	} else {
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glVertexPointer(3, GL_FLOAT, 0, data->points);	// CPU pointer
+	}
 
 	if (OGL_CheckError())
 		DoFatalAlert("MO_DrawGeometry_VertexArray: glVertexPointer!");
@@ -609,7 +703,13 @@ uint32_t 	materialFlags;
 
 	if (data->normals)									// do we have normals
 	{
-		glNormalPointer(GL_FLOAT, 0, data->normals);
+		if (data->vbo_normals) {
+			glBindBuffer(GL_ARRAY_BUFFER, data->vbo_normals);
+			glNormalPointer(GL_FLOAT, 0, NULL);
+		} else {
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glNormalPointer(GL_FLOAT, 0, data->normals);
+		}
 		glEnableClientState(GL_NORMAL_ARRAY);			// enable normal arrays
 
 #if 0
@@ -651,13 +751,15 @@ uint32_t 	materialFlags;
 	{
 		if (data->colorsFloat)									// do we have float colors?
 		{
-			glColorPointer(4, GL_FLOAT, 0, data->colorsFloat);
+			if (data->vbo_colors_float) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_float); glColorPointer(4, GL_FLOAT, 0, NULL); }
+			else { glBindBuffer(GL_ARRAY_BUFFER, 0); glColorPointer(4, GL_FLOAT, 0, data->colorsFloat); }
 			glEnableClientState(GL_COLOR_ARRAY);				// enable color arrays
 		}
 		else
 		if (data->colorsByte)									// no floats, so check bytes
 		{
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, data->colorsByte);
+			if (data->vbo_colors_byte) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_byte); glColorPointer(4, GL_UNSIGNED_BYTE, 0, NULL); }
+			else { glBindBuffer(GL_ARRAY_BUFFER, 0); glColorPointer(4, GL_UNSIGNED_BYTE, 0, data->colorsByte); }
 			glEnableClientState(GL_COLOR_ARRAY);				// enable color arrays
 		}
 		else
@@ -670,13 +772,15 @@ uint32_t 	materialFlags;
 	{
 		if (data->colorsByte)									// do we have byte colors?
 		{
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, data->colorsByte);
+			if (data->vbo_colors_byte) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_byte); glColorPointer(4, GL_UNSIGNED_BYTE, 0, NULL); }
+			else { glBindBuffer(GL_ARRAY_BUFFER, 0); glColorPointer(4, GL_UNSIGNED_BYTE, 0, data->colorsByte); }
 			glEnableClientState(GL_COLOR_ARRAY);				// enable color arrays
 		}
 		else
 		if (data->colorsFloat)									// no bytes, so check floats
 		{
-			glColorPointer(4, GL_FLOAT, 0, data->colorsFloat);
+			if (data->vbo_colors_float) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_colors_float); glColorPointer(4, GL_FLOAT, 0, NULL); }
+			else { glBindBuffer(GL_ARRAY_BUFFER, 0); glColorPointer(4, GL_FLOAT, 0, data->colorsFloat); }
 			glEnableClientState(GL_COLOR_ARRAY);				// enable color arrays
 		}
 		else
@@ -719,7 +823,8 @@ uint32_t 	materialFlags;
 				glClientActiveTextureARB(GL_TEXTURE0_ARB+i);
 				glEnable(GL_TEXTURE_2D);
 
-				glTexCoordPointer(2, GL_FLOAT, 0,data->uvs[i]);						// enable uv arrays
+				if (data->vbo_uvs[i]) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_uvs[i]); glTexCoordPointer(2, GL_FLOAT, 0, NULL); }
+			else { glBindBuffer(GL_ARRAY_BUFFER, 0); glTexCoordPointer(2, GL_FLOAT, 0, data->uvs[i]); }
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
 				MO_DrawMaterial(data->materials[i]);						// submit material #n
@@ -779,7 +884,8 @@ use_current:
 
 									if (i == 0)
 									{
-										glTexCoordPointer(2, GL_FLOAT, 0,data->uvs[0]);					// enable uv arrays
+										if (data->vbo_uvs[0]) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_uvs[0]); glTexCoordPointer(2, GL_FLOAT, 0, NULL); }
+										else { glBindBuffer(GL_ARRAY_BUFFER, 0); glTexCoordPointer(2, GL_FLOAT, 0, data->uvs[0]); }
 										glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 										glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 									}
@@ -828,7 +934,8 @@ use_current:
 
 									if (i == 0)
 									{
-										glTexCoordPointer(2, GL_FLOAT, 0,data->uvs[0]);					// enable uv arrays
+										if (data->vbo_uvs[0]) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_uvs[0]); glTexCoordPointer(2, GL_FLOAT, 0, NULL); }
+										else { glBindBuffer(GL_ARRAY_BUFFER, 0); glTexCoordPointer(2, GL_FLOAT, 0, data->uvs[0]); }
 										glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 										glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 									}
@@ -871,7 +978,8 @@ use_current:
 							/* JUST 1 TEXTURE LAYER */
 				else
 				{
-					glTexCoordPointer(2, GL_FLOAT, 0,data->uvs[0]);
+					if (data->vbo_uvs[0]) { glBindBuffer(GL_ARRAY_BUFFER, data->vbo_uvs[0]); glTexCoordPointer(2, GL_FLOAT, 0, NULL); }
+					else { glBindBuffer(GL_ARRAY_BUFFER, 0); glTexCoordPointer(2, GL_FLOAT, 0, data->uvs[0]); }
 					glEnableClientState(GL_TEXTURE_COORD_ARRAY);	// enable uv arrays
 				}
 
@@ -903,13 +1011,28 @@ go_here:
 			/* DRAW IT */
 			/***********/
 
+			if (OGL_CheckError()) DoFatalAlert("Error before drawing mesh");
+
+//			printf("Drawing mesh: numPoints=%d, numTriangles=%d, vbo_points=%u\n", data->numPoints, data->numTriangles, data->vbo_points);
+
 //	glLockArraysEXT(0, data->numPoints);
-	glDrawElements(GL_TRIANGLES,data->numTriangles*3,GL_UNSIGNED_INT,&data->triangles[0]);
+	if (data->ebo_triangles)
+	{
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, data->ebo_triangles);
+		glDrawElements(GL_TRIANGLES, data->numTriangles*3, GL_UNSIGNED_INT, NULL);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+	else
+	{
+		glDrawElements(GL_TRIANGLES, data->numTriangles*3, GL_UNSIGNED_INT, &data->triangles[0]);
+	}
 
 	if (OGL_CheckError())
 		DoFatalAlert("MO_DrawGeometry_VertexArray: glDrawElements");
 //	glUnlockArraysEXT();
 
+	if (data->vbo_points)
+		glBindBuffer(GL_ARRAY_BUFFER, 0);				// unbind so subsequent CPU-array calls are not confused
 	gPolysThisFrame += data->numPoints;					// inc poly counter
 
 
@@ -1395,6 +1518,16 @@ void MO_DeleteObjectInfo_Geometry_VertexArray(MOVertexArrayData *data)
 		SafeDisposePtr((Ptr)data->triangles);
 		data->triangles = nil;
 	}
+
+		/* DELETE VBOs IF THEY EXIST */
+
+	if (data->vbo_points)        { glDeleteBuffers(1, &data->vbo_points);       data->vbo_points       = 0; }
+	if (data->vbo_normals)       { glDeleteBuffers(1, &data->vbo_normals);      data->vbo_normals      = 0; }
+	if (data->vbo_uvs[0])        { glDeleteBuffers(1, &data->vbo_uvs[0]);       data->vbo_uvs[0]       = 0; }
+	if (data->vbo_uvs[1])        { glDeleteBuffers(1, &data->vbo_uvs[1]);       data->vbo_uvs[1]       = 0; }
+	if (data->vbo_colors_byte)   { glDeleteBuffers(1, &data->vbo_colors_byte);  data->vbo_colors_byte  = 0; }
+	if (data->vbo_colors_float)  { glDeleteBuffers(1, &data->vbo_colors_float); data->vbo_colors_float = 0; }
+	if (data->ebo_triangles)     { glDeleteBuffers(1, &data->ebo_triangles);    data->ebo_triangles    = 0; }
 }
 
 
@@ -1526,6 +1659,18 @@ int	i,n,s;
 	}
 	else
 		outData->triangles = nil;
+
+		/* MARK AS DYNAMIC: skeleton/animated copies must not get static VBOs */
+
+	outData->isDynamic       = true;
+	outData->vbo_points      = 0;
+	outData->vbo_normals     = 0;
+	outData->vbo_uvs[0]      = 0;
+	outData->vbo_uvs[1]      = 0;
+	outData->vbo_colors_byte = 0;
+	outData->vbo_colors_float = 0;
+	outData->ebo_triangles   = 0;
+	outData->lastSeenFrame   = 0;
 }
 
 #pragma mark -

@@ -1153,6 +1153,7 @@ MOVertexArrayData	mesh;
 			/* BUILD THE MESH */
 			/******************/
 
+	SDL_memset(&mesh, 0, sizeof(mesh));					// zero VBO fields (stack var, never gets VBOs)
 	mesh.numMaterials 	= -1;
 	mesh.numPoints 		= 10*2;
 	mesh.numTriangles 	= 9*2;

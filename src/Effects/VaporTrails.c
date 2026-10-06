@@ -93,6 +93,7 @@ int		i;
 	gSmokeColumnMesh.uvs[0]			= gSmokeColumnUVs;
 	gSmokeColumnMesh.colorsByte		= nil;
 	gSmokeColumnMesh.colorsFloat	= gSmokeColumnColors;
+	gSmokeColumnMesh.isDynamic		= true;				// rebuilt every frame, skip VBOs
 
 
 

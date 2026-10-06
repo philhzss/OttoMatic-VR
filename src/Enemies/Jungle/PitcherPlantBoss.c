@@ -166,6 +166,7 @@ ObjNode	*newObj;
 	gTentacleMesh.uvs[0]		= gTentacleUVs;
 	gTentacleMesh.colorsByte	= nil;
 	gTentacleMesh.colorsFloat	= nil;
+	gTentacleMesh.isDynamic		= true;				// vertex positions rebuilt every frame, skip VBOs
 
 	SetSphereMapInfoOnVertexArrayData(&gTentacleMesh, MULTI_TEXTURE_COMBINE_ADD, SPHEREMAP_SObjType_GreenSheen);
 

@@ -129,7 +129,7 @@ typedef struct
 {
 	int					numMaterials;						// # material layers used in geometry (if negative, then use current texture)
 	MOMaterialObject 	*materials[MAX_MATERIAL_LAYERS];	// a reference to a material meta object
-	
+
 	int					numPoints;							// # vertices in the model
 	int					numTriangles;						// # triangls in the model
 	OGLPoint3D			*points;							// ptr to array of vertex x,y,z coords
@@ -138,6 +138,16 @@ typedef struct
 	OGLColorRGBA_Byte	*colorsByte;						// ptr to array of vertex colors (byte & float versions)
 	OGLColorRGBA		*colorsFloat;
 	MOTriangleIndecies	*triangles;						// ptr to array of triangle triad indecies
+
+	// VBO support (all zero = use CPU arrays; isDynamic = skip VBOs entirely)
+	GLuint				vbo_points;
+	GLuint				vbo_normals;
+	GLuint				vbo_uvs[MAX_MATERIAL_LAYERS];
+	GLuint				vbo_colors_byte;
+	GLuint				vbo_colors_float;
+	GLuint				ebo_triangles;
+	Boolean				isDynamic;							// true = per-frame/animated mesh, never use VBOs
+	uint32_t			lastSeenFrame;						// frame number when last drawn (sentinel for VBO creation)
 }MOVertexArrayData;
 		
 typedef struct
@@ -197,7 +207,7 @@ MetaObjectPtr MO_CreateNewObjectOfType(uint32_t type, uint32_t subType, void *da
 MetaObjectPtr MO_GetNewReference(MetaObjectPtr mo);
 void MO_AppendToGroup(MOGroupObject *group, MetaObjectPtr newObject);
 void MO_AttachToGroupStart(MOGroupObject *group, MetaObjectPtr newObject);
-void MO_DrawGeometry_VertexArray(const MOVertexArrayData *data);
+void MO_DrawGeometry_VertexArray(MOVertexArrayData *data);
 void MO_DrawGroup(const MOGroupObject *object);
 void MO_DrawObject(const MetaObjectPtr object);
 void MO_DrawMaterial(MOMaterialObject *matObj);
