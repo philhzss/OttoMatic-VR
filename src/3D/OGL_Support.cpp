@@ -109,6 +109,7 @@ int			gStateStackIndex = 0;
 
 int			gPolysThisFrame;
 int			gVRAMUsedThisFrame = 0;
+float		gVRDrawRoutineMs = 0;		// accumulated drawRoutine() time across both eyes, reset each stats report
 
 Boolean		gMyState_Lighting;
 
@@ -124,14 +125,24 @@ PFNGLRENDERBUFFERSTORAGEEXTPROC glRenderbufferStorageEXT = NULL;
 PFNGLFRAMEBUFFERRENDERBUFFEREXTPROC glFramebufferRenderbufferEXT = NULL;
 PFNGLCHECKFRAMEBUFFERSTATUSEXTPROC glCheckFramebufferStatusEXT = NULL;
 PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT = NULL;
+PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC glRenderbufferStorageMultisampleEXT = NULL;
+PFNGLDELETEFRAMEBUFFERSEXTPROC glDeleteFramebuffersEXT = NULL;
+PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT = NULL;
 
 // Tmp log file
 std::ofstream gOGLLogFile;
 
+// "Resolve" FBOs: single-sample, color = the eye texture that gets submitted to SteamVR
 GLuint gLeftEyeFBO = 0;
 GLuint gRightEyeFBO = 0;
 GLuint gLeftEyeDepthBuffer = 0;
 GLuint gRightEyeDepthBuffer = 0;
+
+// MSAA FBOs: scene is rendered here when MSAA is on, then resolved (blitted) into the FBOs above
+static int    gEyeMSAASamples = 0;					// 0 = MSAA off, render straight into the resolve FBOs
+static GLuint gEyeMSFBO[2] = {0, 0};				// [0]=left, [1]=right
+static GLuint gEyeMSColorBuffer[2] = {0, 0};
+static GLuint gEyeMSDepthBuffer[2] = {0, 0};
 
 // In your init code - load the function pointers
 void LoadFBOExtension(void)
@@ -156,9 +167,16 @@ void LoadFBOExtension(void)
     if (!glBlitFramebufferEXT) {
         printf("glBlitFramebufferEXT not available!\n");
     }
+
+	glRenderbufferStorageMultisampleEXT = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC)SDL_GL_GetProcAddress("glRenderbufferStorageMultisampleEXT");
+	glDeleteFramebuffersEXT = (PFNGLDELETEFRAMEBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteFramebuffersEXT");
+	glDeleteRenderbuffersEXT = (PFNGLDELETERENDERBUFFERSEXTPROC)SDL_GL_GetProcAddress("glDeleteRenderbuffersEXT");
 }
 
 
+
+static void CreateEyeMSAAFramebuffers(int eyeWidth, int eyeHeight);
+static void DestroyEyeMSAAFramebuffers(void);
 
 void CreateEyeFramebuffers(void)
 {
@@ -200,8 +218,132 @@ void CreateEyeFramebuffers(void)
     } else {
         printf("Right FBO created successfully!\n");
     }
-    
+
+    CreateEyeMSAAFramebuffers(eyeWidth, eyeHeight);
+
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+}
+
+
+/******************** CREATE EYE MSAA FRAMEBUFFERS *****************/
+//
+// The in-game Antialiasing setting (Off/2x/4x/8x) used to request a multisampled
+// desktop window, which does nothing for the headset. Instead, we render each eye
+// into a multisampled FBO and resolve it into the eye texture before Submit().
+// Can be changed live via OGL_ApplyAntialiasingPref().
+//
+
+static void CreateEyeMSAAFramebuffers(int eyeWidth, int eyeHeight)
+{
+	DestroyEyeMSAAFramebuffers();								// free any previous MSAA buffers
+
+	if (gGamePrefs.antialiasingLevel == 0)
+		return;
+
+	if (!glRenderbufferStorageMultisampleEXT || !glBlitFramebufferEXT)
+	{
+		printf("MSAA: multisample FBO extension not available, MSAA disabled\n");
+		return;
+	}
+
+	GLint maxSamples = 0;
+	glGetIntegerv(GL_MAX_SAMPLES_EXT, &maxSamples);
+
+	int samples = 1 << gGamePrefs.antialiasingLevel;				// 1=2x, 2=4x, 3=8x
+	if (samples > maxSamples)
+		samples = maxSamples;
+	if (samples < 2)
+		return;
+
+	for (int eye = 0; eye < 2; eye++)
+	{
+		glGenRenderbuffersEXT(1, &gEyeMSColorBuffer[eye]);
+		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, gEyeMSColorBuffer[eye]);
+		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, samples, GL_RGBA8, eyeWidth, eyeHeight);
+
+		glGenRenderbuffersEXT(1, &gEyeMSDepthBuffer[eye]);
+		glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, gEyeMSDepthBuffer[eye]);
+		glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, samples, GL_DEPTH_COMPONENT24, eyeWidth, eyeHeight);
+
+		glGenFramebuffersEXT(1, &gEyeMSFBO[eye]);
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gEyeMSFBO[eye]);
+		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_RENDERBUFFER_EXT, gEyeMSColorBuffer[eye]);
+		glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_RENDERBUFFER_EXT, gEyeMSDepthBuffer[eye]);
+
+		GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+		if (status != GL_FRAMEBUFFER_COMPLETE_EXT)
+		{
+			printf("MSAA: eye %d FBO incomplete (0x%X), MSAA disabled\n", eye, status);
+			glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+			DestroyEyeMSAAFramebuffers();							// gEyeMSAASamples stays 0 -> plain FBOs are used
+			return;
+		}
+	}
+
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+	gEyeMSAASamples = samples;
+	printf("MSAA: %dx eye framebuffers created (%dx%d)\n", samples, eyeWidth, eyeHeight);
+}
+
+
+/******************** DESTROY EYE MSAA FRAMEBUFFERS *****************/
+
+static void DestroyEyeMSAAFramebuffers(void)
+{
+	gEyeMSAASamples = 0;
+
+	for (int eye = 0; eye < 2; eye++)
+	{
+		if (gEyeMSFBO[eye] && glDeleteFramebuffersEXT)
+			glDeleteFramebuffersEXT(1, &gEyeMSFBO[eye]);
+		if (gEyeMSColorBuffer[eye] && glDeleteRenderbuffersEXT)
+			glDeleteRenderbuffersEXT(1, &gEyeMSColorBuffer[eye]);
+		if (gEyeMSDepthBuffer[eye] && glDeleteRenderbuffersEXT)
+			glDeleteRenderbuffersEXT(1, &gEyeMSDepthBuffer[eye]);
+
+		gEyeMSFBO[eye] = 0;
+		gEyeMSColorBuffer[eye] = 0;
+		gEyeMSDepthBuffer[eye] = 0;
+	}
+}
+
+
+/******************** APPLY ANTIALIASING PREF *****************/
+//
+// Called by the settings screen when the Antialiasing cycler changes,
+// so the new MSAA level takes effect on the next frame without a restart.
+//
+
+void OGL_ApplyAntialiasingPref(void)
+{
+	if (!gLeftEyeFBO)											// eye FBOs not created yet -> will pick up the pref at init
+		return;
+
+	CreateEyeMSAAFramebuffers(vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
+}
+
+
+/******************** EYE RENDER TARGET HELPERS *****************/
+
+static GLuint GetEyeRenderFBO(int eye)
+{
+	if (gEyeMSAASamples > 0)
+		return gEyeMSFBO[eye];
+	return (eye == 0) ? gLeftEyeFBO : gRightEyeFBO;
+}
+
+static void ResolveEyeMSAA(int eye)
+{
+	if (gEyeMSAASamples == 0)
+		return;
+
+	int w = vrInfoHMD.gEyeTargetWidth;
+	int h = vrInfoHMD.gEyeTargetHeight;
+
+	glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, gEyeMSFBO[eye]);
+	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, (eye == 0) ? gLeftEyeFBO : gRightEyeFBO);
+	glBlitFramebufferEXT(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);	// averages the samples into the eye texture
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
 
 
@@ -687,11 +829,29 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         return;
     }
 
-    vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+    // ---- FRAME TIMING STATS (rolling average printed every 90 frames) ----
+    static float s_leftMs = 0, s_rightMs = 0, s_submitMs = 0, s_mirrorMs = 0, s_totalMs = 0;
+    static int   s_frameCount = 0;
+    uint64_t freq = SDL_GetPerformanceFrequency();
+
+    // WaitGetPoses: ~10ms blocking is normal (it's compositor-imposed idle time).
+    // Only log when SHORT -- that means the previous frame ran over budget.
+    {
+        uint64_t t0 = SDL_GetPerformanceCounter();
+        vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
+        float wgp_ms = (float)(SDL_GetPerformanceCounter() - t0) * 1000.0f / (float)freq;
+        if (wgp_ms < 5.0f)
+            printf("[VR] Late frame! WaitGetPoses only blocked %.2f ms (prev frame over budget)\n", wgp_ms);
+    }
+
+    uint64_t t_work_start = SDL_GetPerformanceCounter();
+
     vrcpp_updateTrackedDevices();
 
     // LEFT EYE - Render to FBO
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gLeftEyeFBO);
+    uint64_t t_left_start = SDL_GetPerformanceCounter();
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, GetEyeRenderFBO(0));
     glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
 	// CLEAR IMMEDIATELY AFTER BINDING FBO
@@ -724,13 +884,18 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     gGameViewInfoPtr->renderLeftEye = true;
     OGL_DrawEye(drawRoutine);
     glPopMatrix();
-    
-    // CHECK FOR ERRORS AFTER LEFT EYE
-    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after LEFT eye render\n");
 
+    ResolveEyeMSAA(0);
+
+    // CHECK FOR ERRORS AFTER LEFT EYE
+#ifdef _DEBUG
+    if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after LEFT eye render\n");
+#endif
+
+    uint64_t t_left_end = SDL_GetPerformanceCounter();
 
     // RIGHT EYE - Render to FBO
-    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, gRightEyeFBO);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, GetEyeRenderFBO(1));
     glViewport(0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight);
 
     // CLEAR IMMEDIATELY AFTER BINDING FBO
@@ -766,37 +931,47 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     OGL_DrawEye(drawRoutine);
     glPopMatrix();
 
+    ResolveEyeMSAA(1);
+
     // CHECK FOR ERRORS AFTER RIGHT EYE
+#ifdef _DEBUG
     if (glGetError() != GL_NO_ERROR) printf("Error after RIGHT eye render\n");
+#endif
 
     // Done, unbind FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     
     // CHECK FOR ERRORS AFTER UNBIND
+#ifdef _DEBUG
     if (glGetError() != GL_NO_ERROR) printf("Error after FBO unbind\n");
+#endif
 
+    uint64_t t_right_end = SDL_GetPerformanceCounter();
     // lights and listenerLocation, cleanup and put elsewhere?:
     OGL_Camera_SetPlacementAndUpdateMatrices();
 
 	// Important: restore state
-	glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
-
+    glBindFramebufferEXT(GL_FRAMEBUFFER, 0);
 
     // ========================================
     // 		SUBMIT TO VR COMPOSITOR
     // ========================================
+    // Submit() forces a GPU sync so this time reflects actual GPU render cost.
+    uint64_t t_submit_start = SDL_GetPerformanceCounter();
     if (gIVRSystem)
     {
-        vr::Texture_t leftEyeTexture = { (void *)(uintptr_t)gLeftEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
+        vr::Texture_t leftEyeTexture  = { (void *)(uintptr_t)gLeftEyeTexture,  vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
         vr::Texture_t rightEyeTexture = { (void *)(uintptr_t)gRightEyeTexture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
-        vr::VRCompositor()->Submit(vr::Eye_Left, &leftEyeTexture, nullptr);
+        vr::VRCompositor()->Submit(vr::Eye_Left,  &leftEyeTexture,  nullptr);
         vr::VRCompositor()->Submit(vr::Eye_Right, &rightEyeTexture, nullptr);
     }
+    uint64_t t_submit_end = SDL_GetPerformanceCounter();
 
-	    // ========================================
+   	// ========================================
     // BLIT LEFT EYE TO MIRROR WINDOW
     // ========================================
-    
+    uint64_t t_mirror_start = SDL_GetPerformanceCounter();
+
     glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, gLeftEyeFBO);
     glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, 0);
 
@@ -804,7 +979,7 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     SDL_GetWindowSize(gSDLWindow, &winWidth, &winHeight);
 
     glBlitFramebufferEXT(
-        0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight, 
+        0, 0, vrInfoHMD.gEyeTargetWidth, vrInfoHMD.gEyeTargetHeight,
         0, 0, winWidth, winHeight,
         GL_COLOR_BUFFER_BIT,
         GL_LINEAR
@@ -815,6 +990,31 @@ void OGL_DrawScene(void (*drawRoutine)(void))
 
     // Swap the window to show the mirror
     SDL_GL_SwapWindow(gSDLWindow);
+
+    uint64_t t_mirror_end = SDL_GetPerformanceCounter();
+
+    // ---- ACCUMULATE & REPORT ----
+    static float s_drawMs = 0;
+    static int   s_polyCount = 0;
+    s_leftMs   += (float)(t_left_end    - t_left_start)   * 1000.0f / freq;
+    s_rightMs  += (float)(t_right_end   - t_left_end)     * 1000.0f / freq;
+    s_submitMs += (float)(t_submit_end  - t_submit_start) * 1000.0f / freq;
+    s_mirrorMs += (float)(t_mirror_end  - t_mirror_start) * 1000.0f / freq;
+    s_totalMs  += (float)(t_mirror_end  - t_work_start)   * 1000.0f / freq;
+    s_drawMs   += gVRDrawRoutineMs;
+    s_polyCount += gPolysThisFrame;
+    gVRDrawRoutineMs = 0;
+    s_frameCount++;
+
+    if (s_frameCount >= 90)
+    {
+        float n = (float)s_frameCount;
+        printf("[VR render] avg/frame: draw=%.2f(both eyes)  left=%.2f  right=%.2f  submit=%.2f  mirror=%.2f  TOTAL=%.2f ms  polys=%d\n",
+               s_drawMs/n, s_leftMs/n, s_rightMs/n, s_submitMs/n, s_mirrorMs/n, s_totalMs/n, s_polyCount/s_frameCount);
+        s_leftMs = s_rightMs = s_submitMs = s_mirrorMs = s_totalMs = s_drawMs = 0;
+        s_polyCount = 0;
+        s_frameCount = 0;
+    }
 }
 
 /******************* OGL DRAW EYE *********************/
@@ -825,10 +1025,6 @@ void OGL_DrawEye(void (*drawRoutine)(void))
 		DoFatalAlert("OGL_DrawEye gGameViewInfoPtr == nil");
 	if (!gGameViewInfoPtr->isActive)
 		DoFatalAlert("OGL_DrawEye isActive == false");
-
-	bool didMakeCurrent = SDL_GL_MakeCurrent(gSDLWindow, gAGLContext);		// make context active
-	GAME_ASSERT_MESSAGE(didMakeCurrent, SDL_GetError());
-
 
 	if (gGammaFadeFrac <= 0)							// if we just finished fading out and haven't started fading in yet, just show black
 	{
@@ -924,7 +1120,12 @@ do_anaglyph:
 		glDepthMask(GL_TRUE);
 
 		if (drawRoutine != nil)
+		{
+			uint64_t t_draw_start = SDL_GetPerformanceCounter();
 			drawRoutine();
+			uint64_t t_draw_end = SDL_GetPerformanceCounter();
+			gVRDrawRoutineMs += (float)(t_draw_end - t_draw_start) * 1000.0f / (float)SDL_GetPerformanceFrequency();
+		}
 
 		OGL_CheckError();
 
@@ -1106,8 +1307,27 @@ GLuint OGL_TextureMap_Load(void *imageMemory, int width, int height,
 	if (OGL_CheckError())
 		DoFatalAlert("OGL_TextureMap_Load: glBindTexture failed!");
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			/* MIPMAPS + ANISOTROPIC FILTERING */
+			//
+			// Without mipmaps, distant textures (fences, etc.) shimmer badly in VR
+			// because every slight head movement samples different texels.
+			// GL_GENERATE_MIPMAP (GL 1.4) builds the smaller levels automatically
+			// whenever level 0 is uploaded below.
+			//
+
+	static GLfloat maxAniso = -1;
+	if (maxAniso < 0)											// query once
+	{
+		maxAniso = 0;
+		if (SDL_GL_ExtensionSupported("GL_EXT_texture_filter_anisotropic"))
+			glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxAniso);
+	}
+
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	if (maxAniso > 1)
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, SDL_min(8.0f, maxAniso));
 
 	glTexImage2D(GL_TEXTURE_2D,
 		0,										// mipmap level
@@ -1490,8 +1710,10 @@ static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short 
 
 void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 {
+#ifdef _DEBUG
 	// Clear any existing errors first
     glGetError();  // Clears error queue -> (Bad idea?)
+#endif
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	if (OGL_CheckError())
@@ -1501,8 +1723,9 @@ void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 	if (OGL_CheckError())
 		DoFatalAlert("OGL_Texture_SetOpenGLTexture: glBindTexture failed!");
 
-
+#ifdef _DEBUG
 	glGetError();
+#endif
 
 	glEnable(GL_TEXTURE_2D);
 }

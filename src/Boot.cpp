@@ -252,12 +252,9 @@ retryVideo:
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
+	// NOTE: In VR, antialiasing is applied to the eye framebuffers (see CreateEyeMSAAFramebuffers),
+	// not the desktop window. A multisampled window would also break the mirror blit.
 	gCurrentAntialiasingLevel = gGamePrefs.antialiasingLevel;
-	if (gCurrentAntialiasingLevel != 0)
-	{
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 1 << gCurrentAntialiasingLevel);
-	}
 
 	gSDLWindow = SDL_CreateWindow(
 		GAME_FULL_NAME " " GAME_VERSION,
