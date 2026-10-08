@@ -329,7 +329,6 @@ float		disruptionSize,thickness;
 
 			/* INIT MESH BASICS */
 
-	SDL_memset(&mesh, 0, sizeof(mesh));					// zero VBO fields (stack var, never gets VBOs)
 	mesh.numMaterials 	= -1;
 	mesh.numPoints 		= NUM_BEAM_POINTS;
 	mesh.numTriangles 	= NUM_BEAM_TRIANGLES;

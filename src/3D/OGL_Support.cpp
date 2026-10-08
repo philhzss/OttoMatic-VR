@@ -745,7 +745,9 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     glPopMatrix();
 
     // CHECK FOR ERRORS AFTER LEFT EYE
+#ifdef _DEBUG
     if (glGetError() != GL_NO_ERROR) printf("⚠️ Error after LEFT eye render\n");
+#endif
 
     uint64_t t_left_end = SDL_GetPerformanceCounter();
 
@@ -787,13 +789,17 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     glPopMatrix();
 
     // CHECK FOR ERRORS AFTER RIGHT EYE
+#ifdef _DEBUG
     if (glGetError() != GL_NO_ERROR) printf("Error after RIGHT eye render\n");
+#endif
 
     // Done, unbind FBO
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
     
     // CHECK FOR ERRORS AFTER UNBIND
+#ifdef _DEBUG
     if (glGetError() != GL_NO_ERROR) printf("Error after FBO unbind\n");
+#endif
 
     uint64_t t_right_end = SDL_GetPerformanceCounter();
     // lights and listenerLocation, cleanup and put elsewhere?:
@@ -1540,8 +1546,10 @@ static void	ConvertTextureToColorAnaglyph(void *imageMemory, short width, short 
 
 void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 {
+#ifdef _DEBUG
 	// Clear any existing errors first
     glGetError();  // Clears error queue -> (Bad idea?)
+#endif
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	if (OGL_CheckError())
@@ -1551,8 +1559,9 @@ void OGL_Texture_SetOpenGLTexture(GLuint textureName)
 	if (OGL_CheckError())
 		DoFatalAlert("OGL_Texture_SetOpenGLTexture: glBindTexture failed!");
 
-
+#ifdef _DEBUG
 	glGetError();
+#endif
 
 	glEnable(GL_TEXTURE_2D);
 }

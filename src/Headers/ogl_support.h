@@ -260,7 +260,13 @@ GLuint OGL_TextureMap_Load(void *imageMemory, int width, int height,
 							GLint srcFormat,  GLint destFormat, GLint dataType);
 GLuint OGL_TextureMap_LoadTGA(const char* path, int flags, int* width, int* height);
 GLenum _OGL_CheckError(const char* file, int line);
+#ifdef _DEBUG
 #define OGL_CheckError() _OGL_CheckError(__FILE__, __LINE__)
+#else
+// glGetError() forces a full driver sync; with NVIDIA "Threaded optimization" that
+// costs ~10ms/frame given how often we call it. Only check errors in debug builds.
+#define OGL_CheckError() ((GLenum)GL_NO_ERROR)
+#endif
 
 void OGL_GetCurrentViewport(int *x, int *y, int *w, int *h);
 

@@ -1789,7 +1789,6 @@ static MOTriangleIndecies triangles[6*2] =
 	gNovaChargeMesh.colorsByte		= nil;
 	gNovaChargeMesh.colorsFloat		= nil;
 	gNovaChargeMesh.triangles		= triangles;
-	gNovaChargeMesh.isDynamic		= true;				// rebuilt every frame, skip VBOs
 
 
 			/***********/
@@ -1956,7 +1955,6 @@ static MOTriangleIndecies triangles[9*2] =
 		gNovaChargeMesh.colorsByte		= nil;
 		gNovaChargeMesh.colorsFloat		= nil;
 		gNovaChargeMesh.triangles		= triangles;
-		gNovaChargeMesh.isDynamic		= true;				// rebuilt every frame, skip VBOs
 
 
 				/***********/
