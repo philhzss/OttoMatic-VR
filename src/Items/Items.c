@@ -1087,7 +1087,10 @@ static const float heights[] =
 	383,				// grate
 };
 
-	v = slime->SpecialF[0] += gFramesPerSecondFrac * 1.9f;
+if (gGameViewInfoPtr->renderLeftEye)
+    slime->SpecialF[0] += gFramesPerSecondFrac * 1.9f;		// Only update speed once or else the eyes are out of sync
+
+v = slime->SpecialF[0];   // always runs, both eyes — just reads whatever the current value is
 
 	tubeType = slime->Kind;							// get tube type
 
