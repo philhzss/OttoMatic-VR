@@ -246,6 +246,7 @@ extern	Byte					gAnaglyphPass;
 
 void OGL_Boot(void);
 void OGL_Shutdown(void);
+void OGL_ApplyAntialiasingPref(void);
 void OGL_NewViewDef(OGLSetupInputType *viewDef);
 void OGL_SetupWindow(OGLSetupInputType *viewDef);
 void OGL_DisposeWindowSetup(void);

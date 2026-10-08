@@ -413,6 +413,7 @@ static const MenuItem gSettingsMenu[] =
 		.text = STR_ANTIALIASING,
 		.cycler =
 		{
+			.callback = OGL_ApplyAntialiasingPref,
 			.valuePtr = &gGamePrefs.antialiasingLevel,
 			.numChoices = 4,
 			.choices = {STR_OFF, STR_MSAA_2X, STR_MSAA_4X, STR_MSAA_8X},
@@ -440,15 +441,6 @@ static const MenuItem gSettingsMenu[] =
 	},
 
 	{ .type = kMenuItem_END_SENTINEL }
-};
-
-static const MenuItem kAntialiasingWarning[] =
-{
-	{ .type = kMenuItem_Label, .text = STR_ANTIALIASING_CHANGE_WARNING_1 },
-	{ .type = kMenuItem_Label, .text = STR_ANTIALIASING_CHANGE_WARNING_2 },
-	{ .type = kMenuItem_Spacer },
-	{ .type = kMenuItem_Action, .text = STR_OK, .action = { .callback = MenuCallback_Back } },
-	{ .type = kMenuItem_END_SENTINEL },
 };
 
 static const MenuItem kAnaglyphWarning[] =
@@ -484,12 +476,6 @@ void DoSettingsOverlay(void (*updateRoutine)(void),
 		SavePrefs();
 
 	gAllowAudioKeys = true;
-
-	// If user changed antialiasing setting, show warning
-	if (gPreviousPrefs.antialiasingLevel != gGamePrefs.antialiasingLevel)
-	{
-		StartMenu(kAntialiasingWarning, nil, updateRoutine, backgroundDrawRoutine);
-	}
 
 	// If user changed anaglyph setting, show warning
 	if (gPreviousPrefs.anaglyphMode != gGamePrefs.anaglyphMode)
