@@ -919,6 +919,8 @@ static void CleanupLevel(void)
 
 	gAlienSaucer = nil;
 	gSaucerTarget = nil;
+
+	vrInfoHMD.camThumbstickAccum = 0;    // Must reset, or next scene might be behind you unless you physically turn
 }
 
 /************ CHEAT KEYS CHECKED AFTER LEGAL SCREEN ******************/
