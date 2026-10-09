@@ -3,6 +3,10 @@
     {
       "controller_type": "knuckles",
       "binding_url": "knuckles.json"
+    },
+    {
+      "controller_type": "frame_controller",
+      "binding_url": "frame_controller.json"
     }
   ],
   "actions": [
