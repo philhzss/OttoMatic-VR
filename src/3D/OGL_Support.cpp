@@ -593,6 +593,11 @@ static void OGL_CreateDrawContext(void)
 	OGL_InitFunctions();
 
 
+	/* SEED THE GL STATE CACHE FROM THE NEW CONTEXT */
+
+	OGL_StateCache_Init();
+
+
 	/* SEE IF SUPPORT 1024x1024 TEXTURES */
 
 	GLint maxTexSize = 0;
@@ -1938,19 +1943,27 @@ void OGL_PushState(void)
 	if (i >= STATE_STACK_SIZE)
 		DoFatalAlert("OGL_PushState: stack overflow");
 
+		// Read from our state cache instead of glIsEnabled/glGet*, which would stall
+		// on NVIDIA's threaded driver. This runs for every model drawn, per eye.
+
+#ifdef _DEBUG
+	OGL_StateCache_Verify();										// report any state change that bypassed the cache
+#endif
+
 	gStateStack_Lighting[i] = gMyState_Lighting;
-	gStateStack_CullFace[i] = glIsEnabled(GL_CULL_FACE);
-	gStateStack_DepthTest[i] = glIsEnabled(GL_DEPTH_TEST);
-	gStateStack_Normalize[i] = glIsEnabled(GL_NORMALIZE);
-	gStateStack_Texture2D[i] = glIsEnabled(GL_TEXTURE_2D);
-	gStateStack_Fog[i] = glIsEnabled(GL_FOG);
-	gStateStack_Blend[i] = glIsEnabled(GL_BLEND);
+	gStateStack_CullFace[i] = gGLState.cullFace;
+	gStateStack_DepthTest[i] = gGLState.depthTest;
+	gStateStack_Normalize[i] = gGLState.normalize;
+	gStateStack_Texture2D[i] = gGLState.texture2D[gGLState.activeTextureUnit];	// same unit glIsEnabled would have asked about
+	gStateStack_Fog[i] = gGLState.fog;
+	gStateStack_Blend[i] = gGLState.blend;
 
-	glGetFloatv(GL_CURRENT_COLOR, &gStateStack_Color[i][0]);
+	for (int c = 0; c < 4; c++)
+		gStateStack_Color[i][c] = gGLState.color[c];
 
-	glGetIntegerv(GL_BLEND_SRC, &gStateStack_BlendSrc[i]);
-	glGetIntegerv(GL_BLEND_DST, &gStateStack_BlendDst[i]);
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &gStateStack_DepthMask[i]);
+	gStateStack_BlendSrc[i] = gGLState.blendSrc;
+	gStateStack_BlendDst[i] = gGLState.blendDst;
+	gStateStack_DepthMask[i] = gGLState.depthMask;
 }
 
 

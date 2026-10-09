@@ -274,5 +274,49 @@ void OGL_GetCurrentViewport(int *x, int *y, int *w, int *h);
 void OGL_PushState(void);
 void OGL_PopState(void);
 
+
+/* GL STATE CACHE (see OGL_StateCache.c) */
+//
+// Our own copy of the GL state that OGL_PushState saves, so it never has to query
+// the driver (which stalls with NVIDIA "Threaded optimization").
+//
+
+#define	OGL_STATECACHE_MAX_TEXTURE_UNITS	8
+
+typedef struct
+{
+	Boolean		cullFace, depthTest, normalize, fog, blend;
+	Boolean		texture2D[OGL_STATECACHE_MAX_TEXTURE_UNITS];	// GL_TEXTURE_2D is per texture unit (multitexturing)
+	int			activeTextureUnit;								// 0 = GL_TEXTURE0_ARB, 1 = GL_TEXTURE1_ARB, ...
+	GLint		blendSrc, blendDst;
+	GLboolean	depthMask;
+	GLfloat		color[4];
+} OGLStateCache;
+
+extern OGLStateCache gGLState;
+
+void OGL_StateCache_Init(void);
+#ifdef _DEBUG
+void OGL_StateCache_Verify(void);
+#endif
+
+void OGL_Cached_glEnable(GLenum cap);
+void OGL_Cached_glDisable(GLenum cap);
+void OGL_Cached_glBlendFunc(GLenum sfactor, GLenum dfactor);
+void OGL_Cached_glDepthMask(GLboolean flag);
+void OGL_Cached_glColor3f(GLfloat r, GLfloat g, GLfloat b);
+void OGL_Cached_glColor4f(GLfloat r, GLfloat g, GLfloat b, GLfloat a);
+void OGL_Cached_glColor4fv(const GLfloat* v);
+
+#ifndef OGL_STATECACHE_IMPL						// OGL_StateCache.c needs the real functions
+	#define glEnable		OGL_Cached_glEnable
+	#define glDisable		OGL_Cached_glDisable
+	#define glBlendFunc		OGL_Cached_glBlendFunc
+	#define glDepthMask		OGL_Cached_glDepthMask
+	#define glColor3f		OGL_Cached_glColor3f
+	#define glColor4f		OGL_Cached_glColor4f
+	#define glColor4fv		OGL_Cached_glColor4fv
+#endif
+
 void OGL_EnableLighting(void);
 void OGL_DisableLighting(void);
