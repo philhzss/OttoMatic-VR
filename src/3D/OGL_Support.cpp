@@ -819,6 +819,26 @@ void vr_DoEyeProjection(OGLSetupOutputType *setupInfo) {
 }
 
 
+static void OGL_UpdateLightPositions(void)
+{
+	int i;
+	OGLLightDefType *lights;
+
+	/* UPDATE LIGHT POSITIONS */
+
+	lights = &gGameViewInfoPtr->lightList;						// point to light list
+	for (i = 0; i < lights->numFillLights; i++)
+	{
+		GLfloat lightVec[4];
+
+		lightVec[0] = -lights->fillDirection[i].x;			// negate vector because OGL is stupid
+		lightVec[1] = -lights->fillDirection[i].y;
+		lightVec[2] = -lights->fillDirection[i].z;
+		lightVec[3] = 0;									// when w==0, this is a directional light, if 1 then point light
+		glLightfv(GL_LIGHT0 + i, GL_POSITION, lightVec);
+	}
+}
+
 #pragma mark -
 
 /******************* OGL DRAW SCENE *********************/
@@ -886,6 +906,8 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         -gGameViewInfoPtr->cameraPlacement.cameraLocation.z
     );
 
+	OGL_UpdateLightPositions();
+
     gGameViewInfoPtr->renderLeftEye = true;
     OGL_DrawEye(drawRoutine);
     glPopMatrix();
@@ -931,6 +953,8 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         -(gGameViewInfoPtr->cameraPlacement.cameraLocation.y + cameraYOffset),
         -gGameViewInfoPtr->cameraPlacement.cameraLocation.z
     );
+
+	OGL_UpdateLightPositions();
 
     gGameViewInfoPtr->renderLeftEye = false;
     OGL_DrawEye(drawRoutine);
@@ -1808,91 +1832,6 @@ void OGL_UpdateCameraFromToUp(OGLPoint3D *from, OGLPoint3D *to, OGLVector3D *up)
 
 void OGL_Camera_SetPlacementAndUpdateMatrices(void)
 {
-	float	aspect;
-	int		temp, w, h, i;
-	OGLLightDefType *lights;
-
-	OGL_GetCurrentViewport(&temp, &temp, &w, &h);
-	aspect = (float)w / (float)h;
-
-	/* INIT PROJECTION MATRIX */
-
-//glMatrixMode(GL_PROJECTION);
-
-		/* SETUP FOR ANAGLYPH STEREO 3D CAMERA */
-
-// if (gGamePrefs.anaglyphMode != ANAGLYPH_OFF)
-// {
-// 	float	left, right;
-// 	float	halfFOV = gGameViewInfoPtr->fov * .5f;
-// 	float	znear 	= gGameViewInfoPtr->hither;
-//    	float	wd2     = znear * tan(halfFOV);
-// 	float	ndfl    = znear / gAnaglyphFocallength;
-
-// 	if (gAnaglyphPass == 0)
-// 	{
-// 		left  = - aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
-// 		right =   aspect * wd2 + 0.5f * gAnaglyphEyeSeparation * ndfl;
-// 	}
-// 	else
-// 	{
-// 		left  = - aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
-// 		right =   aspect * wd2 - 0.5f * gAnaglyphEyeSeparation * ndfl;
-// 	}
-
-// 	glLoadIdentity();
-// 	glFrustum(left, right, -wd2, wd2, gGameViewInfoPtr->hither, gGameViewInfoPtr->yon);
-// 	glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*) &gViewToFrustumMatrix.value[0]);
-// }*/
-
-		/* SETUP STANDARD PERSPECTIVE CAMERA */
-// else
-// {
-// 	OGL_SetGluPerspectiveMatrix(
-// 			&gViewToFrustumMatrix,
-// 			gGameViewInfoPtr->fov,
-// 			aspect,
-// 			gGameViewInfoPtr->hither,
-// 			gGameViewInfoPtr->yon);
-// 	glLoadMatrixf((const GLfloat*) &gViewToFrustumMatrix.value[0]);
-// }
-
-
-
-// 		/* INIT MODELVIEW MATRIX */
-
-// glMatrixMode(GL_MODELVIEW);
-// OGL_SetGluLookAtMatrix(
-// 		&gWorldToViewMatrix,
-// 		&gGameViewInfoPtr->cameraPlacement.cameraLocation,
-// 		&gGameViewInfoPtr->cameraPlacement.pointOfInterest,
-// 		&gGameViewInfoPtr->cameraPlacement.upVector);
-// glLoadMatrixf((const GLfloat*) &gWorldToViewMatrix.value[0]);
-
-
-
-	/* UPDATE LIGHT POSITIONS */
-
-	lights = &gGameViewInfoPtr->lightList;						// point to light list
-	for (i = 0; i < lights->numFillLights; i++)
-	{
-		GLfloat lightVec[4];
-
-		lightVec[0] = -lights->fillDirection[i].x;			// negate vector because OGL is stupid
-		lightVec[1] = -lights->fillDirection[i].y;
-		lightVec[2] = -lights->fillDirection[i].z;
-		lightVec[3] = 0;									// when w==0, this is a directional light, if 1 then point light
-		glLightfv(GL_LIGHT0 + i, GL_POSITION, lightVec);
-	}
-
-
-	/* GET VARIOUS CAMERA MATRICES */
-
-// OGLMatrix4x4_Multiply(&gWorldToViewMatrix, &gViewToFrustumMatrix, &gWorldToFrustumMatrix);
-
-// OGLMatrix4x4_GetFrustumToWindow(&gFrustumToWindowMatrix);
-// OGLMatrix4x4_Multiply(&gWorldToFrustumMatrix, &gFrustumToWindowMatrix, &gWorldToWindowMatrix);
-
 	UpdateListenerLocation();
 }
 

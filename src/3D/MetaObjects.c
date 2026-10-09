@@ -36,7 +36,9 @@ static void MO_DisposeObject_Sprite(MOSpriteObject *obj);
 /*    CONSTANTS             */
 /****************************/
 
-
+// Reflection (sphere map) textures are computed relative to the view, so in VR they show
+// as a bright glare that follows the center of your gaze. Disabled for VR.
+#define       VR_ENABLE_REFLECTION_MAPS       0
 
 
 
@@ -754,7 +756,7 @@ use_current:
 						/* SEE IF DO MULTI-TEXTURE */
 						/***************************/
 
-				if (materialFlags & BG3D_MATERIALFLAG_MULTITEXTURE)
+				if ((materialFlags & BG3D_MATERIALFLAG_MULTITEXTURE) && VR_ENABLE_REFLECTION_MAPS)
 				{
 					uint16_t	multiTextureMode 	= gMostRecentMaterial->objectData.multiTextureMode;
 					uint16_t	multiTextureCombine = gMostRecentMaterial->objectData.multiTextureCombine;
