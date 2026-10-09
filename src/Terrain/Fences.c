@@ -401,6 +401,8 @@ float			cameraX, cameraZ;
 
 	gNumFencesDrawn = 0;
 
+	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);          // Allow better transpararency around fence edges
+
 	for (int f = 0; f < gNumFences; f++)
 	{
 					/* DO BBOX CULLING */
@@ -418,7 +420,9 @@ float			cameraX, cameraZ;
 //			}
 		}
 	}
-
+    
+	glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+	
 	gGlobalMaterialFlags = 0;
 }
 
