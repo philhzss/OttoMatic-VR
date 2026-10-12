@@ -11,85 +11,128 @@
   ],
   "actions": [
     {
-      "name": "/actions/otto/in/MoveXY",
+      "name": "/actions/ottoGameplay/in/MoveXY",
       "requirement": "optional",
       "type": "vector2"
     },
     {
-      "name": "/actions/otto/in/CameraXY",
+      "name": "/actions/ottoGameplay/in/CameraXY",
       "requirement": "optional",
       "type": "vector2"
     },
     {
-      "name": "/actions/otto/in/Shoot",
+      "name": "/actions/ottoGameplay/in/Shoot",
       "requirement": "optional",
       "type": "vector1"
     },
 	  {
-      "name": "/actions/otto/in/FistLeft",
+      "name": "/actions/ottoGameplay/in/FistLeft",
       "requirement": "optional",
       "type": "vector1"
     },
 	  {
-      "name": "/actions/otto/in/FistRight",
+      "name": "/actions/ottoGameplay/in/FistRight",
       "requirement": "optional",
       "type": "vector1"
     },
     {
-      "name": "/actions/otto/in/Jump",
+      "name": "/actions/ottoGameplay/in/Jump",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/in/PunchOrPickUp",
+      "name": "/actions/ottoGameplay/in/PunchOrPickUp",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/in/PreviousWeapon",
+      "name": "/actions/ottoGameplay/in/PreviousWeapon",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/in/NextWeapon",
+      "name": "/actions/ottoGameplay/in/NextWeapon",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/in/EscapeMenu",
+      "name": "/actions/ottoGameplay/in/EscapePause",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/in/CheatButton",
+      "name": "/actions/ottoGameplay/in/CheatButton",
       "requirement": "optional",
       "type": "boolean"
     },
     {
-      "name": "/actions/otto/out/Haptic",
+      "name": "/actions/haptics/out/Haptic",
       "type": "vibration"
-    }
-  ],
-  "action_sets": [
+    },
+
+
+
+
     {
-      "name": "/actions/otto",
-      "usage": "leftright"
+      "name": "/actions/menus/in/MenuEnter",
+      "requirement": "optional",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/menus/in/MenuUp",
+      "requirement": "optional",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/menus/in/MenuDown",
+      "requirement": "optional",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/menus/in/MenuLeft",
+      "requirement": "optional",
+      "type": "boolean"
+    },
+    {
+      "name": "/actions/menus/in/MenuRight",
+      "requirement": "optional",
+      "type": "boolean"
     }
+
+
+
+
   ],
+"action_sets": [
+  { "name": "/actions/ottoGameplay", "usage": "leftright" },
+  { "name": "/actions/menus",        "usage": "leftright" },
+  { "name": "/actions/level9",       "usage": "leftright" },
+  { "name": "/actions/haptics",      "usage": "leftright" }
+],
   "localization": [
     {
       "language_tag": "en_us",
-      "/actions/otto": "All Otto Actions",
-      "/actions/otto/in/MoveXY": "Move Joystick",
-      "/actions/otto/in/CameraXY": "Camera Joystick",
-      "/actions/otto/in/Jump": "Jump (double->Jet)",
-      "/actions/otto/in/Shoot": "Shoot",
-	    "/actions/otto/in/FistLeft": "Left Grip",
-	    "/actions/otto/in/FistRight": "Right Grip",
-      "/actions/otto/in/PunchOrPickUp": "Punch, pickup",
-      "/actions/otto/in/PreviousWeapon": "Previous Weapon",
-      "/actions/otto/in/NextWeapon": "Next Weapon",
-      "/actions/otto/in/EscapeMenu": "Pause/Escape"
+      "/actions/ottoGameplay": "Main gameplay Otto actions",
+      "/actions/ottoGameplay/in/MoveXY": "Movement Joystick",
+      "/actions/ottoGameplay/in/CameraXY": "Camera Joystick",
+      "/actions/ottoGameplay/in/Jump": "Jump / Jump jet",
+      "/actions/ottoGameplay/in/Shoot": "Shoot",
+	    "/actions/ottoGameplay/in/FistLeft": "Left Grip",
+	    "/actions/ottoGameplay/in/FistRight": "Right Grip",
+      "/actions/ottoGameplay/in/PunchOrPickUp": "Punch, pickup",
+      "/actions/ottoGameplay/in/PreviousWeapon": "Previous Weapon",
+      "/actions/ottoGameplay/in/NextWeapon": "Next Weapon",
+      "/actions/ottoGameplay/in/EscapePause": "Pause/Escape",
+      "/actions/ottoGameplay/in/CheatButton": "Cheats override",
+      "/actions/menus/in/MenuEnter": "Select / Enter",
+      "/actions/menus/in/MenuUp" : "Menu - Up",
+      "/actions/menus/in/MenuDown" : "Menu - Down",
+      "/actions/menus/in/MenuLeft" : "Menu - Left",
+      "/actions/menus/in/MenuRight" : "Menu - Right",
+      "/actions/menus": "Menu actions",
+      "/actions/level9": "Level 9 actions",
+      "/actions/haptics": "Haptics",
+      "/actions/haptics/out/Haptic": "Vibration"
     }
   ]
 }

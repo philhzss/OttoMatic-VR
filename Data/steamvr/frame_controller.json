@@ -2,14 +2,14 @@
    "action_manifest_version" : 0,
    "alias_info" : {},
    "bindings" : {
-      "/actions/otto" : {
+      "/actions/ottoGameplayGameplay" : {
          "haptics" : [
             {
-               "output" : "/actions/otto/out/haptic",
+               "output" : "/actions/haptics/out/haptic",
                "path" : "/user/hand/left/output/haptic"
             },
             {
-               "output" : "/actions/otto/out/haptic",
+               "output" : "/actions/haptics/out/haptic",
                "path" : "/user/hand/right/output/haptic"
             }
          ],
@@ -17,7 +17,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/jump"
+                     "output" : "/actions/ottoGameplayGameplay/in/jump"
                   }
                },
                "mode" : "button",
@@ -27,7 +27,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/otto/in/shoot"
+                     "output" : "/actions/ottoGameplayGameplay/in/shoot"
                   }
                },
                "mode" : "trigger",
@@ -37,7 +37,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/punchorpickup"
+                     "output" : "/actions/ottoGameplayGameplay/in/punchorpickup"
                   }
                },
                "mode" : "button",
@@ -47,7 +47,7 @@
             {
                "inputs" : {
                   "position" : {
-                     "output" : "/actions/otto/in/movexy"
+                     "output" : "/actions/ottoGameplay/in/movexy"
                   }
                },
                "mode" : "joystick",
@@ -57,7 +57,7 @@
             {
                "inputs" : {
                   "position" : {
-                     "output" : "/actions/otto/in/cameraxy"
+                     "output" : "/actions/ottoGameplay/in/cameraxy"
                   }
                },
                "mode" : "joystick",
@@ -67,7 +67,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/otto/in/shoot"
+                     "output" : "/actions/ottoGameplay/in/shoot"
                   }
                },
                "mode" : "trigger",
@@ -77,7 +77,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/otto/in/fistleft"
+                     "output" : "/actions/ottoGameplay/in/fistleft"
                   }
                },
                "mode" : "trigger",
@@ -87,7 +87,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/otto/in/fistright"
+                     "output" : "/actions/ottoGameplay/in/fistright"
                   }
                },
                "mode" : "trigger",
@@ -97,7 +97,7 @@
             {
                "inputs" : {
                   "long" : {
-                     "output" : "/actions/otto/in/cheatbutton"
+                     "output" : "/actions/ottoGameplay/in/cheatbutton"
                   }
                },
                "mode" : "button",
@@ -107,7 +107,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/punchorpickup"
+                     "output" : "/actions/ottoGameplay/in/punchorpickup"
                   }
                },
                "mode" : "button",
@@ -117,7 +117,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/escapemenu"
+                     "output" : "/actions/ottoGameplay/in/EscapePause"
                   }
                },
                "mode" : "button",
@@ -127,7 +127,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/escapemenu"
+                     "output" : "/actions/ottoGameplay/in/EscapePause"
                   }
                },
                "mode" : "button",
@@ -137,7 +137,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/shoot"
+                     "output" : "/actions/ottoGameplay/in/shoot"
                   }
                },
                "mode" : "button",
@@ -147,7 +147,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/shoot"
+                     "output" : "/actions/ottoGameplay/in/shoot"
                   }
                },
                "mode" : "button",
@@ -157,7 +157,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/nextweapon"
+                     "output" : "/actions/ottoGameplay/in/nextweapon"
                   }
                },
                "mode" : "button",
@@ -167,7 +167,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/otto/in/previousweapon"
+                     "output" : "/actions/ottoGameplay/in/previousweapon"
                   }
                },
                "mode" : "button",

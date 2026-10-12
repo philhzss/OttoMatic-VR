@@ -14,11 +14,18 @@ enum playerActions
 	vrPunchOrPickUp,
 	vrPreviousWeapon,
 	vrNextWeapon,
-	vrEscapeMenu,
+	vrEscapePause,
 	vrCheatButton,
 	vrLeftVibrate,
 	vrRightVibrate,
 	vrBothVibrate
+};
+
+enum VRActionSetID
+{
+	VR_ACTIONSET_GAMEPLAY,   // = 0
+	VR_ACTIONSET_LEVEL9,     // = 1
+	VR_ACTIONSET_MENU        // = 2
 };
 
 #define VRminimumTriggerDefault 0.7f // How far the trigger has to be pulled for most trigger actions
@@ -29,7 +36,8 @@ extern float VRroomDistanceToGameDistanceScale; // Defined in  OGL support
 extern float VRroomDistanceToGameDistanceScaleDEFAULT; // Defined in  OGL support, what to return to
 extern int playerEyeHeight; // Define in OGL support
 
-
+// Set Main Action Set (secondary set is haptics and is always active)
+extern void vrcpp_SetMainActionSet(enum VRActionSetID which) ;
 
 // Virtual IPD
 extern float gIpdScale; // Defined in OGL support

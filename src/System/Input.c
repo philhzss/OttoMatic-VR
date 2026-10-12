@@ -389,7 +389,7 @@ void UpdateInput(void)
 		/* CHECK IF VR WANTS TO PAUSE GAME */
 	
 	if (!gPlayerInMainMenu) { // Don't check when in main menu or the game will auto-pause as soon as it starts
-		if (vrcpp_GetDigitalActionData(vrEscapeMenu, true))
+		if (vrcpp_GetDigitalActionData(vrEscapePause, true))
 		{
 			if (gGamePaused) {
 				gGameIsPausedVR = false; // If game is already paused, the pause key should tell it to unpause

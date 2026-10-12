@@ -713,7 +713,7 @@ static void NavigateMenu(void)
 	float	minFramesBetweenActions = gFramesPerSecond / 4;
 
 
-	if (GetNewNeedState(kNeed_UIBack) || vrcpp_GetDigitalActionData(vrEscapeMenu, true))
+	if (GetNewNeedState(kNeed_UIBack) || vrcpp_GetDigitalActionData(vrEscapePause, true))
 		MenuCallback_Back();
 
 	if (GetNewNeedState(kNeed_UIUp) || vrcpp_GetAnalogActionData(vrMoveXY).y >= VRminimumThumbstickDefault

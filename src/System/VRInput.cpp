@@ -20,9 +20,12 @@ struct VRActionHandlers // vrActions is an instance of this
 	vr::VRActionHandle_t PunchOrPickUp;
 	vr::VRActionHandle_t PreviousWeapon;
 	vr::VRActionHandle_t NextWeapon;
-	vr::VRActionHandle_t EscapeMenu;
+	vr::VRActionHandle_t EscapePause;
 	vr::VRActionHandle_t CheatButton; 
+
 	vr::VRActionHandle_t Vibration;
+
+
 };
 
 static vr::VRInputValueHandle_t notRestrictedToHand = vr::k_ulInvalidInputValueHandle;
@@ -30,23 +33,37 @@ static vr::VRInputValueHandle_t rightHandOnly;
 static vr::VRInputValueHandle_t leftHandOnly;
 
 static VRActionHandlers vrActions{}; // init
-static vr::VRActionSetHandle_t ottoVRactions;
+static vr::VRActionSetHandle_t ottoNormalGameplayActions;
+static vr::VRActionSetHandle_t ottoLevel9GameplayActions;
+static vr::VRActionSetHandle_t ottoMenuActions;
+static vr::VRActionSetHandle_t ottoHaptics;
 
-static vr::VRActiveActionSet_t activeActionSet;
+static vr::VRActiveActionSet_t activeActionSets[2]{};
+static vr::VRActionSetHandle_t actionSetTable[3]; // index = enum value
 
 
-static vr::InputAnalogActionData_t moveXYAction{};
-static vr::InputAnalogActionData_t cameraXYAction{};
-static vr::InputAnalogActionData_t shootAction{};
-static vr::InputAnalogActionData_t fistLeftAction{};
-static vr::InputAnalogActionData_t fistRightAction{};
-static vr::InputDigitalActionData_t jumpAction{};
-static vr::InputDigitalActionData_t punchOrPickupAction{};
-static vr::InputDigitalActionData_t nextWeaponAction{};
-static vr::InputDigitalActionData_t previousWeaponAction{};
-static vr::InputDigitalActionData_t EscapeMenuAction{};
-static vr::InputDigitalActionData_t cheatButtonAction{};
+static vr::InputAnalogActionData_t moveXYdata{};
+static vr::InputAnalogActionData_t cameraXYdata{};
+static vr::InputAnalogActionData_t shootData{};
+static vr::InputAnalogActionData_t fistLeftData{};
+static vr::InputAnalogActionData_t fistRightData{};
+static vr::InputDigitalActionData_t jumpData{};
+static vr::InputDigitalActionData_t punchOrPickupData{};
+static vr::InputDigitalActionData_t nextWeaponData{};
+static vr::InputDigitalActionData_t previousWeaponData{};
+static vr::InputDigitalActionData_t EscapePauseData{};
+static vr::InputDigitalActionData_t cheatButtonData{};
 
+static vr::InputDigitalActionData_t MenuEnterData{};
+static vr::InputDigitalActionData_t MenuUpData{};
+static vr::InputDigitalActionData_t MenuDownData{};
+static vr::InputDigitalActionData_t MenuLeftData{};
+static vr::InputDigitalActionData_t MenuRightData{};
+
+// Action set switcher (haptic action set always active) 
+extern "C" void vrcpp_SetMainActionSet(enum VRActionSetID which) {
+	activeActionSets[0].ulActionSet = actionSetTable[which];
+}
 
 extern "C" void vrcpp_initSteamVRInput(void) {
 	// Add path to action manifest for VR controls
@@ -56,7 +73,21 @@ extern "C" void vrcpp_initSteamVRInput(void) {
 
 
 	// Get handles for VR action sets and actions
-	auto error = vr::VRInput()->GetActionSetHandle("/actions/otto", &ottoVRactions);
+	auto error = vr::VRInput()->GetActionSetHandle("/actions/ottoGameplay", &ottoNormalGameplayActions);
+	if (error != vr::EVRInputError::VRInputError_None)
+	{
+		std::cerr << "GetActionSetHandle error.\n";
+		printf("GetActionSetHandle error.\n");
+	}
+
+	error = vr::VRInput()->GetActionSetHandle("/actions/menus", &ottoMenuActions);
+	if (error != vr::EVRInputError::VRInputError_None)
+	{
+		std::cerr << "GetActionSetHandle error.\n";
+		printf("GetActionSetHandle error.\n");
+
+	}
+	error = vr::VRInput()->GetActionSetHandle("/actions/haptics", &ottoHaptics);
 	if (error != vr::EVRInputError::VRInputError_None)
 	{
 		std::cerr << "GetActionSetHandle error.\n";
@@ -64,35 +95,41 @@ extern "C" void vrcpp_initSteamVRInput(void) {
 	}
 
 
-	vr::VRInput()->GetActionHandle("/actions/otto/in/MoveXY", &vrActions.MoveXY);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/CameraXY", &vrActions.CameraXY);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/Shoot", &vrActions.Shoot);
-	error = vr::VRInput()->GetActionHandle("/actions/otto/in/Jump", &vrActions.Jump);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/MoveXY", &vrActions.MoveXY);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/CameraXY", &vrActions.CameraXY);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/Shoot", &vrActions.Shoot);
+	error = vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/Jump", &vrActions.Jump);
 	if (error != vr::EVRInputError::VRInputError_None)
 	{
 		std::cerr << "GetActionHandle error.\n";
 		printf("GetActionHandle error.\n");
 	}
-	vr::VRInput()->GetActionHandle("/actions/otto/in/FistLeft", &vrActions.FistLeft);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/FistRight", &vrActions.FistRight);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/PunchOrPickup", &vrActions.PunchOrPickUp);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/PreviousWeapon", &vrActions.PreviousWeapon);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/NextWeapon", &vrActions.NextWeapon);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/EscapeMenu", &vrActions.EscapeMenu);
-	vr::VRInput()->GetActionHandle("/actions/otto/in/CheatButton", &vrActions.CheatButton);  
-	vr::VRInput()->GetActionHandle("/actions/otto/out/Haptic", &vrActions.Vibration);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/FistLeft", &vrActions.FistLeft);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/FistRight", &vrActions.FistRight);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/PunchOrPickUp", &vrActions.PunchOrPickUp);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/PreviousWeapon", &vrActions.PreviousWeapon);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/NextWeapon", &vrActions.NextWeapon);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/EscapePause", &vrActions.EscapePause);
+	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/CheatButton", &vrActions.CheatButton);  
+	vr::VRInput()->GetActionHandle("/actions/haptics/out/Haptic", &vrActions.Vibration);
 
 	vr::VRInput()->GetInputSourceHandle("/user/hand/left", &leftHandOnly);
 	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &rightHandOnly);
 
+	actionSetTable[VR_ACTIONSET_GAMEPLAY] = ottoNormalGameplayActions;
+	actionSetTable[VR_ACTIONSET_LEVEL9]   = ottoNormalGameplayActions; // placeholder until the level 9 set exists (ottoLevel9GameplayActions)
+	actionSetTable[VR_ACTIONSET_MENU]     = ottoMenuActions;
 
-	activeActionSet.ulActionSet = ottoVRactions;
-	activeActionSet.ulRestrictedToDevice = vr::k_ulInvalidInputValueHandle;
-	activeActionSet.nPriority = 0; // might be needed? Unsure
+	
+	vrcpp_SetMainActionSet(VR_ACTIONSET_GAMEPLAY);
+	activeActionSets[0].ulRestrictedToDevice = vr::k_ulInvalidInputValueHandle;
+
+	activeActionSets[1].ulActionSet = ottoHaptics;
+	activeActionSets[1].ulRestrictedToDevice = vr::k_ulInvalidInputValueHandle;	
 }
 
 extern "C" void vrcpp_UpdateActionState(void) {
-	auto error = vr::VRInput()->UpdateActionState(&activeActionSet, sizeof(activeActionSet), 1);
+	auto error = vr::VRInput()->UpdateActionState(&activeActionSets[0], sizeof(activeActionSets[0]), 2);
 	if (error != vr::EVRInputError::VRInputError_None)
 	{
 		std::cerr << "Error UpdateActionState.\n";
@@ -107,23 +144,23 @@ extern "C" vrJoyPos vrcpp_GetAnalogActionData(int actionToDo) {
 	switch (actionToDo) {
 	case playerActions::vrCameraXY:
 		actionHandler = vrActions.CameraXY;
-		actionDataStruct = cameraXYAction;
+		actionDataStruct = cameraXYdata;
 		break;
 	case playerActions::vrMoveXY:
 		actionHandler = vrActions.MoveXY;
-		actionDataStruct = moveXYAction;
+		actionDataStruct = moveXYdata;
 		break;
 	case playerActions::vrShoot:
 		actionHandler = vrActions.Shoot;
-		actionDataStruct = shootAction;
+		actionDataStruct = shootData;
 		break;
 	case playerActions::vrFistLeft:
 		actionHandler = vrActions.FistLeft;
-		actionDataStruct = fistLeftAction;
+		actionDataStruct = fistLeftData;
 		break;
 	case playerActions::vrFistRight:
 		actionHandler = vrActions.FistRight;
-		actionDataStruct = fistRightAction;
+		actionDataStruct = fistRightData;
 		break;
 	default:
 		printf("vrcpp_GetAnalogActionData called incorrectly");
@@ -155,27 +192,27 @@ extern "C" bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndH
 	switch (actionToDo) {
 	case playerActions::vrJump:
 		actionHandler = vrActions.Jump;
-		actionDataStruct = jumpAction;
+		actionDataStruct = jumpData;
 		break;
 	case playerActions::vrPunchOrPickUp:
 		actionHandler = vrActions.PunchOrPickUp;
-		actionDataStruct = punchOrPickupAction;
+		actionDataStruct = punchOrPickupData;
 		break;
 	case playerActions::vrPreviousWeapon:
 		actionHandler = vrActions.PreviousWeapon;
-		actionDataStruct = previousWeaponAction;
+		actionDataStruct = previousWeaponData;
 		break;
 	case playerActions::vrNextWeapon:
 		actionHandler = vrActions.NextWeapon;
-		actionDataStruct = nextWeaponAction;
+		actionDataStruct = nextWeaponData;
 		break;
-	case playerActions::vrEscapeMenu:
-		actionHandler = vrActions.EscapeMenu;
-		actionDataStruct = EscapeMenuAction;
+	case playerActions::vrEscapePause:
+		actionHandler = vrActions.EscapePause;
+		actionDataStruct = EscapePauseData;
 		break;
 	case playerActions::vrCheatButton:
 		actionHandler = vrActions.CheatButton;
-		actionDataStruct = cheatButtonAction;
+		actionDataStruct = cheatButtonData;
 		break;
 	default:
 		printf("vrcpp_GetDigitalActionData called incorrectly");
@@ -246,3 +283,5 @@ extern "C" void vrcpp_DoVRthumbstickCamera(float rotationSpeed) {
 		vrInfoHMD.HMDYawCorrected = vrInfoHMD.camThumbstickAccum;
 		// printf("\nROTATE X: %f                  ", VRcameraJoyPostionX);
 	}
+
+
