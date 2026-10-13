@@ -93,7 +93,40 @@ static int					gMouseHoverColumn = -1;
 static SDL_Cursor*			gHandCursor = NULL;
 static SDL_Cursor*			gStandardCursor = NULL;
 
-static int					frameCounter;
+static float				gRepeatTimerUp, gRepeatTimerDown, gRepeatTimerLeft, gRepeatTimerRight;
+
+
+/******************** MENU REPEAT **********************/
+//
+// Returns true on the frames where a direction should move.
+//   newPress = button went down this frame -> always acts right away
+//   held     = button is down right now    -> after `delay` seconds, repeats every `interval` seconds
+// Each direction needs its own timer.
+//
+
+Boolean MenuRepeat(Boolean newPress, Boolean held, float* timer, float delay, float interval)
+{
+	if (newPress)
+	{
+		*timer = -delay;							// start negative so the first repeat waits the delay
+		return true;
+	}
+
+	if (!held)
+	{
+		*timer = 0;
+		return false;
+	}
+
+	*timer += gFramesPerSecondFrac;					// count real seconds while held
+	if (*timer >= interval)
+	{
+		*timer -= interval;
+		return true;
+	}
+
+	return false;
+}
 
 /****************************/
 /*    MENU UTILITIES        */
@@ -477,8 +510,7 @@ static void NavigateSettingEntriesMouseHover(void)
 static void NavigateAction(const MenuItem* entry)
 {
 	if (GetNewNeedState(kNeed_UIConfirm) || (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT))
-		|| vrcpp_GetDigitalActionData(vrPunchOrPickUp, true)
-		|| vrcpp_GetDigitalActionData(vrJump, true))
+		|| vrcpp_GetDigitalActionData(vrMenuEnter, true))
 	{
 		if (entry->action.callback != MenuCallback_Back)
 			PlayEffect(kSfxCycle);
@@ -493,8 +525,7 @@ static void NavigateAction(const MenuItem* entry)
 static void NavigatePick(const MenuItem* entry)
 {
 	if (GetNewNeedState(kNeed_UIConfirm) || (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT))
-		|| vrcpp_GetDigitalActionData(vrPunchOrPickUp, true)
-		|| vrcpp_GetDigitalActionData(vrJump, true))
+		|| vrcpp_GetDigitalActionData(vrMenuEnter, true))
 	{
 		gMenuPick = entry->pick;
 
@@ -505,8 +536,7 @@ static void NavigatePick(const MenuItem* entry)
 static void NavigateSubmenuButton(const MenuItem* entry)
 {
 	if (GetNewNeedState(kNeed_UIConfirm) || (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT))
-		|| vrcpp_GetDigitalActionData(vrPunchOrPickUp, true)
-		|| vrcpp_GetDigitalActionData(vrJump, true))
+		|| vrcpp_GetDigitalActionData(vrMenuEnter, true))
 	{
 		if (gMenuStyle->playMenuChangeSounds)
 			PlayEffect(kSfxMenuChange);
@@ -520,46 +550,28 @@ static void NavigateSubmenuButton(const MenuItem* entry)
 static void NavigateCycler(const MenuItem* entry)
 {
 	int delta = 0;
-	float	minFramesBetweenActions = gFramesPerSecond / 3;
 
-	if (GetNewNeedState(kNeed_UILeft)
-		|| GetNewNeedState(kNeed_UIPrev)
-		|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_RIGHT)) 
-		|| vrcpp_GetAnalogActionData(vrMoveXY).x <= -VRminimumThumbstickDefault
-		|| vrcpp_GetAnalogActionData(vrCameraXY).x <= -VRminimumThumbstickDefault) 
-	{
-		if (frameCounter >= minFramesBetweenActions || GetNewNeedState(kNeed_UILeft)
-			|| GetNewNeedState(kNeed_UIPrev)
-			|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_RIGHT)))
-		{
+	Boolean left = MenuRepeat(
+			GetNewNeedState(kNeed_UILeft)
+				|| GetNewNeedState(kNeed_UIPrev)
+				|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_RIGHT))
+				|| vrcpp_GetDigitalActionData(vrMenuLeft, true),
+			GetNeedState(kNeed_UILeft) || vrcpp_GetDigitalHeld(vrMenuLeft),
+			&gRepeatTimerLeft, MENU_REPEAT_DELAY, MENU_REPEAT_INTERVAL);
+
+	Boolean right = MenuRepeat(
+			GetNewNeedState(kNeed_UIRight)
+				|| GetNewNeedState(kNeed_UINext)
+				|| GetNewNeedState(kNeed_UIConfirm)
+				|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT))
+				|| vrcpp_GetDigitalActionData(vrMenuRight, true),
+			GetNeedState(kNeed_UIRight) || vrcpp_GetDigitalHeld(vrMenuRight),
+			&gRepeatTimerRight, MENU_REPEAT_DELAY, MENU_REPEAT_INTERVAL);
+
+	if (left)
 		delta = -1;
-		frameCounter = 0;
-		}
-	}
-	else if (GetNewNeedState(kNeed_UIRight)
-		|| GetNewNeedState(kNeed_UINext)
-		|| GetNewNeedState(kNeed_UIConfirm)
-		|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT))
-		|| vrcpp_GetAnalogActionData(vrMoveXY).x >= VRminimumThumbstickDefault
-		|| vrcpp_GetAnalogActionData(vrCameraXY).x >= VRminimumThumbstickDefault)
-	{
-		if (frameCounter >= minFramesBetweenActions || GetNewNeedState(kNeed_UIRight)
-			|| GetNewNeedState(kNeed_UINext)
-			|| GetNewNeedState(kNeed_UIConfirm)
-			|| (gMouseHoverValidRow && FlushMouseButtonPress(SDL_BUTTON_LEFT)))
-		{
-			delta = 1;
-			frameCounter = 0;
-		}
-	}
-
-	// Add 1 to the frame counter and cap it at the max reasonable fps
-	if (frameCounter >= minFramesBetweenActions * 2.5) {
-		frameCounter = minFramesBetweenActions * 2.5;
-	}
-	else {
-		frameCounter++;
-	}
+	else if (right)
+		delta = 1;
 
 	if (delta != 0)
 	{
@@ -710,37 +722,21 @@ static void NavigateMenu(void)
 {
 	GAME_ASSERT(gMenuStyle->isInteractive);
 
-	float	minFramesBetweenActions = gFramesPerSecond / 4;
-
-
-	if (GetNewNeedState(kNeed_UIBack) || vrcpp_GetDigitalActionData(vrEscapePause, true))
+	if (GetNewNeedState(kNeed_UIBack) || vrcpp_GetDigitalActionData(vrEscapePause, true) || vrcpp_GetDigitalActionData(vrMenuBack, true))
 		MenuCallback_Back();
 
-	if (GetNewNeedState(kNeed_UIUp) || vrcpp_GetAnalogActionData(vrMoveXY).y >= VRminimumThumbstickDefault
-		|| vrcpp_GetAnalogActionData(vrCameraXY).y >= VRminimumThumbstickDefault)
+	if (MenuRepeat(GetNewNeedState(kNeed_UIUp) || vrcpp_GetDigitalActionData(vrMenuUp, true),
+				   GetNeedState(kNeed_UIUp) || vrcpp_GetDigitalHeld(vrMenuUp),
+				   &gRepeatTimerUp, MENU_REPEAT_DELAY, MENU_REPEAT_INTERVAL))
 	{
-		if (frameCounter >= minFramesBetweenActions || GetNewNeedState(kNeed_UIUp)) {
-			NavigateSettingEntriesVertically(-1);
-			frameCounter = 0;
-		}
+		NavigateSettingEntriesVertically(-1);
 	}
 
-	if (GetNewNeedState(kNeed_UIDown) || vrcpp_GetAnalogActionData(vrMoveXY).y <= -VRminimumThumbstickDefault
-		|| vrcpp_GetAnalogActionData(vrCameraXY).y <= -VRminimumThumbstickDefault)
+	if (MenuRepeat(GetNewNeedState(kNeed_UIDown) || vrcpp_GetDigitalActionData(vrMenuDown, true),
+				   GetNeedState(kNeed_UIDown) || vrcpp_GetDigitalHeld(vrMenuDown),
+				   &gRepeatTimerDown, MENU_REPEAT_DELAY, MENU_REPEAT_INTERVAL))
 	{
-		if (frameCounter >= minFramesBetweenActions || GetNewNeedState(kNeed_UIDown)) {
-			NavigateSettingEntriesVertically(1);
-			frameCounter = 0;
-		}
-	}
-
-
-	// Add 1 to the frame counter and cap it at the max reasonable fps
-	if (frameCounter >= minFramesBetweenActions * 2.5) {
-		frameCounter = minFramesBetweenActions * 2.5;
-	}
-	else {
-		frameCounter++;
+		NavigateSettingEntriesVertically(1);
 	}
 
 	NavigateSettingEntriesMouseHover();

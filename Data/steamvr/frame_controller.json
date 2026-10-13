@@ -2,7 +2,7 @@
    "action_manifest_version" : 0,
    "alias_info" : {},
    "bindings" : {
-      "/actions/ottoGameplayGameplay" : {
+      "/actions/haptics" : {
          "haptics" : [
             {
                "output" : "/actions/haptics/out/haptic",
@@ -12,22 +12,154 @@
                "output" : "/actions/haptics/out/haptic",
                "path" : "/user/hand/right/output/haptic"
             }
-         ],
-         "sources" : [
+         ]
+      },
+      "/actions/menus": {
+         "sources": [
             {
-               "inputs" : {
-                  "click" : {
-                     "output" : "/actions/ottoGameplayGameplay/in/jump"
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuEnter"
                   }
                },
-               "mode" : "button",
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/right/input/a"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuUp"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/left/input/dpad_up"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuDown"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/left/input/dpad_down"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuLeft"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/left/input/dpad_left"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuRight"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/left/input/dpad_right"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuBack"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/right/input/menu"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuBack"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/left/input/view"
+            },
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/menus/in/MenuBack"
+                  }
+               },
+               "mode": "button",
+               "parameters": {},
+               "path": "/user/hand/right/input/b"
+            },
+            {
+               "path": "/user/hand/left/input/thumbstick",
+               "mode": "dpad",
+               "parameters": {
+                  "deadzone_pct": "65",
+                  "overlap_pct": "20",
+                  "sub_mode": "touch"
+               },
+               "inputs": {
+                  "north": {
+                     "output": "/actions/menus/in/MenuUp"
+                  },
+                  "south": {
+                     "output": "/actions/menus/in/MenuDown"
+                  },
+                  "west": {
+                     "output": "/actions/menus/in/MenuLeft"
+                  },
+                  "east": {
+                     "output": "/actions/menus/in/MenuRight"
+                  }
+               }
+            },
+            {
+               "path": "/user/hand/right/input/thumbstick",
+               "mode": "dpad",
+               "parameters": {
+                  "deadzone_pct": "65",
+                  "overlap_pct": "20",
+                  "sub_mode": "touch"
+               },
+               "inputs": {
+                  "north": {
+                     "output": "/actions/menus/in/MenuUp"
+                  },
+                  "south": {
+                     "output": "/actions/menus/in/MenuDown"
+                  },
+                  "west": {
+                     "output": "/actions/menus/in/MenuLeft"
+                  },
+                  "east": {
+                     "output": "/actions/menus/in/MenuRight"
+                  }
+               }
+            }
+         ]
+      },
+      "/actions/ottoGameplay": {
+         "sources": [
+            {
+               "inputs": {
+                  "click": {
+                     "output": "/actions/ottoGameplay/in/jump"
+                  }
+               },
+               "mode": "button",
                "parameters" : {},
                "path" : "/user/hand/right/input/a"
             },
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/ottoGameplayGameplay/in/shoot"
+                     "output" : "/actions/ottoGameplay/in/shoot"
                   }
                },
                "mode" : "trigger",
@@ -37,7 +169,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/ottoGameplayGameplay/in/punchorpickup"
+                     "output" : "/actions/ottoGameplay/in/punchorpickup"
                   }
                },
                "mode" : "button",

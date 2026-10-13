@@ -87,3 +87,9 @@ int StartMenu(
 		void (*backgroundDrawRoutine)(void));
 void LayoutCurrentMenuAgain(void);
 void MenuCallback_Back(void);
+
+// Menu button repeat: a new press always acts immediately (mash as fast as you like);
+// holding waits `delay` seconds, then repeats every `interval` seconds.
+#define	MENU_REPEAT_DELAY		0.40f
+#define	MENU_REPEAT_INTERVAL	0.08f
+Boolean MenuRepeat(Boolean newPress, Boolean held, float* timer, float delay, float interval);

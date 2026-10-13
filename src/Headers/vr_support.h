@@ -18,7 +18,13 @@ enum playerActions
 	vrCheatButton,
 	vrLeftVibrate,
 	vrRightVibrate,
-	vrBothVibrate
+	vrBothVibrate,
+	vrMenuEnter,
+	vrMenuUp,
+	vrMenuDown,
+	vrMenuLeft,
+	vrMenuRight,
+	vrMenuBack
 };
 
 enum VRActionSetID

@@ -23,6 +23,13 @@ struct VRActionHandlers // vrActions is an instance of this
 	vr::VRActionHandle_t EscapePause;
 	vr::VRActionHandle_t CheatButton; 
 
+	vr::VRActionHandle_t MenuEnter;
+	vr::VRActionHandle_t MenuUp;
+	vr::VRActionHandle_t MenuDown;
+	vr::VRActionHandle_t MenuLeft;
+	vr::VRActionHandle_t MenuRight;
+	vr::VRActionHandle_t MenuBack;
+
 	vr::VRActionHandle_t Vibration;
 
 
@@ -59,10 +66,38 @@ static vr::InputDigitalActionData_t MenuUpData{};
 static vr::InputDigitalActionData_t MenuDownData{};
 static vr::InputDigitalActionData_t MenuLeftData{};
 static vr::InputDigitalActionData_t MenuRightData{};
+static vr::InputDigitalActionData_t MenuBackData{};
+
+// When the action set switches, a button still held from the old set (e.g. A = MenuEnter)
+// would look like a brand-new press to the new set's action (A = Jump). SteamVR can take a
+// frame or more to report the new set's states, so instead of ignoring a fixed number of
+// frames, every action is blocked after a switch until its button is seen released.
+#define MAX_DIGITAL_ACTIONS 64
+static bool blockedUntilReleased[MAX_DIGITAL_ACTIONS];
+
+// Returns true if this action must be ignored right now (and unblocks it once released)
+static bool IsBlockedUntilReleased(int actionToDo, const vr::InputDigitalActionData_t& data)
+{
+	if (actionToDo < 0 || actionToDo >= MAX_DIGITAL_ACTIONS || !blockedUntilReleased[actionToDo])
+		return false;
+
+	if (data.bActive && !data.bState)							// button seen up -> fair game again
+		blockedUntilReleased[actionToDo] = false;
+
+	return true;
+}
 
 // Action set switcher (haptic action set always active) 
 extern "C" void vrcpp_SetMainActionSet(enum VRActionSetID which) {
-	activeActionSets[0].ulActionSet = actionSetTable[which];
+	if (activeActionSets[0].ulActionSet != actionSetTable[which])
+	{
+		printf("VR_INPUT: Action set now -> %d  (0=gameplay 1=level9 2=menu, -1=none)\n", (int)which);
+
+		activeActionSets[0].ulActionSet = actionSetTable[which];
+
+		for (int i = 0; i < MAX_DIGITAL_ACTIONS; i++)			// held buttons don't carry over into the new set
+			blockedUntilReleased[i] = true;
+	}
 }
 
 extern "C" void vrcpp_initSteamVRInput(void) {
@@ -112,6 +147,13 @@ extern "C" void vrcpp_initSteamVRInput(void) {
 	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/EscapePause", &vrActions.EscapePause);
 	vr::VRInput()->GetActionHandle("/actions/ottoGameplay/in/CheatButton", &vrActions.CheatButton);  
 	vr::VRInput()->GetActionHandle("/actions/haptics/out/Haptic", &vrActions.Vibration);
+
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuEnter", &vrActions.MenuEnter);
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuUp", &vrActions.MenuUp);
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuDown", &vrActions.MenuDown);
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuLeft", &vrActions.MenuLeft);
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuRight", &vrActions.MenuRight);
+	vr::VRInput()->GetActionHandle("/actions/menus/in/MenuBack", &vrActions.MenuBack);
 
 	vr::VRInput()->GetInputSourceHandle("/user/hand/left", &leftHandOnly);
 	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &rightHandOnly);
@@ -188,31 +230,43 @@ extern "C" vrJoyPos vrcpp_GetAnalogActionData(int actionToDo) {
 
 extern "C" bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndHold) {
 	vr::VRActionHandle_t actionHandler;
-	vr::InputDigitalActionData_t actionDataStruct;
+	vr::InputDigitalActionData_t actionDataStruct = {};
 	switch (actionToDo) {
 	case playerActions::vrJump:
 		actionHandler = vrActions.Jump;
-		actionDataStruct = jumpData;
 		break;
 	case playerActions::vrPunchOrPickUp:
 		actionHandler = vrActions.PunchOrPickUp;
-		actionDataStruct = punchOrPickupData;
 		break;
 	case playerActions::vrPreviousWeapon:
 		actionHandler = vrActions.PreviousWeapon;
-		actionDataStruct = previousWeaponData;
 		break;
 	case playerActions::vrNextWeapon:
 		actionHandler = vrActions.NextWeapon;
-		actionDataStruct = nextWeaponData;
 		break;
 	case playerActions::vrEscapePause:
 		actionHandler = vrActions.EscapePause;
-		actionDataStruct = EscapePauseData;
 		break;
 	case playerActions::vrCheatButton:
 		actionHandler = vrActions.CheatButton;
-		actionDataStruct = cheatButtonData;
+		break;
+	case playerActions::vrMenuEnter:
+		actionHandler = vrActions.MenuEnter;
+		break;
+	case playerActions::vrMenuUp:
+		actionHandler = vrActions.MenuUp;
+		break;
+	case playerActions::vrMenuDown:
+		actionHandler = vrActions.MenuDown;
+		break;
+	case playerActions::vrMenuLeft:
+		actionHandler = vrActions.MenuLeft;
+		break;
+	case playerActions::vrMenuRight:
+		actionHandler = vrActions.MenuRight;
+		break;
+	case playerActions::vrMenuBack:
+		actionHandler = vrActions.MenuBack;
 		break;
 	default:
 		printf("vrcpp_GetDigitalActionData called incorrectly");
@@ -224,6 +278,8 @@ extern "C" bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndH
 	if (!actionDataStruct.bActive) {
 		// printf("vrcpp_GetDigitalActionData Problem, available to be bound: no\n"); // If this is printed, something wrong
 	}
+	if (IsBlockedUntilReleased(actionToDo, actionDataStruct))
+		return false;												// still held from before the action set switched
 	if (actionDataStruct.bState && actionDataStruct.bChanged) {
 		// printf("Changed\n"); // Use to test, prints if command detects
 		if (preventPressAndHold) {
@@ -244,6 +300,26 @@ extern "C" bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndH
 	else {
 		return false;
 	}
+}
+
+// True every frame the button is physically down. Only for things that WANT hold-to-repeat (menu scrolling)
+extern "C" bool vrcpp_GetDigitalHeld(int actionToDo) {
+	vr::VRActionHandle_t actionHandler;
+	switch (actionToDo) {
+	case playerActions::vrMenuUp:    actionHandler = vrActions.MenuUp;    break;
+	case playerActions::vrMenuDown:  actionHandler = vrActions.MenuDown;  break;
+	case playerActions::vrMenuLeft:  actionHandler = vrActions.MenuLeft;  break;
+	case playerActions::vrMenuRight: actionHandler = vrActions.MenuRight; break;
+	default:
+		printf("vrcpp_GetDigitalHeld called incorrectly\n");
+		return false;
+	}
+
+	vr::InputDigitalActionData_t data = {};
+	vr::VRInput()->GetDigitalActionData(actionHandler, &data, sizeof(data), notRestrictedToHand);
+	if (IsBlockedUntilReleased(actionToDo, data))
+		return false;												// still held from before the action set switched
+	return data.bActive && data.bState;
 }
 
 extern "C" void vrcpp_DoVibrationHaptics(int handToVibrate,

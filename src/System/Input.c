@@ -102,6 +102,18 @@ void UpdateInput(void)
 	gMouseMotionNow = false;
 	gEatMouse = false;
 
+	// Check what action set we should be using
+	if (gGamePaused || gPlayerInMainMenu) {
+		vrcpp_SetMainActionSet(VR_ACTIONSET_MENU);
+	}
+	else if (gLevelNum == 9) {
+		vrcpp_SetMainActionSet(VR_ACTIONSET_LEVEL9);
+	}
+	else {
+		vrcpp_SetMainActionSet(VR_ACTIONSET_GAMEPLAY);
+	}
+
+
 	// Check if any SteamVR Control has been pressed
 	vrcpp_UpdateActionState();
 
@@ -386,10 +398,12 @@ void UpdateInput(void)
 	}
 
 
-		/* CHECK IF VR WANTS TO PAUSE GAME */
-	
+	/* CHECK IF VR WANTS TO PAUSE GAME */
+
 	if (!gPlayerInMainMenu) { // Don't check when in main menu or the game will auto-pause as soon as it starts
-		if (vrcpp_GetDigitalActionData(vrEscapePause, true))
+		if (vrcpp_GetDigitalActionData(vrEscapePause, true)
+			|| (vrcpp_GetDigitalActionData(vrMenuBack, true))
+			)
 		{
 			if (gGamePaused) {
 				gGameIsPausedVR = false; // If game is already paused, the pause key should tell it to unpause
@@ -484,6 +498,9 @@ Boolean UserWantsOut(void)
 		|| GetNewNeedState(kNeed_UIStart)
 		|| vrcpp_GetDigitalActionData(vrPunchOrPickUp, true)
 		|| vrcpp_GetDigitalActionData(vrJump, true)
+		|| vrcpp_GetDigitalActionData(vrMenuBack, true)
+		|| vrcpp_GetDigitalActionData(vrMenuEnter, true)
+		|| vrcpp_GetDigitalActionData(vrEscapePause, true)
 		|| FlushMouseButtonPress(SDL_BUTTON_LEFT);
 }
 

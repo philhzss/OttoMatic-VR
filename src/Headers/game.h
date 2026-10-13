@@ -92,6 +92,10 @@ void vrcpp_UpdateActionState(void);
 // preventPressAndHold  ->   prevent old actions, should be false for most game actions but true for most menus
 bool vrcpp_GetDigitalActionData(int actionToDo, bool preventPressAndHold);
 
+// True every frame the button is physically down.
+bool vrcpp_GetDigitalHeld(int actionToDo);
+
+
 // Get Action Data (see if triggered). This function is for analog (vector) actions only, no digital bools
 vrJoyPos vrcpp_GetAnalogActionData(int actionToDo);
 

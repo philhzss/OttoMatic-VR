@@ -97,8 +97,12 @@
       "name": "/actions/menus/in/MenuRight",
       "requirement": "optional",
       "type": "boolean"
+    },
+    {
+      "name": "/actions/menus/in/MenuBack",
+      "requirement": "optional",
+      "type": "boolean"
     }
-
 
 
 
@@ -124,7 +128,7 @@
       "/actions/ottoGameplay/in/NextWeapon": "Next Weapon",
       "/actions/ottoGameplay/in/EscapePause": "Pause/Escape",
       "/actions/ottoGameplay/in/CheatButton": "Cheats override",
-      "/actions/menus/in/MenuEnter": "Select / Enter",
+      "/actions/menus/in/MenuEnter": "Menu Select / Enter",
       "/actions/menus/in/MenuUp" : "Menu - Up",
       "/actions/menus/in/MenuDown" : "Menu - Down",
       "/actions/menus/in/MenuLeft" : "Menu - Left",
