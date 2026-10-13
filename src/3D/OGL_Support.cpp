@@ -865,8 +865,8 @@ void OGL_DrawScene(void (*drawRoutine)(void))
         uint64_t t0 = SDL_GetPerformanceCounter();
         vr::VRCompositor()->WaitGetPoses(trackedDevices, vr::k_unMaxTrackedDeviceCount, NULL, 0);
         float wgp_ms = (float)(SDL_GetPerformanceCounter() - t0) * 1000.0f / (float)freq;
-        if (wgp_ms < 5.0f)
-            printf("[VR] Late frame! WaitGetPoses only blocked %.2f ms (prev frame over budget)\n", wgp_ms);
+        // if (wgp_ms < 5.0f)
+        //     printf("[VR] Late frame! WaitGetPoses only blocked %.2f ms (prev frame over budget)\n", wgp_ms);
     }
 
     uint64_t t_work_start = SDL_GetPerformanceCounter();
@@ -1035,15 +1035,15 @@ void OGL_DrawScene(void (*drawRoutine)(void))
     gVRDrawRoutineMs = 0;
     s_frameCount++;
 
-    if (s_frameCount >= 90)
-    {
-        float n = (float)s_frameCount;
-        printf("[VR render] avg/frame: draw=%.2f(both eyes)  left=%.2f  right=%.2f  submit=%.2f  mirror=%.2f  TOTAL=%.2f ms  polys=%d\n",
-               s_drawMs/n, s_leftMs/n, s_rightMs/n, s_submitMs/n, s_mirrorMs/n, s_totalMs/n, s_polyCount/s_frameCount);
-        s_leftMs = s_rightMs = s_submitMs = s_mirrorMs = s_totalMs = s_drawMs = 0;
-        s_polyCount = 0;
-        s_frameCount = 0;
-    }
+    // if (s_frameCount >= 90)
+    // {
+    //     float n = (float)s_frameCount;
+    //     printf("[VR render] avg/frame: draw=%.2f(both eyes)  left=%.2f  right=%.2f  submit=%.2f  mirror=%.2f  TOTAL=%.2f ms  polys=%d\n",
+    //            s_drawMs/n, s_leftMs/n, s_rightMs/n, s_submitMs/n, s_mirrorMs/n, s_totalMs/n, s_polyCount/s_frameCount);
+    //     s_leftMs = s_rightMs = s_submitMs = s_mirrorMs = s_totalMs = s_drawMs = 0;
+    //     s_polyCount = 0;
+    //     s_frameCount = 0;
+    // }
 }
 
 /******************* OGL DRAW EYE *********************/
